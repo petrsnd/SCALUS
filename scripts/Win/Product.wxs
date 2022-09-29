@@ -2,10 +2,9 @@
 <?define ProductUpgradeCode="71bf8eb3-8498-438a-b1c4-e5165e0ed7a4"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
     <Product Id="*" UpgradeCode="$(var.ProductUpgradeCode)"
-        Name="scalus" Version="$(var.Version)" Manufacturer="One Identity" Language="1033">
+        Name="SCALUS" Version="$(var.Version)" Manufacturer="One Identity" Language="1033">
         <Package InstallerVersion="$(var.Minimum_Version)" Compressed="yes" Comments="Windows Installer Package" InstallScope="perMachine"/>
         <Media Id="1" Cabinet="product.cab" EmbedCab="yes"/>
-
         <Upgrade Id="$(var.ProductUpgradeCode)">
             <UpgradeVersion Minimum="$(var.Version)" IncludeMinimum="no" OnlyDetect="no" Property="NEWERVERSIONDETECTED"/>
             <UpgradeVersion Minimum="0.0.0.0" Maximum="$(var.Version)" IncludeMinimum="yes" IncludeMaximum="yes" Property="OLDERVERSIONBEINGUPGRADED"/>
@@ -13,6 +12,7 @@
         <Condition Message="A newer version of this software is already installed.">NOT NEWERVERSIONDETECTED</Condition>
     <MajorUpgrade AllowSameVersionUpgrades="yes" AllowDowngrades="no" DowngradeErrorMessage="A newer version of [ProductName] is already installed. If you are sure you want to downgrade, remove the existing installation via Programs and Features." Schedule="afterInstallFinalize"/>
 
+        <Icon Id="scalus.ico" SourceFile="$(var.sourcedir)\scalus.ico" />
         <WixVariable Id="WixUILicenseRtf" Value="$(var.tmpdir)\license.rtf" />
 
         <Directory Id="TARGETDIR" Name="SourceDir">
@@ -21,8 +21,9 @@
                     <Component Id="ApplicationFiles" Guid="ae36b4af-d3ac-4f74-bdaf-98587e6fffe8" >
                       <File Id="AppFile1" Source="$(var.sourcedir)\appsettings.json" />
                       <File Id="AppFile2" Source="$(var.sourcedir)\scalus.exe" />
-                      <File Id="AppFile3" Source="$(var.sourcedir)\web.config" />
-                      <File Id="AppFile4" Source="$(var.tmpdir)\readme.txt" />
+                      <File Id="AppFile3" Source="$(var.sourcedir)\scalus.ico" />
+                      <File Id="AppFile4" Source="$(var.sourcedir)\web.config" />
+                      <File Id="AppFile5" Source="$(var.tmpdir)\readme.txt" />
                     </Component>
                     <Component Id="WindowingFiles" Guid="48428c66-0b4c-4e08-9945-bccf4011b78c">
                       <File Id="WindowingFile1" Source="$(var.sourcedir)\aspnetcorev2_inprocess.dll" />
@@ -67,9 +68,9 @@
             <Directory Id="ProgramMenuFolder">
                 <Directory Id="ProgramMenuSubfolder" Name="SCALUS">
                     <Component Id="ApplicationShortcuts" Guid="755ffdfc-4255-4374-99a5-e604984abb02">
-                        <Shortcut Id="ApplicationShortcut1" Name="ScalusUI" Description="SCALUS UI"
-                            Target="[INSTALLDIR]scalus.exe" WorkingDirectory="INSTALLDIR"/>
-                        <Shortcut Id="ApplicationShortcut2" Name="Readme" Description="SCALUS ReadMe"
+                        <Shortcut Id="ApplicationShortcut1" Name="SCALUS" Description="SCALUS Configuration"
+                            Target="[INSTALLDIR]scalus.exe" WorkingDirectory="INSTALLDIR" Icon="scalus.ico"/>
+                        <Shortcut Id="ApplicationShortcut2" Name="SCALUS Readme" Description="SCALUS ReadMe"
                             Target="[INSTALLDIR]readme.txt" WorkingDirectory="INSTALLDIR"/>
                         <RegistryValue Root="HKCU" Key="Software\OneIdentity\SCALUS"
                             Name="installed" Type="integer" Value="1" KeyPath="yes"/>

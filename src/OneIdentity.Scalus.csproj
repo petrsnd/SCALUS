@@ -96,7 +96,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="scalus.ico" />
+    <Content Include="scalus.ico">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="Ui\Web\3rdpartylicenses.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
