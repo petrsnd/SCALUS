@@ -139,18 +139,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Platform\MacOS\MacOSProtocolRegistrar - Copy %282%29.cs.hide">
-      <DependentUpon>MacOSProtocolRegistrar.cs.hide</DependentUpon>
-    </None>
-    <None Update="Platform\MacOS\MacOSProtocolRegistrar - Copy - Copy.cs.hide">
-      <DependentUpon>MacOSProtocolRegistrar - Copy.cs.hide</DependentUpon>
-    </None>
-    <None Update="Platform\MacOS\MacOSProtocolRegistrar - Copy.cs.hide">
-      <DependentUpon>MacOSProtocolRegistrar.cs.hide</DependentUpon>
-    </None>
-  </ItemGroup>
-
-  <ItemGroup>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
       <_Parameter1>OneIdentity.Scalus.Test</_Parameter1>
     </AssemblyAttribute>
