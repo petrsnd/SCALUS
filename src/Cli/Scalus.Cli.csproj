@@ -1,0 +1,68 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+  The SCALUS command-line executable (scalus). This is the OS hot path:
+  the protocol handlers registered on the workstation point here. It is a thin
+  entry point over Scalus.Core; the verbs and DI composition still live in Core
+  for now and move here in the follow-up DI/serializer pass.
+  -->
+  <PropertyGroup>
+    <Edition>community</Edition>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RootNamespace>OneIdentity.Scalus</RootNamespace>
+    <AssemblyName>scalus</AssemblyName>
+    <StartupObject>OneIdentity.Scalus.Program</StartupObject>
+    <SignAssembly>false</SignAssembly>
+    <AssemblyOriginatorKeyFile>signer.pfx</AssemblyOriginatorKeyFile>
+    <RuntimeIdentifiers>linux-x64;osx-x64;win-x64</RuntimeIdentifiers>
+    <Company>One Identity LLC</Company>
+    <Copyright>Copyright 2021 One Identity LLC</Copyright>
+    <Authors>One Identity</Authors>
+    <PackageProjectUrl>https://github.com/OneIdentity/SCALUS</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/OneIdentity/SCALUS</RepositoryUrl>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Edition)'=='supported'">
+    <ApplicationIcon>..\scalus-safeguard.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Edition)'=='community'">
+    <ApplicationIcon>..\scalus-community.ico</ApplicationIcon>
+    <DefineConstants>$(DefineConstants);COMMUNITY_EDITION</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DefineConstants>$(DefineConstants);TRACE</DefineConstants>
+    <NoWarn>1701;1702;CA1416</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <NoWarn>1701;1702;CA1416</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OneIdentity.Scalus.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="..\stylecop.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\.editorconfig" Link=".editorconfig" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="StyleCop.Analyzers" Version="1.1.118">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+</Project>

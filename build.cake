@@ -228,7 +228,7 @@ Task("Publish")
     .Does(() =>
     {
        DotNetPublish(
-            "./src/OneIdentity.Scalus.csproj",
+            "./src/Cli/Scalus.Cli.csproj",
             new DotNetPublishSettings()
             {
                 Configuration = configuration,

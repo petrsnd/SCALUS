@@ -34,7 +34,7 @@ namespace OneIdentity.Scalus
     using Serilog;
     using Serilog.Sinks.SystemConsole.Themes;
 
-    internal class Program
+    internal sealed class Program
     {
         private static int Main(string[] args)
         {

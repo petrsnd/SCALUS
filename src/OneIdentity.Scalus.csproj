@@ -9,12 +9,11 @@
   </PropertyGroup>
   
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
+    <OutputType>Library</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <RootNamespace>OneIdentity.Scalus</RootNamespace>
-    <AssemblyName>scalus</AssemblyName>
-    <StartupObject>OneIdentity.Scalus.Program</StartupObject>
+    <AssemblyName>Scalus.Core</AssemblyName>
     <SignAssembly>false</SignAssembly>
     <AssemblyOriginatorKeyFile>signer.pfx</AssemblyOriginatorKeyFile>
     <RuntimeIdentifiers>linux-x64;osx-x64;win-x64</RuntimeIdentifiers>
@@ -26,12 +25,7 @@
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Edition)'=='supported'">
-    <ApplicationIcon>scalus-safeguard.ico</ApplicationIcon>
-  </PropertyGroup>
-
   <PropertyGroup Condition="'$(Edition)'=='community'">
-    <ApplicationIcon>scalus-community.ico</ApplicationIcon>
     <DefineConstants>$(DefineConstants);COMMUNITY_EDITION</DefineConstants>
   </PropertyGroup>
 
@@ -46,6 +40,11 @@
 
   <ItemGroup>
     <Content Remove="stylecop.json" />
+  </ItemGroup>
+
+  <!-- The CLI entry point (scalus.exe) lives in the sibling Scalus.Cli project. -->
+  <ItemGroup>
+    <Compile Remove="Cli\**\*.cs" />
   </ItemGroup>
 
   <!-- Scalus.Ui is a separate project living under src/; keep its sources out of this glob. -->
@@ -103,6 +102,9 @@
   <ItemGroup>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
       <_Parameter1>OneIdentity.Scalus.Test</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>scalus</_Parameter1>
     </AssemblyAttribute>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
       <_Parameter1>scalus-ui</_Parameter1>
