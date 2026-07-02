@@ -1,0 +1,57 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <AssemblyName>scalus-ui</AssemblyName>
+    <RootNamespace>OneIdentity.Scalus.Ui</RootNamespace>
+    <NoWarn>1701;1702;CA1416</NoWarn>
+    <UiSourceDir>$(MSBuildProjectDirectory)\..\..\ui</UiSourceDir>
+    <UiDistDir>$(UiSourceDir)\dist\scalus-ui\browser</UiDistDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Photino.NET" Version="4.0.16" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OneIdentity.Scalus.csproj" />
+  </ItemGroup>
+
+  <!-- Shipped default configurations used to seed a fresh per-user install. -->
+  <ItemGroup>
+    <Content Include="..\..\scripts\Win\SCALUS.json" Link="defaults\windows.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\scripts\Osx\SCALUS.json" Link="defaults\mac.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\scripts\Linux\SCALUS.json" Link="defaults\linux.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!-- Build the Angular front-end and stage it into the output as wwwroot. The web
+       assets are a build product, never checked in. -->
+  <Target Name="BuildAngularUi" BeforeTargets="Build" Inputs="$(UiSourceDir)\package.json" Outputs="$(UiDistDir)\index.html">
+    <Message Importance="high" Text="Installing Angular dependencies..." Condition="!Exists('$(UiSourceDir)\node_modules')" />
+    <Exec Command="npm ci" WorkingDirectory="$(UiSourceDir)" Condition="!Exists('$(UiSourceDir)\node_modules')" />
+    <Message Importance="high" Text="Building Angular front-end..." />
+    <Exec Command="npm run build" WorkingDirectory="$(UiSourceDir)" />
+  </Target>
+
+  <Target Name="StageAngularUi" AfterTargets="Build">
+    <ItemGroup>
+      <AngularArtifacts Include="$(UiDistDir)\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(AngularArtifacts)"
+          DestinationFiles="@(AngularArtifacts->'$(OutDir)wwwroot\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
+
+  <Target Name="StageAngularUiForPublish" AfterTargets="Publish">
+    <ItemGroup>
+      <AngularArtifactsPublish Include="$(UiDistDir)\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(AngularArtifactsPublish)"
+          DestinationFiles="@(AngularArtifactsPublish->'$(PublishDir)wwwroot\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
+
+</Project>

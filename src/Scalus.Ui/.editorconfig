@@ -1,0 +1,7 @@
+# The webview host is a thin bridge layer; the following analyzer suggestions are
+# perf/style nits that conflict with the message-handler shape (delegate return
+# types, per-call handler methods). Keep them as warnings here.
+[*.cs]
+dotnet_diagnostic.CA1822.severity = warning
+dotnet_diagnostic.CA1859.severity = warning
+dotnet_diagnostic.CA1861.severity = warning

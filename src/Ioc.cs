@@ -39,6 +39,7 @@ namespace OneIdentity.Scalus
             builder.RegisterType<CommandLineHandler>().As<ICommandLineParser>().SingleInstance();
             builder.RegisterType<Registration>().As<IRegistration>().SingleInstance();
             builder.RegisterType<ScalusConfiguration>().AsImplementedInterfaces().SingleInstance();
+            builder.RegisterType<ScalusApiConfiguration>().As<IScalusApiConfiguration>();
             builder.RegisterType<ProtocolHandlerFactory>().AsImplementedInterfaces().SingleInstance();
 
             // Perform platform-specific registrations here

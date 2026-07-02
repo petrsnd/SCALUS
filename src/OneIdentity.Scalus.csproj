@@ -47,6 +47,14 @@
     <Content Remove="stylecop.json" />
   </ItemGroup>
 
+  <!-- Scalus.Ui is a separate project living under src/; keep its sources out of this glob. -->
+  <ItemGroup>
+    <Compile Remove="Scalus.Ui\**\*.cs" />
+    <Content Remove="Scalus.Ui\**" />
+    <None Remove="Scalus.Ui\**" />
+    <EmbeddedResource Remove="Scalus.Ui\**" />
+  </ItemGroup>
+
   <ItemGroup>
     <None Remove="Resources\Default.rdp" />
   </ItemGroup>
@@ -94,6 +102,9 @@
   <ItemGroup>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
       <_Parameter1>OneIdentity.Scalus.Test</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>scalus-ui</_Parameter1>
     </AssemblyAttribute>
   </ItemGroup>
 
