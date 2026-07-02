@@ -18,8 +18,17 @@ namespace OneIdentity.Scalus.Ui
     internal static class Program
     {
         [STAThread]
-        private static void Main(string[] args)
+        private static int Main(string[] args)
         {
+            // When the OS invokes this executable as a protocol handler it passes a verb such as
+            // "launch -u rdp://...". In that case we must run headless through the shared CLI
+            // pipeline (spawning the native session client) instead of opening the config window.
+            // Only a bare invocation with no arguments opens the desktop UI.
+            if (args.Length > 0)
+            {
+                return CommandLineRunner.Run(args);
+            }
+
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Information()
                 .WriteTo.File(
@@ -40,6 +49,8 @@ namespace OneIdentity.Scalus.Ui
             {
                 Log.CloseAndFlush();
             }
+
+            return 0;
         }
 
         private static void Run()
