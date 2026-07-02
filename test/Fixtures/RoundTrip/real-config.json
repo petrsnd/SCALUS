@@ -1,0 +1,38 @@
+{
+  "Protocols": [
+    { "Protocol": "rdp", "AppId": "rdp-signed" },
+    { "Protocol": "ssh", "AppId": "ssh-plain" }
+  ],
+  "Applications": [
+    {
+      "Id": "rdp-signed",
+      "Name": "Windows RDP (signed)",
+      "Platforms": [ "Windows" ],
+      "Protocol": "rdp",
+      "Exec": "mstsc.exe",
+      "Args": [ "%GeneratedFile%" ],
+      "Description": "Real-world app that post-processes the generated .rdp before launch.",
+      "Parser": {
+        "ParserId": "rdp",
+        "Options": [ "waitforinputidle" ],
+        "TemplateContent": "full address:s:%Host%\nusername:s:%User%\nscreen mode id:i:2",
+        "TemplateExtension": ".rdp",
+        "PostProcessingExec": "%AppData%\\rdpsign.exe",
+        "PostProcessingArgs": [ "/sha256", "%Thumbprint%", "%GeneratedFile%" ]
+      }
+    },
+    {
+      "Id": "ssh-plain",
+      "Name": "OpenSSH (no post-processing)",
+      "Platforms": [ "Windows", "Linux", "Mac" ],
+      "Protocol": "ssh",
+      "Exec": "ssh.exe",
+      "Args": [ "-l", "%User%", "%Host%", "-p", "%Port%" ],
+      "Description": "Command-line only app; no generated file and no post-processing.",
+      "Parser": {
+        "ParserId": "ssh",
+        "Options": [ "waitforexit" ]
+      }
+    }
+  ]
+}

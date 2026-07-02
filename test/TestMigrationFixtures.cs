@@ -35,7 +35,7 @@ namespace OneIdentity.Scalus.Test
         private static string Canonicalize(ScalusConfig config) =>
             JsonConvert.SerializeObject(config, Settings);
 
-        private static ScalusConfig LoadLegacyConfigWithResolvedPaths()
+        private static string ResolvedLegacyConfigJson()
         {
             var templatesDir = Path.Combine(FixturesDir, "templates");
             var raw = File.ReadAllText(Path.Combine(FixturesDir, "legacy-config.json"));
@@ -43,9 +43,41 @@ namespace OneIdentity.Scalus.Test
             // The fixture stores template paths as "__FIXTURES__\WinRdpTemplate.rdp"; point them at the
             // real files copied next to the test assembly. JSON-escape the backslashes in the path.
             var jsonSafeDir = templatesDir.Replace("\\", "\\\\");
-            raw = raw.Replace("__FIXTURES__", jsonSafeDir);
+            return raw.Replace("__FIXTURES__", jsonSafeDir);
+        }
 
-            return Deserialize(raw);
+        private static ScalusConfig LoadLegacyConfigWithResolvedPaths() =>
+            Deserialize(ResolvedLegacyConfigJson());
+
+        // Minimal derivation so the test can drive the real protected Load(path) pipeline
+        // (file read -> validate/deserialize -> MigrateLegacyTemplates -> external template pull-in).
+        private sealed class DiskLoader : ScalusConfigurationBase
+        {
+            public ScalusConfig LoadFrom(string path) => Load(path);
+        }
+
+        // The truest end-to-end shape of the user request: an older config sitting on disk, alongside
+        // its external template files, loaded through the production Load() path and compared whole
+        // against the fully-inlined golden. No direct call to the migration helper.
+        [Fact]
+        public void LoadFromDiskInlinesEverythingAndMatchesGolden()
+        {
+            var tempDir = Path.Combine(Path.GetTempPath(), "scalus-mig-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempDir);
+            try
+            {
+                var configPath = Path.Combine(tempDir, "SCALUS.json");
+                File.WriteAllText(configPath, ResolvedLegacyConfigJson());
+
+                var loaded = new DiskLoader().LoadFrom(configPath);
+
+                var expected = Deserialize(File.ReadAllText(Path.Combine(FixturesDir, "expected-inlined.json")));
+                Assert.Equal(Canonicalize(expected), Canonicalize(loaded));
+            }
+            finally
+            {
+                Directory.Delete(tempDir, true);
+            }
         }
 
         [Fact]
