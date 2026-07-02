@@ -198,9 +198,12 @@ namespace OneIdentity.Scalus.Util
                     return scalusJson;
                 }
 
-                var path = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? ProdAppPath : Constants.GetBinaryDirectory();
-
-                scalusJson = Path.Combine(RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? ProdAppPath : Constants.GetBinaryDirectory(), JsonFile);
+                // Persist the working configuration in the per-user application data
+                // directory on every platform. This keeps the CLI launcher and the
+                // configuration UI pointed at the same file, and keeps the config
+                // writable even when SCALUS is installed under a read-only location
+                // such as Program Files.
+                scalusJson = Path.Combine(ProdAppPath, JsonFile);
                 return scalusJson;
             }
         }
