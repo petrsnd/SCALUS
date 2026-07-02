@@ -25,6 +25,6 @@ namespace OneIdentity.Scalus
 
     internal interface ICommandLineParser
     {
-        IApplication Build(string[] args, Func<object, IApplication> applicationResolver);
+        IApplication Build(string[] args, Func<object, IApplication> applicationResolver, out int exitCode);
     }
 }

@@ -44,41 +44,27 @@ namespace OneIdentity.Scalus
             Console.WriteLine(community ? "Community Edition" : "Safeguard Edition");
             ConfigureLogging();
             CheckConfig();
-            IOsServices services = null;
             try
             {
                 // Register components with Microsoft.Extensions.DependencyInjection
                 var logger = new LoggerConfiguration().WriteTo.Console(theme: ConsoleTheme.None).CreateLogger();
                 using var provider = Ioc.RegisterApplication(logger);
-                services = provider.GetRequiredService<IOsServices>();
 
                 // Resolve the command line parser and
                 // resolve a corresponding application instance
                 var parser = provider.GetRequiredService<ICommandLineParser>();
-                var application = parser.Build(args, x => Ioc.CreateVerbApplication(provider, x));
+                var application = parser.Build(args, x => Ioc.CreateVerbApplication(provider, x), out var exitCode);
 
-                // If application is null, then they ran help or version commands, just return
+                // If application is null, then they ran help, version, or an invalid command
                 if (application == null)
                 {
                     ReleaseLaunchSemaphore();
-                    return 0;
+                    return exitCode;
                 }
 
                 // Run application
                 ReleaseLaunchSemaphore();
                 return application.Run();
-            }
-            catch (CommandLineHelpException ex)
-            {
-                // Command line usage
-                if (services != null)
-                {
-                    services.ShowMessage(ex.Message);
-                }
-                else
-                {
-                    Serilog.Log.Error(ex.Message);
-                }
             }
             catch (Exception ex)
             {

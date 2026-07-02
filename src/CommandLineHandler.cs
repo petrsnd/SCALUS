@@ -23,97 +23,28 @@ namespace OneIdentity.Scalus
 {
     using System;
     using System.Collections.Generic;
-    using System.Linq;
-    using System.Reflection;
-    using CommandLine;
-    using CommandLine.Text;
+    using System.CommandLine;
 
     internal class CommandLineHandler : ICommandLineParser
     {
-        public CommandLineHandler(IEnumerable<IVerb> verbs, IUserInteraction userInteraction)
+        public CommandLineHandler(IEnumerable<IVerb> verbs)
         {
             Verbs = verbs;
-            UserInteraction = userInteraction;
         }
 
         private IEnumerable<IVerb> Verbs { get; }
 
-        private IUserInteraction UserInteraction { get; }
-
-        public IApplication Build(string[] args, Func<object, IApplication> appResolver)
+        public IApplication Build(string[] args, Func<object, IApplication> applicationResolver, out int exitCode)
         {
-            using (var parser = new CommandLine.Parser(with =>
+            object parsed = null;
+            var root = new RootCommand("Session Client Application Launch Uri System (SCALUS)");
+            foreach (var verb in Verbs)
             {
-                with.HelpWriter = null;
-            }))
-            {
-                var verbTypes = Verbs.Select(x => x.GetType()).OrderBy(x => x?.GetCustomAttribute<VerbAttribute>()?.Name)?.ToArray();
-                var parserResult = parser.ParseArguments(args, verbTypes);
-
-                IApplication application = null;
-                parserResult
-                    .WithParsed(x =>
-                        {
-                            application = appResolver(x);
-                        })
-                    .WithNotParsed(x => HandleErrors(parserResult, x));
-                return application;
-            }
-        }
-
-        private void HandleErrors<T>(ParserResult<T> parserResult, IEnumerable<Error> errs)
-        {
-            var header = "Session Client Application Launch Uri System (SCALUS)";
-            var copyright = "Copyright (c) 2021 One Identity LLC";
-
-            // Handle version
-            if (errs.IsVersion())
-            {
-                UserInteraction.Message($"{header}\r\n{copyright}\r\nVersion: {Assembly.GetEntryAssembly()?.GetName()?.Version}\r\n");
-                return;
+                root.Add(verb.CreateCommand(o => parsed = o));
             }
 
-            // Handle help
-            if (errs.IsHelp())
-            {
-                string command = parserResult.TypeInfo.Current?.GetCustomAttribute<VerbAttribute>()?.Name;
-                UserInteraction.Message(HelpText.AutoBuild(
-                    parserResult,
-                    h =>
-                    {
-                        h.AddDashesToOption = true;
-                        h.AdditionalNewLineAfterOption = false;
-                        h.Heading = header;
-                        h.Copyright = copyright;
-
-                        if (!string.IsNullOrEmpty(command))
-                        {
-                            h.AddPreOptionsLine($"\r\n{command} options:");
-                            h.AutoVersion = false;
-                        }
-
-                        return h;
-                    },
-                    e => e,
-                    true));
-                return;
-            }
-
-            // Handle errors
-            var helpText = HelpText.AutoBuild(parserResult,
-            h =>
-            {
-                h.AddDashesToOption = true;
-                h.AdditionalNewLineAfterOption = false;
-                h.Heading = header;
-                h.Copyright = copyright;
-                h.AutoHelp = false;
-                h.AutoVersion = false;
-                return HelpText.DefaultParsingErrorsHandler(parserResult, h);
-            },
-            e => e,
-            true);
-            throw new CommandLineHelpException(helpText);
+            exitCode = root.Parse(args).Invoke();
+            return parsed is null ? null : applicationResolver(parsed);
         }
     }
 }

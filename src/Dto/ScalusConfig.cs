@@ -25,7 +25,6 @@ namespace OneIdentity.Scalus.Dto
     using System.Collections.Generic;
     using System.Linq;
     using System.Security.Permissions;
-    using CommandLine;
 
     public class ScalusConfig
     {

@@ -21,15 +21,28 @@
 
 namespace OneIdentity.Scalus.Launch
 {
-    using CommandLine;
+    using System;
+    using System.CommandLine;
 
-    [Verb("launch", HelpText = "Launch an app configured for the specified URL")]
     public class Options : IVerb
     {
-        [Option('u', "url", Required = true, HelpText = "The URL to launch.")]
         public string Url { get; set; }
 
-        [Option('p', "preview", Required = false, HelpText = "Show me what will launch, but dont run it. This will also report the token values and show the contents of the generated file, if applicable.")]
         public bool Preview { get; set; }
+
+        public Command CreateCommand(Action<object> onParsed)
+        {
+            var url = new Option<string>("--url", "-u") { Description = "The URL to launch.", Required = true };
+            var preview = new Option<bool>("--preview", "-p") { Description = "Show me what will launch, but dont run it. This will also report the token values and show the contents of the generated file, if applicable." };
+            var command = new Command("launch", "Launch an app configured for the specified URL");
+            command.Add(url);
+            command.Add(preview);
+            command.SetAction(result =>
+            {
+                onParsed(new Options { Url = result.GetValue(url), Preview = result.GetValue(preview) });
+                return 0;
+            });
+            return command;
+        }
     }
 }

@@ -21,12 +21,24 @@
 
 namespace OneIdentity.Scalus.Verify
 {
-    using CommandLine;
+    using System;
+    using System.CommandLine;
 
-    [Verb("verify", HelpText = "Run a syntax check on a scalus configuration file")]
     public class Options : IVerb
     {
-        [Option('p', "path", Required = false, HelpText = "Path of an alternate scalus configuration file to verify instead")]
         public string Path { get; set; }
+
+        public Command CreateCommand(Action<object> onParsed)
+        {
+            var path = new Option<string>("--path", "-p") { Description = "Path of an alternate scalus configuration file to verify instead" };
+            var command = new Command("verify", "Run a syntax check on a scalus configuration file");
+            command.Add(path);
+            command.SetAction(result =>
+            {
+                onParsed(new Options { Path = result.GetValue(path) });
+                return 0;
+            });
+            return command;
+        }
     }
 }

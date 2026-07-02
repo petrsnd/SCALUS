@@ -21,15 +21,28 @@
 
 namespace OneIdentity.Scalus.Info
 {
-    using CommandLine;
+    using System;
+    using System.CommandLine;
 
-    [Verb("info", HelpText = "Show information about the current scalus configuration")]
     public class Options : IVerb
     {
-        [Option('d', "dto", Required = false, HelpText = "Show DTO description")]
         public bool Dto { get; set; }
 
-        [Option('t', "tokens", Required = false, HelpText = "Show the list of tokens")]
         public bool Tokens { get; set; }
+
+        public Command CreateCommand(Action<object> onParsed)
+        {
+            var dto = new Option<bool>("--dto", "-d") { Description = "Show DTO description" };
+            var tokens = new Option<bool>("--tokens", "-t") { Description = "Show the list of tokens" };
+            var command = new Command("info", "Show information about the current scalus configuration");
+            command.Add(dto);
+            command.Add(tokens);
+            command.SetAction(result =>
+            {
+                onParsed(new Options { Dto = result.GetValue(dto), Tokens = result.GetValue(tokens) });
+                return 0;
+            });
+            return command;
+        }
     }
 }

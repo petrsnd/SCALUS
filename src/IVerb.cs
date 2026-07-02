@@ -21,7 +21,11 @@
 
 namespace OneIdentity.Scalus
 {
+    using System;
+    using System.CommandLine;
+
     public interface IVerb
     {
+        Command CreateCommand(Action<object> onParsed);
     }
 }

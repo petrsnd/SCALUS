@@ -21,22 +21,48 @@
 
 namespace OneIdentity.Scalus.Unregister
 {
+    using System;
     using System.Collections.Generic;
-    using CommandLine;
+    using System.CommandLine;
 
-    [Verb("unregister", HelpText = "Unregister SCALUS for URL handling")]
     public class Options : IVerb
     {
-        [Option('p', "protocols", Required = false, HelpText = "A space-separated list of URL protocols to handle (Default: ssh rdp telnet)", Default = new string[] { "ssh", "rdp", "telnet" })]
         public IEnumerable<string> Protocols { get; set; }
 
-        [Option('r', "root", Required = false, HelpText = "Update system files as well as user files")]
         public bool RootMode { get; set; }
 
-        [Option('s', "sudo", Required = false, HelpText = "use (passwordless) sudo to update system files on supported platforms")]
         public bool UseSudo { get; set; }
 
-        [Option('q', "quiet", Required = false, Hidden = true)]
         public bool Quiet { get; set; }
+
+        public Command CreateCommand(Action<object> onParsed)
+        {
+            var protocols = new Option<string[]>("--protocols", "-p")
+            {
+                Description = "A space-separated list of URL protocols to handle (Default: ssh rdp telnet)",
+                AllowMultipleArgumentsPerToken = true,
+                DefaultValueFactory = _ => new[] { "ssh", "rdp", "telnet" },
+            };
+            var root = new Option<bool>("--root", "-r") { Description = "Update system files as well as user files" };
+            var sudo = new Option<bool>("--sudo", "-s") { Description = "use (passwordless) sudo to update system files on supported platforms" };
+            var quiet = new Option<bool>("--quiet", "-q") { Hidden = true };
+            var command = new Command("unregister", "Unregister SCALUS for URL handling");
+            command.Add(protocols);
+            command.Add(root);
+            command.Add(sudo);
+            command.Add(quiet);
+            command.SetAction(result =>
+            {
+                onParsed(new Options
+                {
+                    Protocols = result.GetValue(protocols),
+                    RootMode = result.GetValue(root),
+                    UseSudo = result.GetValue(sudo),
+                    Quiet = result.GetValue(quiet),
+                });
+                return 0;
+            });
+            return command;
+        }
     }
 }

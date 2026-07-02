@@ -21,22 +21,48 @@
 
 namespace OneIdentity.Scalus.Register
 {
+    using System;
     using System.Collections.Generic;
-    using CommandLine;
+    using System.CommandLine;
 
-    [Verb("register", HelpText = "Register SCALUS to handle URLs")]
     public class Options : IVerb
     {
-        [Option('f', "force", Required = false, HelpText = "Overwrite an existing registration")]
         public bool Force { get; set; }
 
-        [Option('p', "protocols", Required = false, HelpText = "A space-separated list of URL protocols to handle (Default: ssh rdp telnet)", Default = new string[] { "ssh", "rdp", "telnet" })]
         public IEnumerable<string> Protocols { get; set; }
 
-        [Option('r', "root", Required = false, HelpText = "Update system files as well as user files")]
         public bool RootMode { get; set; }
 
-        [Option('s', "sudo", Required = false, HelpText = "use (passwordless) sudo to update system files on supported platforms")]
         public bool UseSudo { get; set; }
+
+        public Command CreateCommand(Action<object> onParsed)
+        {
+            var force = new Option<bool>("--force", "-f") { Description = "Overwrite an existing registration" };
+            var protocols = new Option<string[]>("--protocols", "-p")
+            {
+                Description = "A space-separated list of URL protocols to handle (Default: ssh rdp telnet)",
+                AllowMultipleArgumentsPerToken = true,
+                DefaultValueFactory = _ => new[] { "ssh", "rdp", "telnet" },
+            };
+            var root = new Option<bool>("--root", "-r") { Description = "Update system files as well as user files" };
+            var sudo = new Option<bool>("--sudo", "-s") { Description = "use (passwordless) sudo to update system files on supported platforms" };
+            var command = new Command("register", "Register SCALUS to handle URLs");
+            command.Add(force);
+            command.Add(protocols);
+            command.Add(root);
+            command.Add(sudo);
+            command.SetAction(result =>
+            {
+                onParsed(new Options
+                {
+                    Force = result.GetValue(force),
+                    Protocols = result.GetValue(protocols),
+                    RootMode = result.GetValue(root),
+                    UseSudo = result.GetValue(sudo),
+                });
+                return 0;
+            });
+            return command;
+        }
     }
 }
