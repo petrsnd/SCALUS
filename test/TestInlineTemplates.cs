@@ -169,6 +169,177 @@ namespace OneIdentity.Scalus.Test
         }
 
         [Fact]
+        public void RepairRestoresMissingTemplateFromSeedByMatchingId()
+        {
+            var config = new ScalusConfig
+            {
+                Applications = new List<ApplicationConfig>
+                {
+                    new ApplicationConfig
+                    {
+                        Id = "WindowsRDPDesktopOrApp",
+                        Name = "WindowsRDPDesktopOrApp",
+                        Protocol = "rdp",
+                        Exec = "mstsc.exe",
+                        Args = new List<string> { "%GeneratedFile%" },
+                        Parser = new ParserConfig { ParserId = "rdp" },
+                    },
+                },
+            };
+
+            var seedApps = new List<ApplicationConfig>
+            {
+                new ApplicationConfig
+                {
+                    Id = "windows-rdp",
+                    Parser = new ParserConfig { ParserId = "rdp", TemplateContent = "GENERIC-1841", TemplateExtension = ".rdp" },
+                },
+                new ApplicationConfig
+                {
+                    Id = "WindowsRDPDesktopOrApp",
+                    Parser = new ParserConfig { ParserId = "rdp", TemplateContent = "DESKTOP-OR-APP-1071", TemplateExtension = ".rdp" },
+                },
+            };
+
+            var changed = ScalusConfigurationBase.RepairMissingTemplatesFromSeed(config, seedApps);
+
+            Assert.True(changed);
+            var parser = config.Applications.Single().Parser;
+            Assert.True(parser.HasTemplate);
+            // The template must come from the seed app with the SAME Id, not the first rdp seed.
+            Assert.Equal("DESKTOP-OR-APP-1071", parser.TemplateContent);
+            Assert.Equal(".rdp", parser.TemplateExtension);
+        }
+
+        [Fact]
+        public void RepairRestoresFromPostProcessingGeneratedFile()
+        {
+            var config = new ScalusConfig
+            {
+                Applications = new List<ApplicationConfig>
+                {
+                    new ApplicationConfig
+                    {
+                        Id = "signed-rdp",
+                        Protocol = "rdp",
+                        Exec = "mstsc.exe",
+                        Args = new List<string> { "/v:%Host%" },
+                        Parser = new ParserConfig
+                        {
+                            ParserId = "rdp",
+                            PostProcessingArgs = new List<string> { "/sha256", "%Thumbprint%", "%GeneratedFile%" },
+                        },
+                    },
+                },
+            };
+
+            var seedApps = new List<ApplicationConfig>
+            {
+                new ApplicationConfig
+                {
+                    Id = "signed-rdp",
+                    Parser = new ParserConfig { ParserId = "rdp", TemplateContent = "SIGNED-TEMPLATE", TemplateExtension = ".rdp" },
+                },
+            };
+
+            Assert.True(ScalusConfigurationBase.RepairMissingTemplatesFromSeed(config, seedApps));
+            Assert.Equal("SIGNED-TEMPLATE", config.Applications.Single().Parser.TemplateContent);
+        }
+
+        [Fact]
+        public void RepairLeavesCommandLineOnlyAppUntouched()
+        {
+            // freerdp builds its command line from tokens and never references %GeneratedFile%,
+            // so it legitimately has no template and must not be "repaired".
+            var config = new ScalusConfig
+            {
+                Applications = new List<ApplicationConfig>
+                {
+                    new ApplicationConfig
+                    {
+                        Id = "freerdp",
+                        Protocol = "rdp",
+                        Exec = "/usr/bin/xfreerdp",
+                        Args = new List<string> { "/u:%User%", "/v:%Host%:%Port%", "/p:Safeguard" },
+                        Parser = new ParserConfig { ParserId = "rdp" },
+                    },
+                },
+            };
+
+            var seedApps = new List<ApplicationConfig>
+            {
+                new ApplicationConfig
+                {
+                    Id = "freerdp",
+                    Parser = new ParserConfig { ParserId = "rdp", TemplateContent = "SHOULD-NOT-BE-USED" },
+                },
+            };
+
+            Assert.False(ScalusConfigurationBase.RepairMissingTemplatesFromSeed(config, seedApps));
+            Assert.False(config.Applications.Single().Parser.HasTemplate);
+        }
+
+        [Fact]
+        public void RepairIsNoOpWhenNoSeedIdMatches()
+        {
+            var config = new ScalusConfig
+            {
+                Applications = new List<ApplicationConfig>
+                {
+                    new ApplicationConfig
+                    {
+                        Id = "custom-rdp",
+                        Protocol = "rdp",
+                        Args = new List<string> { "%GeneratedFile%" },
+                        Parser = new ParserConfig { ParserId = "rdp" },
+                    },
+                },
+            };
+
+            var seedApps = new List<ApplicationConfig>
+            {
+                new ApplicationConfig
+                {
+                    Id = "windows-rdp",
+                    Parser = new ParserConfig { ParserId = "rdp", TemplateContent = "GENERIC" },
+                },
+            };
+
+            Assert.False(ScalusConfigurationBase.RepairMissingTemplatesFromSeed(config, seedApps));
+            Assert.False(config.Applications.Single().Parser.HasTemplate);
+        }
+
+        [Fact]
+        public void RepairDoesNotOverwriteAppThatAlreadyHasTemplate()
+        {
+            var config = new ScalusConfig
+            {
+                Applications = new List<ApplicationConfig>
+                {
+                    new ApplicationConfig
+                    {
+                        Id = "windows-rdp",
+                        Protocol = "rdp",
+                        Args = new List<string> { "%GeneratedFile%" },
+                        Parser = new ParserConfig { ParserId = "rdp", TemplateContent = "USER-EDITED" },
+                    },
+                },
+            };
+
+            var seedApps = new List<ApplicationConfig>
+            {
+                new ApplicationConfig
+                {
+                    Id = "windows-rdp",
+                    Parser = new ParserConfig { ParserId = "rdp", TemplateContent = "SEED" },
+                },
+            };
+
+            Assert.False(ScalusConfigurationBase.RepairMissingTemplatesFromSeed(config, seedApps));
+            Assert.Equal("USER-EDITED", config.Applications.Single().Parser.TemplateContent);
+        }
+
+        [Fact]
         public void MigrationIsNoOpWhenAlreadyInline()
         {
             var config = new ScalusConfig

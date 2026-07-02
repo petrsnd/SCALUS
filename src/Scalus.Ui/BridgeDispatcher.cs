@@ -222,6 +222,11 @@ namespace OneIdentity.Scalus.Ui
             try
             {
                 var api = this.services.GetRequiredService<IScalusApiConfiguration>();
+
+                // Repair legacy/empty templates on disk so CLI launches (which read the same file)
+                // get working generated files even if the user never re-saves from the UI.
+                api.MigrateOnDisk();
+
                 var config = api.GetConfiguration();
                 var changed = false;
 
@@ -243,6 +248,13 @@ namespace OneIdentity.Scalus.Ui
                             "Seeded {Count} default applications with unconfigured built-in protocols",
                             seedApps.Count);
                     }
+                }
+                else if (ScalusConfigurationBase.RepairMissingTemplatesFromSeed(config, LoadSeedApplications()))
+                {
+                    // An existing config can have lost the inline template for an application
+                    // (older or hand-edited configs). Restore it from the shipped defaults by Id
+                    // so the generated file isn't empty and launches keep working.
+                    changed = true;
                 }
 
                 // The built-in protocols can never be deleted, so make sure a row exists

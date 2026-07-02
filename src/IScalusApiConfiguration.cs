@@ -32,6 +32,8 @@ namespace OneIdentity.Scalus
         ScalusServerConfig GetConfiguration();
 
         List<string> SaveConfiguration(ScalusConfig configuration);
+
+        bool MigrateOnDisk();
     }
 
     internal interface IScalusConfiguration
