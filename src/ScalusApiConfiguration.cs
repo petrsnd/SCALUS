@@ -24,9 +24,8 @@ namespace OneIdentity.Scalus
     using System;
     using System.Collections.Generic;
     using System.IO;
-    using Newtonsoft.Json;
-    using Newtonsoft.Json.Serialization;
     using OneIdentity.Scalus.Dto;
+    using OneIdentity.Scalus.Util;
 
     internal class ScalusApiConfiguration : ScalusConfigurationBase, IScalusApiConfiguration
     {
@@ -86,15 +85,9 @@ namespace OneIdentity.Scalus
 
         private bool ValidateAndSave(ScalusConfig configuration, bool save = true)
         {
-            var serializerSettings = new JsonSerializerSettings
-            {
-                ContractResolver = new CamelCasePropertyNamesContractResolver(),
-                Formatting = Formatting.Indented,
-            };
-
             try
             {
-                var json = JsonConvert.SerializeObject(configuration, serializerSettings);
+                var json = ScalusJson.Serialize(configuration);
                 var ok = false;
                 (ok, _) = Validate(json);
                 if (ok)

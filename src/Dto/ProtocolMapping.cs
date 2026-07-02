@@ -22,8 +22,8 @@
 namespace OneIdentity.Scalus.Dto
 {
     using System.Collections.Generic;
+    using System.Text.Json.Serialization;
     using System.Text.RegularExpressions;
-    using Newtonsoft.Json;
 
     public class ProtocolMapping
     {

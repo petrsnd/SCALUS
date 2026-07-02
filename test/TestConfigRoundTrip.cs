@@ -2,29 +2,22 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
 using Xunit;
 using OneIdentity.Scalus;
 using OneIdentity.Scalus.Dto;
+using OneIdentity.Scalus.Util;
 
 namespace OneIdentity.Scalus.Test
 {
     // Verifies the "edit + save leaves untouched fields exactly as they were" round-trip claim on
-    // realistic data. The save path (ScalusApiConfiguration.ValidateAndSave) serializes with a
-    // CamelCase resolver + indented formatting and writes the file; loading (ScalusConfigurationBase.Load)
-    // reads + deserializes + migrates. This drives that same serialize -> write -> Load pipeline against
-    // an app that sets PostProcessingExec/Args (which the editor never renders) and an app that sets
-    // neither, and asserts nothing is dropped, mangled, or invented.
+    // realistic data. The save path (ScalusApiConfiguration.ValidateAndSave) serializes with the
+    // shared ScalusJson options (camelCase + indented) and writes the file; loading
+    // (ScalusConfigurationBase.Load) reads + deserializes + migrates. This drives that same
+    // serialize -> write -> Load pipeline against an app that sets PostProcessingExec/Args (which
+    // the editor never renders) and an app that sets neither, and asserts nothing is dropped,
+    // mangled, or invented.
     public class TestConfigRoundTrip
     {
-        // Mirrors ScalusApiConfiguration.ValidateAndSave: how the configuration is persisted to disk.
-        private static readonly JsonSerializerSettings SaveSettings = new JsonSerializerSettings
-        {
-            ContractResolver = new CamelCasePropertyNamesContractResolver(),
-            Formatting = Formatting.Indented,
-        };
-
         private static readonly string[] ExpectedRdpSignArgs = { "/sha256", "%Thumbprint%", "%GeneratedFile%" };
 
         private static string FixturePath =>
@@ -35,7 +28,8 @@ namespace OneIdentity.Scalus.Test
             public ScalusConfig LoadFrom(string path) => Load(path);
         }
 
-        private static string Save(ScalusConfig config) => JsonConvert.SerializeObject(config, SaveSettings);
+        // Mirrors ScalusApiConfiguration.ValidateAndSave: how the configuration is persisted to disk.
+        private static string Save(ScalusConfig config) => ScalusJson.Serialize(config);
 
         // Persist a config the way SaveConfiguration does, then reopen it the way the app does on launch.
         private static ScalusConfig SaveAndReload(ScalusConfig config)

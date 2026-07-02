@@ -249,29 +249,29 @@ namespace OneIdentity.Scalus.Test
         {
             var json = @"
                {
-                    'Protocols':[
+                    ""Protocols"":[
                         { 
-                            'Protocol': 'one',
-                            'AppId' : 'id'
+                            ""Protocol"": ""one"",
+                            ""AppId"" : ""id""
                         }
                     ],
-                    'Applications':[
+                    ""Applications"":[
                         {
-                            'Id':'id',
-                            'Name':'appname',
-                            'Description':'desc',
-                            'Platforms':['Windows','Linux','Mac'],
-                            'Protocol':'one',
-                            'Parser':{
-                                'ParserId':'url',
-                                'Options':['waitforexit'],
-                                'UseDefaultTemplate':false,
-                                'UseTemplateFile':'/path/tofile',
-                                'PostProcessingExec':'path/toplugin',
-                                'PostProcessingArgs':['arg1','arg2']
+                            ""Id"":""id"",
+                            ""Name"":""appname"",
+                            ""Description"":""desc"",
+                            ""Platforms"":[""Windows"",""Linux"",""Mac""],
+                            ""Protocol"":""one"",
+                            ""Parser"":{
+                                ""ParserId"":""url"",
+                                ""Options"":[""waitforexit""],
+                                ""UseDefaultTemplate"":false,
+                                ""UseTemplateFile"":""/path/tofile"",
+                                ""PostProcessingExec"":""path/toplugin"",
+                                ""PostProcessingArgs"":[""arg1"",""arg2""]
                             },
-                            'Exec':'/path/tocommand',
-                            'Args':['arg1','arg2']
+                            ""Exec"":""/path/tocommand"",
+                            ""Args"":[""arg1"",""arg2""]
                         }
                     ]
                 }
@@ -280,10 +280,10 @@ namespace OneIdentity.Scalus.Test
 
             json = @"
                    {
-                        'Applications':[
+                        ""Applications"":[
                             {
-                                'Id':'id',
-                                'Platforms':['rubbish']
+                                ""Id"":""id"",
+                                ""Platforms"":[""rubbish""]
                             }
                         ]
                     }
@@ -292,10 +292,10 @@ namespace OneIdentity.Scalus.Test
 
             json = @"
                    {
-                        'Applications':[
+                        ""Applications"":[
                             {
-                                'Id':'id',
-                                'Platforms':[]
+                                ""Id"":""id"",
+                                ""Platforms"":[]
                             }
                         ]
                     }
@@ -304,10 +304,10 @@ namespace OneIdentity.Scalus.Test
 
             json = @"
                    {
-                        'Applications':[
+                        ""Applications"":[
                             {
-                                'Id':'id',
-                                'Platforms':['windows']
+                                ""Id"":""id"",
+                                ""Platforms"":[""windows""]
                             }
                         ]
                     }
@@ -316,13 +316,13 @@ namespace OneIdentity.Scalus.Test
 
             json = @"
                    {
-                        'Applications':[
+                        ""Applications"":[
                             {
-                                'Id':'id',
-                                'Platforms':['windows'],
-                                'Protocol': 'one',
-                                 'Parser':{
-                                    'ParserId':'url',
+                                ""Id"":""id"",
+                                ""Platforms"":[""windows""],
+                                ""Protocol"": ""one"",
+                                 ""Parser"":{
+                                    ""ParserId"":""url"",
                                 },
 
                             }
@@ -331,37 +331,37 @@ namespace OneIdentity.Scalus.Test
 ";
             CheckJson(json, 1);
 
-            json = "{}";
+            json = @"{}";
             CheckJson(json, 0);
 
-            json = "{'Protocols':[]}";
+            json = @"{""Protocols"":[]}";
             CheckJson(json, 0);
 
-            json = "{'Protocols':[{'Protocol':'one'}, {'Protocol':'one'}]}";
+            json = @"{""Protocols"":[{""Protocol"":""one""}, {""Protocol"":""one""}]}";
             CheckJson(json, 1);
 
-            json = "{'Protocols':[{'Protocol':'one', 'AppId':'missing'}]}";
+            json = @"{""Protocols"":[{""Protocol"":""one"", ""AppId"":""missing""}]}";
             CheckJson(json, 1);
 
             json = @"
                    {
-                        'Applications':[
+                        ""Applications"":[
                             {
-                                'Id':'id',
-                                'Platforms':['windows'],
-                                'Protocol': 'one',
-                                'Exec':'one',
-                                 'Parser':{
-                                    'ParserId':'url',
+                                ""Id"":""id"",
+                                ""Platforms"":[""windows""],
+                                ""Protocol"": ""one"",
+                                ""Exec"":""one"",
+                                 ""Parser"":{
+                                    ""ParserId"":""url"",
                                 },
                             },
                             {
-                                'Id':'id',
-                                'Platforms':['windows'],
-                                'Protocol': 'one',
-                                'Exec':'one',
-                                 'Parser':{
-                                    'ParserId':'url',
+                                ""Id"":""id"",
+                                ""Platforms"":[""windows""],
+                                ""Protocol"": ""one"",
+                                ""Exec"":""one"",
+                                 ""Parser"":{
+                                    ""ParserId"":""url"",
                                 },
                             }
                         ]
@@ -369,31 +369,27 @@ namespace OneIdentity.Scalus.Test
 ";
             CheckJson(json, 1);
 
-            json = "{'Protocols':[{'Protocol':'one$'}]}";
+            json = @"{""Protocols"":[{""Protocol"":""one$""}]}";
             CheckJson(json, 1);
         }
 
         [Fact]
         public void TestJson1()
         {
-            var json = "{'Protocols':[{'Protocol':'one$'}]}";
+            var json = @"{""Protocols"":[{""Protocol"":""one$""}]}";
             CheckJson(json, 1);
-            json = "{'Protocols':[{'Protocol':'1one'}]}";
+            json = @"{""Protocols"":[{""Protocol"":""1one""}]}";
             CheckJson(json, 1);
-            json = "{'Protocols':[{'Protocol':'one_'}]}";
+            json = @"{""Protocols"":[{""Protocol"":""one_""}]}";
             CheckJson(json, 1);
-            json = "{'Protocols':[{'Protocol':'one-'}]}";
+            json = @"{""Protocols"":[{""Protocol"":""one-""}]}";
             CheckJson(json, 0);
-            json = "{'Protocols':[{'Protocol':'one+'}]}";
+            json = @"{""Protocols"":[{""Protocol"":""one+""}]}";
             CheckJson(json, 0);
-            json = "{'Protocols':[{'Protocol':'one.'}]}";
+            json = @"{""Protocols"":[{""Protocol"":""one.""}]}";
             CheckJson(json, 0);
-            json = "{'Protocols':[{'Protocol':'one111'}]}";
+            json = @"{""Protocols"":[{""Protocol"":""one111""}]}";
             CheckJson(json, 0);
-
-
-
-
         }
 
         [Fact]

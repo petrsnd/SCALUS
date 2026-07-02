@@ -15,9 +15,10 @@ namespace OneIdentity.Scalus.Ui
     using System.IO;
     using System.Linq;
     using System.Runtime.InteropServices;
+    using System.Text.Encodings.Web;
+    using System.Text.Json;
+    using System.Text.Json.Nodes;
     using Autofac;
-    using Newtonsoft.Json;
-    using Newtonsoft.Json.Linq;
     using OneIdentity.Scalus.Dto;
     using OneIdentity.Scalus.Util;
     using Photino.NET;
@@ -29,6 +30,14 @@ namespace OneIdentity.Scalus.Ui
     internal sealed class BridgeDispatcher
     {
         private static readonly string[] BuiltInProtocols = { "rdp", "ssh" };
+
+        // The front-end consumes PascalCase property names, so the response envelope keeps the
+        // default (no naming policy) shape. Anonymous envelope types can't be source-generated,
+        // so this reflection-based options instance is used only for the small wrapper object.
+        private static readonly JsonSerializerOptions WriteOptions = new(JsonSerializerDefaults.General)
+        {
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        };
 
         private readonly ILifetimeScope container;
         private readonly IRegistration registration;
@@ -48,35 +57,35 @@ namespace OneIdentity.Scalus.Ui
             string id = null;
             try
             {
-                var request = JObject.Parse(message);
-                id = (string)request["id"];
-                var method = (string)request["method"];
-                var args = request["args"] as JArray ?? new JArray();
+                var request = JsonNode.Parse(message).AsObject();
+                id = request["id"]?.GetValue<string>();
+                var method = request["method"]?.GetValue<string>();
+                var args = request["args"] as JsonArray ?? new JsonArray();
 
                 object result = method switch
                 {
                     "getConfig" => GetConfig(),
-                    "saveConfig" => SaveConfig(args[0].ToObject<ScalusConfig>()),
-                    "validate" => Validate(args[0].ToObject<ScalusConfig>()),
+                    "saveConfig" => SaveConfig(args[0].Deserialize<ScalusConfig>(ScalusJson.Disk)),
+                    "validate" => Validate(args[0].Deserialize<ScalusConfig>(ScalusJson.Disk)),
                     "getRegistrations" => GetRegistrations(),
-                    "register" => Register((string)args[0], (string)args[1]),
-                    "unregister" => Unregister((string)args[0]),
+                    "register" => Register(args[0]?.GetValue<string>(), args[1]?.GetValue<string>()),
+                    "unregister" => Unregister(args[0]?.GetValue<string>()),
                     "getTokens" => GetTokens(),
                     "getApplicationDescriptions" => GetApplicationDescriptions(),
                     "getParsers" => ProtocolHandlerFactory.GetSupportedParsers(),
                     "getInfo" => GetInfo(),
-                    "exportToFile" => ExportToFile((string)args[0], (string)args[1]),
+                    "exportToFile" => ExportToFile(args[0]?.GetValue<string>(), args[1]?.GetValue<string>()),
                     "importFromFile" => ImportFromFile(),
                     "getPlatform" => GetPlatform(),
                     _ => throw new InvalidOperationException($"Unknown method '{method}'."),
                 };
 
-                return JsonConvert.SerializeObject(new { id, ok = true, result });
+                return JsonSerializer.Serialize(new { id, ok = true, result }, WriteOptions);
             }
             catch (Exception ex)
             {
                 Serilog.Log.Error(ex, "Bridge call failed");
-                return JsonConvert.SerializeObject(new { id, ok = false, error = ex.Message });
+                return JsonSerializer.Serialize(new { id, ok = false, error = ex.Message }, WriteOptions);
             }
         }
 
@@ -287,7 +296,7 @@ namespace OneIdentity.Scalus.Ui
 
             try
             {
-                var parsed = JsonConvert.DeserializeObject<ScalusConfig>(File.ReadAllText(seed));
+                var parsed = ScalusJson.Deserialize(File.ReadAllText(seed));
                 return parsed?.Applications ?? new List<ApplicationConfig>();
             }
             catch (Exception ex)

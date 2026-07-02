@@ -24,10 +24,9 @@ namespace OneIdentity.Scalus.Dto
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using Newtonsoft.Json;
-    using Newtonsoft.Json.Converters;
+    using System.Text.Json.Serialization;
 
-    [JsonConverter(typeof(StringEnumConverter))]
+    [JsonConverter(typeof(JsonStringEnumConverter<Platform>))]
     public enum Platform
     {
         Windows = 0,

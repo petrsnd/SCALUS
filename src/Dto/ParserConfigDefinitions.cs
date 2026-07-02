@@ -22,6 +22,7 @@
 namespace OneIdentity.Scalus.Dto
 {
     using System.Collections.Generic;
+    using System.Text.Json.Serialization;
 
     public class ParserConfigDefinitions
     {
@@ -68,6 +69,7 @@ namespace OneIdentity.Scalus.Dto
         // Line ending applied to the generated file when a template is materialized.
         // 'Default' is resolved from the generated file extension at write time
         // (.rdp => CrLf, everything else => Lf). Templates are stored LF-canonical in the config.
+        [JsonConverter(typeof(JsonStringEnumConverter<TemplateLineEnding>))]
         public enum TemplateLineEnding
         {
             Default = 0,
@@ -79,6 +81,7 @@ namespace OneIdentity.Scalus.Dto
         // Text encoding used to write the generated file.
         // 'Default' is resolved from the generated file extension at write time
         // (.rdp => Utf16LeBom, which is mstsc-native; everything else => Utf8).
+        [JsonConverter(typeof(JsonStringEnumConverter<TemplateEncoding>))]
         public enum TemplateEncoding
         {
             Default = 0,

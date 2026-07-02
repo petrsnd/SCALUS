@@ -23,7 +23,7 @@ namespace OneIdentity.Scalus.Verify
 {
     using System;
     using System.Collections.Generic;
-    using Newtonsoft.Json;
+    using System.Text.Json;
     using OneIdentity.Scalus.Dto;
     using OneIdentity.Scalus.Util;
 
@@ -60,7 +60,7 @@ namespace OneIdentity.Scalus.Verify
                 Result = Configuration.ValidationErrors?.Count == 0,
                 Errors = Configuration.ValidationErrors,
             };
-            var json = JsonConvert.SerializeObject(result, Formatting.Indented);
+            var json = JsonSerializer.Serialize(result, ScalusJson.Disk);
             UserInteraction.Message(json);
         }
     }

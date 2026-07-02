@@ -2,12 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
 using Xunit;
 using OneIdentity.Scalus;
 using OneIdentity.Scalus.Dto;
 using OneIdentity.Scalus.UrlParser;
+using OneIdentity.Scalus.Util;
 
 namespace OneIdentity.Scalus.Test
 {
@@ -18,22 +17,14 @@ namespace OneIdentity.Scalus.Test
     // per-field behaviour never has to be eyeballed by hand.
     public class TestMigrationFixtures
     {
-        private static readonly JsonSerializerSettings Settings = new JsonSerializerSettings
-        {
-            ContractResolver = new CamelCasePropertyNamesContractResolver(),
-            Formatting = Formatting.Indented,
-        };
-
         private static string FixturesDir =>
             Path.Combine(AppContext.BaseDirectory, "Fixtures", "Migration");
 
-        private static ScalusConfig Deserialize(string json) =>
-            JsonConvert.DeserializeObject<ScalusConfig>(json, Settings);
+        private static ScalusConfig Deserialize(string json) => ScalusJson.Deserialize(json);
 
         // Re-serialize through the production serializer so the comparison is about content, not the
         // hand-authored whitespace / key order of the golden file.
-        private static string Canonicalize(ScalusConfig config) =>
-            JsonConvert.SerializeObject(config, Settings);
+        private static string Canonicalize(ScalusConfig config) => ScalusJson.Serialize(config);
 
         private static string ResolvedLegacyConfigJson()
         {

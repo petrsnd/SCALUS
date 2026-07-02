@@ -22,9 +22,8 @@
 namespace OneIdentity.Scalus.Dto
 {
     using System.Text.Json.Serialization;
-    using Newtonsoft.Json.Converters;
 
-    [JsonConverter(typeof(StringEnumConverter))]
+    [JsonConverter(typeof(JsonStringEnumConverter<Edition>))]
     public enum Edition
     {
         Community = 0,

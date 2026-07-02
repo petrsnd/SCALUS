@@ -24,9 +24,8 @@ namespace OneIdentity.Scalus.Dto
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Text.Json.Serialization;
     using System.Text.RegularExpressions;
-    using Newtonsoft.Json;
-    using Newtonsoft.Json.Converters;
 
     public class ParserConfig
     {
@@ -49,26 +48,24 @@ namespace OneIdentity.Scalus.Dto
 
         // The template text is stored inline in the configuration (LF-canonical). When present, a
         // generated file is materialized at launch and can be referenced via the '%GeneratedFile%' token.
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string TemplateContent { get; set; }
 
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string TemplateExtension { get; set; }
 
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        [JsonConverter(typeof(StringEnumConverter))]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public ParserConfigDefinitions.TemplateLineEnding LineEnding { get; set; }
 
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        [JsonConverter(typeof(StringEnumConverter))]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public ParserConfigDefinitions.TemplateEncoding Encoding { get; set; }
 
         // Deprecated: retained for one-time migration into TemplateContent only. Not shown in the UI and
         // omitted from serialization once cleared. Do not use for new configurations.
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public bool UseDefaultTemplate { get; set; }
 
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string UseTemplateFile { get; set; }
 
         public string PostProcessingExec { get; set; }

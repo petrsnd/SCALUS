@@ -24,8 +24,7 @@ namespace OneIdentity.Scalus
     using System;
     using System.Collections.Generic;
     using System.IO;
-    using Newtonsoft.Json;
-    using Newtonsoft.Json.Serialization;
+    using System.Text.Json;
     using OneIdentity.Scalus.Dto;
     using OneIdentity.Scalus.Util;
 
@@ -77,15 +76,10 @@ namespace OneIdentity.Scalus
         public (bool, ScalusConfig) Validate(string json, bool strict = false)
         {
             var config = new ScalusConfig();
-            var serializerSettings = new JsonSerializerSettings
-            {
-                ContractResolver = new CamelCasePropertyNamesContractResolver(),
-                MissingMemberHandling = strict ? MissingMemberHandling.Error : MissingMemberHandling.Ignore,
-            };
             ValidationErrors = new List<string>();
             try
             {
-                config = JsonConvert.DeserializeObject<ScalusConfig>(json, serializerSettings);
+                config = ScalusJson.Deserialize(json, strict);
             }
             catch (Exception e)
             {
