@@ -1,0 +1,46 @@
+:root {
+  --oi-bg-primary: #ffffff;
+  --oi-bg-secondary: #f1f5f9;
+  --oi-bg-tertiary: #e2e8f0;
+  --oi-bg-brand: #f0f9ff;
+  --oi-bg-success: #f0fdf4;
+  --oi-bg-warning: #fefce8;
+  --oi-bg-error: #fef2f2;
+
+  --oi-content-primary: #0f172b;
+  --oi-content-secondary: #314158;
+  --oi-content-tertiary: #62748e;
+  --oi-content-brand: #0084d1;
+  --oi-content-success: #008236;
+  --oi-content-warning: #a16207;
+  --oi-content-error: #e7000b;
+
+  --oi-brand-base: #00a6f4;
+  --oi-border-strong: #90a1b9;
+  --oi-border: #cad5e2;
+  --oi-border-muted: #e2e8f0;
+
+  --oi-btn-primary: #00a6f4;
+  --oi-btn-primary-hover: #0084d1;
+  --oi-btn-danger: #fb2c36;
+  --oi-btn-danger-hover: #e7000b;
+
+  --oi-space-xs: 4px;
+  --oi-space-s: 8px;
+  --oi-space-m: 12px;
+  --oi-space-l: 16px;
+  --oi-space-xl: 24px;
+  --oi-space-xxl: 32px;
+  --oi-space-xxxl: 48px;
+
+  --oi-radius-s: 2px;
+  --oi-radius: 4px;
+  --oi-radius-l: 8px;
+  --oi-radius-max: 50px;
+
+  --oi-shadow-low: 0 2px 4px rgba(2, 6, 24, 0.08);
+  --oi-shadow-mid: 0 6px 16px rgba(2, 6, 24, 0.12);
+  --oi-shadow-high: 0 16px 48px rgba(2, 6, 24, 0.28);
+  --oi-focus: 0 0 0 3px rgba(0, 166, 244, 0.2);
+  --oi-font: 'Segoe UI', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
