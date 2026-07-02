@@ -21,10 +21,9 @@
 
 namespace OneIdentity.Scalus
 {
-    using System;
-    using System.Collections.Generic;
     using System.Text.RegularExpressions;
     using OneIdentity.Scalus.Platform;
+    using OneIdentity.Scalus.Platform.MacOS;
 
     public class MacOSUserDefaultRegistrar : IProtocolRegistrar
     {
@@ -46,21 +45,15 @@ namespace OneIdentity.Scalus
         // get the current configured default
         public string GetRegisteredCommand(string protocol)
         {
-            var path = Constants.GetBinaryDirectory();
-            var home = Environment.GetEnvironmentVariable("HOME");
-            var res =
-                this.RunCommand("/bin/sh",
-                    new List<string> { "-c", $"HOME=\"{home}\"; export HOME; {path}/scalusmac {protocol}" },
-                    out string output);
-            if (!res)
+            var handler = LaunchServicesInterop.GetDefaultHandler(protocol);
+            if (string.IsNullOrEmpty(handler))
             {
-                Serilog.Log.Warning($"Failed to get the default protocol handler for:{protocol}: {output}");
+                Serilog.Log.Information($"No default protocol handler is configured for:{protocol}");
                 return string.Empty;
             }
 
-            output = Regex.Replace(output, @"\t|\n|\r", string.Empty);
-            Serilog.Log.Information($"Registered command is :{output}.");
-            return Regex.IsMatch(output, "none", RegexOptions.IgnoreCase) ? string.Empty : output;
+            Serilog.Log.Information($"Registered handler is :{handler}.");
+            return handler;
         }
 
         public bool IsScalusRegistered(string protocol)
@@ -92,27 +85,17 @@ namespace OneIdentity.Scalus
             return Register(protocol);
         }
 
-        private bool UpdateConfiguredDefault(string protocol, bool add = true)
+        private static bool UpdateConfiguredDefault(string protocol, bool add = true)
         {
-            var option = add ? "-r" : "-u";
-            var path = Constants.GetBinaryDirectory();
-            var home = Environment.GetEnvironmentVariable("HOME");
-            var res = this.RunCommand("/bin/sh",
-                new List<string>
-                {
-                    "-c",
-                    $"HOME=\"{home}\";export HOME; {path}/scalusmac {protocol} {option}",
-                },
-                out var output);
-            if (!res)
+            var bundleId = add ? MacOsExtensions.ScalusHandler : string.Empty;
+            var status = LaunchServicesInterop.SetDefaultHandler(protocol, bundleId);
+            if (status != 0)
             {
-                Serilog.Log.Error($"Failed to update the configured default:{output}");
+                Serilog.Log.Error($"Failed to update the configured default for:{protocol} (LaunchServices status {status})");
                 return false;
             }
 
             return true;
-
-            // return this.Refresh();
         }
     }
 }

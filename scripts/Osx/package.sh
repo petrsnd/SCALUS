@@ -9,7 +9,7 @@ outpath=""
 appname="scalus"
 publishdir=""
 isrelease=""
-scalusmacdir=""
+scriptdir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 PARAMS=""
 while(( "$#" )); do
@@ -59,15 +59,6 @@ while(( "$#" )); do
          publishdir="$2"
      shift 2
     ;;
-       --scalusmacdir)
-         if [ -z "$2" ] || [ ${2:0:1} = "-" ]; then 
-            echo "Error : missing scalusmacdir"
-            shift
-            exit 1
-     fi
-         scalusmacdir="$2"
-     shift 2
-    ;;
        --isrelease)
          if [ -z "$2" ] || [ ${2:0:1} = "-" ]; then 
             echo "Error : missing isrelease"
@@ -109,11 +100,6 @@ if [ -z "${publishdir}" ]; then
 fi
 if [ ! -f "${publishdir}/scalus" ]; then 
     echo "publishdir must be full path containing published scalus"
-    exit 1
-fi
-
-if [ -z "${scalusmacdir}" ]; then 
-    echo "missing scalusmacdir"
     exit 1
 fi
 
@@ -182,9 +168,7 @@ function resetInfo()
 
 function resetEntitlements()
 {
-    cd ${scalusmacdir}
-    cd ..
-    cd scripts/Osx/${appname}.app/Contents
+    cd ${scriptdir}/${appname}.app/Contents
     ls
     cp entitlements.plist ${tmpdir}/${appname}.app/Contents/entitlements.plist   
     if [ ! -f ${tmpdir}/${appname}.app/Contents/entitlements.plist ]; then 
@@ -217,9 +201,6 @@ fi
 
     cp $publishdir/scalus ${tmpdir}/${appname}.app/Contents/MacOS
     chmod u=rwx,go=rx  ${tmpdir}/${appname}.app/Contents/MacOS/scalus
-
-    cp $scalusmacdir/.build/release/scalusmac ${tmpdir}/${appname}.app/Contents/MacOS
-    chmod u=rwx,go=rx  ${tmpdir}/${appname}.app/Contents/MacOS/scalusmac
 
     mkdir -p ${tmpdir}/${appname}.app/Contents/MacOS/Ui
     chmod a+rx ${tmpdir}/${appname}.app/Contents/MacOS/Ui
