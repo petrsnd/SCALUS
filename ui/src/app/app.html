@@ -90,4 +90,6 @@
 
 <ui-modal [open]="protocolModalOpen" (close)="closeProtocolModal()"><form (ngSubmit)="addProtocol()"><div class="modal-head"><h3>New protocol</h3><p>Register a custom URI scheme with the operating system.</p></div><div class="modal-body"><label for="proto-scheme">Scheme name</label><div class="scheme-row"><input id="proto-scheme" name="proto" class="input" [(ngModel)]="newProtocol" autocomplete="off" placeholder="myapp" /><span>://</span></div><div class="modal-err">{{ protocolError }}</div></div><div class="modal-foot"><ui-button variant="ghost" type="button" (click)="closeProtocolModal()">Cancel</ui-button><ui-button variant="primary" type="submit">Register</ui-button></div></form></ui-modal>
 
+<ui-modal [open]="confirm.open" (close)="resolveConfirm(false)"><div class="modal-head"><h3>{{ confirm.title }}</h3></div><div class="modal-body confirm-body"><p>{{ confirm.message }}</p></div><div class="modal-foot"><ui-button variant="ghost" type="button" (click)="resolveConfirm(false)">Cancel</ui-button><ui-button [variant]="confirm.variant" type="button" (click)="resolveConfirm(true)">{{ confirm.confirmLabel }}</ui-button></div></ui-modal>
+
 <div class="toast" *ngIf="message">{{ message }}</div>

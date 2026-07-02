@@ -164,6 +164,7 @@ textarea.input { resize: vertical; }
 .scheme-row span { font-family: ui-monospace, monospace; color: var(--oi-content-tertiary); }
 .modal-err { min-height: 16px; margin-top: 6px; color: var(--oi-content-error); font-size: 12px; }
 .modal-foot { padding: var(--oi-space-m) var(--oi-space-xl) var(--oi-space-l); display: flex; justify-content: flex-end; gap: var(--oi-space-s); }
+.confirm-body p { margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--oi-content-secondary); }
 .toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); background: var(--oi-content-primary); color: #fff; font-size: 12.5px; padding: 9px 14px; border-radius: var(--oi-radius); box-shadow: var(--oi-shadow-high); z-index: 80; animation: toast-in .18s ease; }
 @keyframes toast-in { from { opacity: 0; transform: translate(-50%, 6px); } to { opacity: 1; transform: translate(-50%, 0); } }
 @media (max-width: 900px) { .app-shell { grid-template-columns: 68px 1fr; } .brand { justify-content: center; padding-left: 0; padding-right: 0; } .brand > div:not(.logo), .footer { display: none; } .nav-item { justify-content: center; gap: 0; padding-left: 0; padding-right: 0; font-size: 0; } .topbar, .content { padding-left: var(--oi-space-l); padding-right: var(--oi-space-l); } }

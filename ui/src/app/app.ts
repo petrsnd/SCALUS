@@ -14,6 +14,14 @@ import { cloneConfig, normalizeApplication, normalizeConfig } from './core/bridg
 
 type Tab = 'protocols' | 'applications' | 'io' | 'about';
 type EditorMode = 'new' | 'edit';
+interface ConfirmState {
+  open: boolean;
+  title: string;
+  message: string;
+  confirmLabel: string;
+  variant: 'primary' | 'danger';
+  resolve?: (ok: boolean) => void;
+}
 
 const BUILT_IN_PROTOCOLS = new Set(['rdp', 'ssh', 'telnet']);
 const TOKEN_GROUPS: Record<string, { connection: string[]; safeguard: boolean }> = {
@@ -51,6 +59,7 @@ export class App implements OnInit {
   protocolModalOpen = false;
   newProtocol = '';
   protocolError = '';
+  confirm: ConfirmState = { open: false, title: '', message: '', confirmLabel: 'Confirm', variant: 'primary' };
 
   nav: { id: Tab; label: string; icon: string }[] = [
     { id: 'protocols', label: 'Protocols', icon: 'eye' },
@@ -160,7 +169,33 @@ export class App implements OnInit {
   editApplication(app: ApplicationConfig): void {
     this.editorMode = 'edit'; this.editorOriginalId = app.Id; this.editor = JSON.parse(JSON.stringify(app)); this.editorOpen = true; this.editorDirty = false; this.editorErrors = [];
   }
-  closeEditor(): void { if (!this.editorDirty || confirm('Discard unsaved changes?')) this.editorOpen = false; }
+  async closeEditor(): Promise<void> {
+    if (!this.editorDirty || await this.askConfirm({
+      title: 'Discard unsaved changes?',
+      message: 'Your edits to this application will be lost. This cannot be undone.',
+      confirmLabel: 'Discard changes',
+      variant: 'danger'
+    })) {
+      this.editorOpen = false;
+    }
+  }
+  private askConfirm(opts: { title: string; message: string; confirmLabel?: string; variant?: 'primary' | 'danger' }): Promise<boolean> {
+    return new Promise<boolean>(resolve => {
+      this.confirm = {
+        open: true,
+        title: opts.title,
+        message: opts.message,
+        confirmLabel: opts.confirmLabel ?? 'Confirm',
+        variant: opts.variant ?? 'primary',
+        resolve
+      };
+    });
+  }
+  resolveConfirm(ok: boolean): void {
+    const resolve = this.confirm.resolve;
+    this.confirm = { ...this.confirm, open: false, resolve: undefined };
+    resolve?.(ok);
+  }
   markDirty(): void { this.editorDirty = true; }
   parserChanged(parser: string): void {
     if (!this.editor) return;
@@ -275,7 +310,12 @@ export class App implements OnInit {
     const text = await this.bridge.importFromFile(); if (!text) return;
     const parsed = normalizeConfig(JSON.parse(text));
     if (!parsed) { this.flash('Import file is not a full SCALUS configuration.'); return; }
-    if (!confirm(`Replace the entire configuration with ${parsed.Applications.length} applications and ${parsed.Protocols.length} protocols?`)) return;
+    if (!await this.askConfirm({
+      title: 'Replace configuration?',
+      message: `This overwrites everything with ${parsed.Applications.length} applications and ${parsed.Protocols.length} protocols. Your current configuration will be lost.`,
+      confirmLabel: 'Replace everything',
+      variant: 'danger'
+    })) return;
     this.config = parsed;
     await this.saveCurrentConfig('Configuration replaced.');
     this.registrations = new Set(await this.bridge.getRegistrations());
