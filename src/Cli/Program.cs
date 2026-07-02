@@ -24,11 +24,9 @@ namespace OneIdentity.Scalus
     using System;
     using System.Diagnostics;
     using System.IO;
-    using System.Reflection;
     using System.Runtime.InteropServices;
     using System.Threading;
-    using Autofac;
-    using CommandLine;
+    using Microsoft.Extensions.DependencyInjection;
     using OneIdentity.Scalus.Platform;
     using OneIdentity.Scalus.Util;
     using Serilog;
@@ -49,21 +47,15 @@ namespace OneIdentity.Scalus
             IOsServices services = null;
             try
             {
-                // Register components with autofac
+                // Register components with Microsoft.Extensions.DependencyInjection
                 var logger = new LoggerConfiguration().WriteTo.Console(theme: ConsoleTheme.None).CreateLogger();
-                using var container = Ioc.RegisterApplication(logger);
-                using var lifetimeScope = container.BeginLifetimeScope();
-                services = lifetimeScope.Resolve<IOsServices>();
+                using var provider = Ioc.RegisterApplication(logger);
+                services = provider.GetRequiredService<IOsServices>();
 
                 // Resolve the command line parser and
                 // resolve a corresponding application instance
-                var parser = lifetimeScope.Resolve<ICommandLineParser>();
-                var application = parser.Build(args, x =>
-                {
-                    var type = x.GetType();
-                    var verb = type?.GetCustomAttribute<VerbAttribute>()?.Name;
-                    return verb == null ? null : lifetimeScope.ResolveNamed<IApplication>(verb, new TypedParameter(type, x));
-                });
+                var parser = provider.GetRequiredService<ICommandLineParser>();
+                var application = parser.Build(args, x => Ioc.CreateVerbApplication(provider, x));
 
                 // If application is null, then they ran help or version commands, just return
                 if (application == null)

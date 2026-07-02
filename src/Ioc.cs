@@ -22,77 +22,110 @@
 namespace OneIdentity.Scalus
 {
     using System;
-    using System.Reflection;
     using System.Runtime.InteropServices;
-    using Autofac;
+    using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.DependencyInjection.Extensions;
     using OneIdentity.Scalus.Platform;
     using OneIdentity.Scalus.Util;
 
     public static class Ioc
     {
-        public static IContainer RegisterApplication(Serilog.ILogger logger)
+        public static ServiceProvider RegisterApplication(Serilog.ILogger logger)
         {
-            var builder = new ContainerBuilder();
+            var services = new ServiceCollection();
 
             // Standard type registrations
-            builder.RegisterInstance(logger).As<Serilog.ILogger>().SingleInstance();
-            builder.RegisterType<CommandLineHandler>().As<ICommandLineParser>().SingleInstance();
-            builder.RegisterType<Registration>().As<IRegistration>().SingleInstance();
-            builder.RegisterType<ScalusConfiguration>().AsImplementedInterfaces().SingleInstance();
-            builder.RegisterType<ScalusApiConfiguration>().As<IScalusApiConfiguration>();
-            builder.RegisterType<ProtocolHandlerFactory>().AsImplementedInterfaces().SingleInstance();
+            services.AddSingleton<Serilog.ILogger>(logger);
+            services.AddSingleton<ICommandLineParser, CommandLineHandler>();
+            services.AddSingleton<IRegistration, Registration>();
+            services.AddSingleton<IScalusConfiguration, ScalusConfiguration>();
+            services.AddTransient<IScalusApiConfiguration, ScalusApiConfiguration>();
+            services.AddSingleton<IProtocolHandlerFactory, ProtocolHandlerFactory>();
 
             // Perform platform-specific registrations here
-            builder.RegisterPlatformSpecificComponents();
+            services.RegisterPlatformSpecificComponents();
 
-            // Register everything that derives from Autofac.Module
-            builder.RegisterAssemblyModules(Assembly.GetExecutingAssembly());
-            return builder.Build();
+            // Register the command-line verbs (both as IVerb for the parser and, via
+            // VerbApplications below, mapped to the application that executes them).
+            services.RegisterVerbs();
+
+            return services.BuildServiceProvider();
         }
 
-        private static void RegisterPlatformSpecificComponents(this ContainerBuilder builder)
+        /// <summary>
+        /// Builds the application that runs a parsed verb. The parsed options instance is passed
+        /// straight into the application constructor (the rest of its dependencies come from the
+        /// container), replacing Autofac's named resolution + TypedParameter.
+        /// </summary>
+        public static IApplication CreateVerbApplication(IServiceProvider services, object options)
+        {
+            var appType = options switch
+            {
+                Info.Options => typeof(Info.Application),
+                Launch.Options => typeof(Launch.Application),
+                Register.Options => typeof(Register.Application),
+                Unregister.Options => typeof(Unregister.Application),
+                Verify.Options => typeof(Verify.Application),
+                _ => null,
+            };
+
+            return appType is null
+                ? null
+                : (IApplication)ActivatorUtilities.CreateInstance(services, appType, options);
+        }
+
+        private static void RegisterVerbs(this IServiceCollection services)
+        {
+            services.AddSingleton<IVerb, Info.Options>();
+            services.AddSingleton<IVerb, Launch.Options>();
+            services.AddSingleton<IVerb, Register.Options>();
+            services.AddSingleton<IVerb, Unregister.Options>();
+            services.AddSingleton<IVerb, Verify.Options>();
+        }
+
+        private static void RegisterPlatformSpecificComponents(this IServiceCollection services)
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                builder.RegisterWindowsComponents();
+                services.RegisterWindowsComponents();
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                builder.RegisterLinuxComponents();
+                services.RegisterLinuxComponents();
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
-                builder.RegisterOsxComponents();
+                services.RegisterOsxComponents();
             }
             else
             {
-                // Register the "unsupported platform" components with preserve existing defaults, so they only
-                // take effect if nothing else registered to implement the service
-                builder.RegisterType<UnsupportedPlatformRegistrar>().AsImplementedInterfaces().SingleInstance().PreserveExistingDefaults();
+                // Register the "unsupported platform" component only if nothing else provides the
+                // service (mirrors Autofac's PreserveExistingDefaults).
+                services.TryAddSingleton<IProtocolRegistrar, UnsupportedPlatformRegistrar>();
             }
 
-            builder.RegisterType<UserInteraction>().AsImplementedInterfaces().SingleInstance().PreserveExistingDefaults();
-            builder.RegisterType<OsServicesBase>().AsImplementedInterfaces().SingleInstance().PreserveExistingDefaults();
+            services.TryAddSingleton<IUserInteraction, UserInteraction>();
+            services.TryAddSingleton<IOsServices, OsServicesBase>();
         }
 
-        private static void RegisterWindowsComponents(this ContainerBuilder builder)
+        private static void RegisterWindowsComponents(this IServiceCollection services)
         {
             if (OperatingSystem.IsWindows())
             {
-                builder.RegisterType<WindowsBasicProtocolRegistrar>().AsImplementedInterfaces().SingleInstance();
-                builder.RegisterType<WindowsProtocolRegistrar>().AsImplementedInterfaces().SingleInstance();
+                services.AddSingleton<IProtocolRegistrar, WindowsBasicProtocolRegistrar>();
+                services.AddSingleton<IProtocolRegistrar, WindowsProtocolRegistrar>();
             }
         }
 
-        private static void RegisterLinuxComponents(this ContainerBuilder builder)
+        private static void RegisterLinuxComponents(this IServiceCollection services)
         {
-            builder.RegisterType<UnixProtocolRegistrar>().AsImplementedInterfaces().SingleInstance();
+            services.AddSingleton<IProtocolRegistrar, UnixProtocolRegistrar>();
         }
 
-        private static void RegisterOsxComponents(this ContainerBuilder builder)
+        private static void RegisterOsxComponents(this IServiceCollection services)
         {
-            //builder.RegisterType<MacOSProtocolRegistrar>().AsImplementedInterfaces().SingleInstance();
-            builder.RegisterType<MacOSUserDefaultRegistrar>().AsImplementedInterfaces().SingleInstance();
+            //services.AddSingleton<IProtocolRegistrar, MacOSProtocolRegistrar>();
+            services.AddSingleton<IProtocolRegistrar, MacOSUserDefaultRegistrar>();
         }
     }
 }

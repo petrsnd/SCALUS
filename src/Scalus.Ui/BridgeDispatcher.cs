@@ -18,7 +18,7 @@ namespace OneIdentity.Scalus.Ui
     using System.Text.Encodings.Web;
     using System.Text.Json;
     using System.Text.Json.Nodes;
-    using Autofac;
+    using Microsoft.Extensions.DependencyInjection;
     using OneIdentity.Scalus.Dto;
     using OneIdentity.Scalus.Util;
     using Photino.NET;
@@ -39,14 +39,14 @@ namespace OneIdentity.Scalus.Ui
             Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
         };
 
-        private readonly ILifetimeScope container;
+        private readonly IServiceProvider services;
         private readonly IRegistration registration;
         private PhotinoWindow window;
 
-        public BridgeDispatcher(ILifetimeScope container)
+        public BridgeDispatcher(IServiceProvider services)
         {
-            this.container = container;
-            this.registration = container.Resolve<IRegistration>();
+            this.services = services;
+            this.registration = services.GetRequiredService<IRegistration>();
             SeedDefaultConfiguration();
         }
 
@@ -90,11 +90,11 @@ namespace OneIdentity.Scalus.Ui
         }
 
         private ScalusServerConfig GetConfig() =>
-            this.container.Resolve<IScalusApiConfiguration>().GetConfiguration();
+            this.services.GetRequiredService<IScalusApiConfiguration>().GetConfiguration();
 
         private object SaveConfig(ScalusConfig config)
         {
-            var errors = this.container.Resolve<IScalusApiConfiguration>().SaveConfiguration(config);
+            var errors = this.services.GetRequiredService<IScalusApiConfiguration>().SaveConfiguration(config);
             return new { errors };
         }
 
@@ -221,7 +221,7 @@ namespace OneIdentity.Scalus.Ui
         {
             try
             {
-                var api = this.container.Resolve<IScalusApiConfiguration>();
+                var api = this.services.GetRequiredService<IScalusApiConfiguration>();
                 var config = api.GetConfiguration();
                 var changed = false;
 
