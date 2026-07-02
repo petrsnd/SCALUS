@@ -153,14 +153,24 @@ namespace OneIdentity.Scalus.Ui
                 return false;
             }
 
+            // Photino's native save dialog skips display entirely when defaultPath does not
+            // resolve to an existing item, so open in an existing folder rather than passing a
+            // suggested (non-existent) file name.
             var target = this.window.ShowSaveFile(
                 title: "Export configuration",
-                defaultPath: defaultName,
+                defaultPath: Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
                 filters: new (string, string[])[] { ("JSON", new[] { "json" }), ("All files", new[] { "*" }) });
 
             if (string.IsNullOrEmpty(target))
             {
                 return false;
+            }
+
+            // The native dialog does not enforce a default extension, so add one when the
+            // chosen name has none.
+            if (string.IsNullOrEmpty(Path.GetExtension(target)))
+            {
+                target = Path.ChangeExtension(target, "json");
             }
 
             File.WriteAllText(target, contents);
