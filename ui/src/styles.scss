@@ -113,9 +113,9 @@ svg { width: 18px; height: 18px; fill: currentColor; flex: none; }
 .io-sub { font-size: 12.5px; color: var(--oi-content-tertiary); margin-top: 2px; }
 .io-badge { width: 40px; height: 40px; border-radius: var(--oi-radius-l); display: grid; place-items: center; flex: none; }
 .io-badge.full { background: var(--oi-bg-brand); color: var(--oi-content-brand); }
-.io-badge.item { background: #fef3c6; color: #bb4d00; }
+.io-badge.item { background: var(--oi-bg-brand); color: var(--oi-content-brand); }
 .io-actions, .foot-actions { display: flex; flex-wrap: wrap; gap: var(--oi-space-s); }
-.io-note { display: flex; gap: var(--oi-space-s); font-size: 12.5px; color: var(--oi-content-tertiary); background: var(--oi-bg-secondary); border-radius: var(--oi-radius); padding: var(--oi-space-s) var(--oi-space-m); }
+.io-note { margin-top: var(--oi-space-m); font-size: 12.5px; line-height: 1.5; color: var(--oi-content-tertiary); background: var(--oi-bg-secondary); border-radius: var(--oi-radius); padding: var(--oi-space-s) var(--oi-space-m); }
 .io-note strong { color: var(--oi-content-secondary); }
 .kbd { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 4px; border: 1px solid var(--oi-border); border-radius: 4px; background: var(--oi-bg-primary); font-size: 12px; line-height: 1; }
 .kv { display: grid; grid-template-columns: 160px 1fr; gap: var(--oi-space-s) var(--oi-space-l); font-size: 13px; }
