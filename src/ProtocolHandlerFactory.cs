@@ -23,14 +23,25 @@ namespace OneIdentity.Scalus
 {
     using System;
     using System.Collections.Generic;
-    using System.Linq;
-    using System.Reflection;
     using OneIdentity.Scalus.Dto;
     using OneIdentity.Scalus.Platform;
     using OneIdentity.Scalus.UrlParser;
 
     internal class ProtocolHandlerFactory : IProtocolHandlerFactory
     {
+        // Explicit registry of the built-in URL parsers, keyed by their parser id. Keeping this
+        // static (instead of scanning loaded assemblies with reflection and Activator.CreateInstance)
+        // is what lets Scalus.Core compile cleanly under trimming / NativeAOT. The keys match the
+        // [ParserName] attributes still declared on each parser class.
+        private static readonly IReadOnlyDictionary<string, Func<ParserConfig, IUrlParser>> Parsers =
+            new Dictionary<string, Func<ParserConfig, IUrlParser>>(StringComparer.Ordinal)
+            {
+                ["rdp"] = config => new DefaultRdpUrlParser(config),
+                ["ssh"] = config => new DefaultSshUrlParser(config),
+                ["telnet"] = config => new DefaultTelnetUrlParser(config),
+                ["url"] = config => new UrlParser.UrlParser(config),
+            };
+
         public ProtocolHandlerFactory(IOsServices osServices)
         {
             OsServices = osServices;
@@ -38,39 +49,19 @@ namespace OneIdentity.Scalus
 
         private IOsServices OsServices { get; }
 
-        public static List<string> GetSupportedParsers()
-        {
-            var tlist = AppDomain.CurrentDomain.GetAssemblies().SelectMany(x => x.GetTypes())
-                .Where(x => typeof(IUrlParser).IsAssignableFrom(x) && !x.IsInterface && !x.IsAbstract)
-               .ToList();
-            var nameList = new List<string>();
-            foreach (var t in tlist)
-            {
-                var name = t.GetCustomAttribute<ParserName>();
-                nameList.Add(name.GetName());
-            }
-
-            return nameList;
-        }
+        public static List<string> GetSupportedParsers() => new (Parsers.Keys);
 
         public IProtocolHandler Create(string uri, ApplicationConfig config)
         {
-            var tlist = AppDomain.CurrentDomain.GetAssemblies().SelectMany(x => x.GetTypes())
-                .Where(x => typeof(IUrlParser).IsAssignableFrom(x) && !x.IsInterface && !x.IsAbstract)
-               .ToList();
-
-            foreach (var t in tlist)
+            var parserId = config.Parser.ParserId;
+            if (!string.IsNullOrEmpty(parserId) && Parsers.TryGetValue(parserId, out var factory))
             {
-                if (t.GetCustomAttribute<ParserName>() is { } c &&
-                    c.GetName().Equals(config.Parser.ParserId, StringComparison.Ordinal))
-                {
-                    Serilog.Log.Information($"Found parser:{t.Name}");
-                    return new ProtocolHandler(uri, (IUrlParser)Activator.CreateInstance(t, config.Parser), config, OsServices);
-                }
+                Serilog.Log.Information($"Found parser:{parserId}");
+                return new ProtocolHandler(uri, factory(config.Parser), config, OsServices);
             }
 
             // default to url handler
-            Serilog.Log.Information($"No specific parser found for:{config.Parser.ParserId}, defaulting to urlParser");
+            Serilog.Log.Information($"No specific parser found for:{parserId}, defaulting to urlParser");
             return new ProtocolHandler(uri, new UrlParser.UrlParser(config.Parser), config, OsServices);
         }
     }

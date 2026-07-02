@@ -25,7 +25,6 @@ namespace OneIdentity.Scalus.Info
     using System.Collections.Generic;
     using System.Linq;
     using System.Runtime.InteropServices;
-    using System.Text.Json;
     using OneIdentity.Scalus.Dto;
     using OneIdentity.Scalus.Platform;
     using OneIdentity.Scalus.Util;
@@ -216,7 +215,7 @@ namespace OneIdentity.Scalus.Info
    ----------------------------
 
 ");
-            UserInteraction.Message(JsonSerializer.Serialize(example, ScalusJson.Disk));
+            UserInteraction.Message(ScalusJson.Serialize(example));
             UserInteraction.Message(@"
 
  * DTO Properties :

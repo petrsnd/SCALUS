@@ -24,6 +24,7 @@ namespace OneIdentity.Scalus.Util
     using System.Text.Encodings.Web;
     using System.Text.Json;
     using System.Text.Json.Serialization;
+    using System.Text.Json.Serialization.Metadata;
     using OneIdentity.Scalus.Dto;
     using OneIdentity.Scalus.Verify;
 
@@ -53,12 +54,20 @@ namespace OneIdentity.Scalus.Util
         public static readonly JsonSerializerOptions DiskStrict = Build(strict: true);
 
         // Serialize using the value's runtime type so a ScalusServerConfig (which adds Edition) is
-        // written whole, matching the previous Newtonsoft behaviour.
+        // written whole, matching the previous Newtonsoft behaviour. Both ScalusConfig and
+        // ScalusServerConfig are registered in the source-gen context, so resolving the JsonTypeInfo
+        // from the options stays reflection-free (AOT-safe).
         public static string Serialize(ScalusConfig configuration) =>
-            JsonSerializer.Serialize(configuration, configuration.GetType(), Disk);
+            JsonSerializer.Serialize(configuration, Disk.GetTypeInfo(configuration.GetType()));
+
+        public static string Serialize(VerifyResult result) =>
+            JsonSerializer.Serialize(result, TypeInfo<VerifyResult>(Disk));
 
         public static ScalusConfig Deserialize(string json, bool strict = false) =>
-            JsonSerializer.Deserialize<ScalusConfig>(json, strict ? DiskStrict : Disk);
+            JsonSerializer.Deserialize(json, TypeInfo<ScalusConfig>(strict ? DiskStrict : Disk));
+
+        private static JsonTypeInfo<T> TypeInfo<T>(JsonSerializerOptions options) =>
+            (JsonTypeInfo<T>)options.GetTypeInfo(typeof(T));
 
         private static JsonSerializerOptions Build(bool strict)
         {

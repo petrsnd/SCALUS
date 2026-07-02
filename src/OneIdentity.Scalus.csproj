@@ -17,6 +17,7 @@
     <SignAssembly>false</SignAssembly>
     <AssemblyOriginatorKeyFile>signer.pfx</AssemblyOriginatorKeyFile>
     <RuntimeIdentifiers>linux-x64;osx-x64;win-x64</RuntimeIdentifiers>
+    <IsAotCompatible>true</IsAotCompatible>
     <Company>One Identity LLC</Company>
     <Copyright>Copyright 2021 One Identity LLC</Copyright>
     <Authors>One Identity</Authors>
