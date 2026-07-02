@@ -1,0 +1,5 @@
+[remmina]
+name=SSH via SCALUS
+protocol=SSH
+server=%Host%
+ssh_username=%User%

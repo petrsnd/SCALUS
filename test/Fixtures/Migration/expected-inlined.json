@@ -1,0 +1,104 @@
+{
+  "Protocols": [
+    {
+      "Protocol": "rdp",
+      "AppId": "win-rdp-default"
+    },
+    {
+      "Protocol": "ssh",
+      "AppId": "remmina-ssh"
+    }
+  ],
+  "Applications": [
+    {
+      "Id": "win-rdp-default",
+      "Name": "Windows RDP (default template)",
+      "Platforms": [
+        "Windows"
+      ],
+      "Protocol": "rdp",
+      "Exec": "mstsc.exe",
+      "Args": [
+        "%GeneratedFile%"
+      ],
+      "Description": "Legacy app relying on the built-in default RDP template.",
+      "Parser": {
+        "ParserId": "rdp",
+        "Options": [
+          "waitforinputidle"
+        ],
+        "TemplateContent": "allow desktop composition:i:0\nallow font smoothing:i:0\nalternate full address:s:\nalternate shell:s:%AlternateShell%\naudiocapturemode:i:0\naudiomode:i:0\nauthentication level:i:2\nautoreconnection enabled:i:1\nbandwidthautodetect:i:1\nbitmapcachepersistenable:i:0\ncamerastoredirect:s:\ncompression:i:0\nconnection type:i:7\ndesktop size id:i:1\ndesktopheight:i:768\ndesktopscalefactor:i:100\ndesktopwidth:i:1024\ndevicestoredirect:s:\ndisable cursor setting:i:0\ndisable full window drag:i:1\ndisable menu anims:i:1\ndisable themes:i:0\ndisable wallpaper:i:0\ndisableconnectionsharing:i:0\ndisplayconnectionbar:i:1\ndomain:s:\ndrivestoredirect:s:\ndynamic resolution:i:0\nenablecredsspsupport:i:1\nenableworkspacereconnect:i:0\nencode redirected video capture:i:1\nfull address:s:%Host%\ngatewaybrokeringtype:i:0\ngatewaycredentialssource:i:4\ngatewayhostname:s:\ngatewayprofileusagemethod:i:0\ngatewayusagemethod:i:4\nkdcproxyname:s:\nkeyboardhook:i:2\nmaximizetocurrentdisplays:i:0\nnegotiate security layer:i:1\nnetworkautodetect:i:1\npromptcredentialonce:i:0\nprompt for credentials on client:i:0\nrdgiskdcproxy:i:0\nredirectclipboard:i:1\nredirectcomports:i:0\nredirectdrives:i:1\nredirected video capture encoding quality:i:0\nredirectposdevices:i:0\nredirectprinters:i:1\nredirectsmartcards:i:1\nremoteapplicationcmdline:s:\nremoteapplicationexpandcmdline:i:1\nremoteapplicationexpandworkingdir:s:\nremoteapplicationfile:s:\nremoteapplicationicon:s:\nremoteapplicationmode:i:0\nremoteapplicationname:s:%Remoteapplicationname%\nremoteapplicationprogram:s:%Remoteapplicationprogram%\nscreen mode id:i:1\nselectedmonitors:s:\nserver port:i:3389\nsession bpp:i:32\nshell working directory:s:\nsinglemoninwindowedmode:i:0\nsmart sizing:i:1\nspan monitors:i:1\nuse multimon:i:0\nusbdevicestoredirect:s:\nuse redirection server name:i:0\nusername:s:%user%\nvideoplaybackmode:i:1\nwinposstr:s:0,1,31,47,1688,737",
+        "TemplateExtension": ".rdp"
+      }
+    },
+    {
+      "Id": "win-rdp-file",
+      "Name": "Windows RDP (external file template)",
+      "Platforms": [
+        "Windows"
+      ],
+      "Protocol": "rdp",
+      "Exec": "mstsc.exe",
+      "Args": [
+        "%GeneratedFile%"
+      ],
+      "Description": "Legacy app pointing at an external .rdp template file with CRLF endings.",
+      "Parser": {
+        "ParserId": "rdp",
+        "Options": [
+          "wait:5"
+        ],
+        "PostProcessingExec": "%AppData%\\sign.exe",
+        "PostProcessingArgs": [
+          "%GeneratedFile%"
+        ],
+        "TemplateContent": "full address:s:%Host%\nusername:s:%User%\nscreen mode id:i:2",
+        "TemplateExtension": ".rdp"
+      }
+    },
+    {
+      "Id": "remmina-ssh",
+      "Name": "Remmina SSH",
+      "Platforms": [
+        "Linux"
+      ],
+      "Protocol": "ssh",
+      "Exec": "remmina",
+      "Args": [
+        "-c",
+        "%GeneratedFile%"
+      ],
+      "Description": "Legacy app pointing at an external .remmina template so the generated extension is derived.",
+      "Parser": {
+        "ParserId": "ssh",
+        "TemplateContent": "[remmina]\nname=SSH via SCALUS\nprotocol=SSH\nserver=%Host%\nssh_username=%User%",
+        "TemplateExtension": ".remmina"
+      }
+    },
+    {
+      "Id": "plain-ssh",
+      "Name": "OpenSSH (no template)",
+      "Platforms": [
+        "Windows",
+        "Linux",
+        "Mac"
+      ],
+      "Protocol": "ssh",
+      "Exec": "ssh.exe",
+      "Args": [
+        "-l",
+        "%User%",
+        "%Host%",
+        "-p",
+        "%Port%"
+      ],
+      "Description": "Command-line only app with no generated file; nothing to migrate.",
+      "Parser": {
+        "ParserId": "ssh",
+        "Options": [
+          "waitforexit"
+        ]
+      }
+    }
+  ]
+}

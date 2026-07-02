@@ -1,0 +1,64 @@
+{
+  "Protocols": [
+    { "Protocol": "rdp", "AppId": "win-rdp-default" },
+    { "Protocol": "ssh", "AppId": "remmina-ssh" }
+  ],
+  "Applications": [
+    {
+      "Id": "win-rdp-default",
+      "Name": "Windows RDP (default template)",
+      "Platforms": [ "Windows" ],
+      "Protocol": "rdp",
+      "Exec": "mstsc.exe",
+      "Args": [ "%GeneratedFile%" ],
+      "Description": "Legacy app relying on the built-in default RDP template.",
+      "Parser": {
+        "ParserId": "rdp",
+        "Options": [ "waitforinputidle" ],
+        "UseDefaultTemplate": true
+      }
+    },
+    {
+      "Id": "win-rdp-file",
+      "Name": "Windows RDP (external file template)",
+      "Platforms": [ "Windows" ],
+      "Protocol": "rdp",
+      "Exec": "mstsc.exe",
+      "Args": [ "%GeneratedFile%" ],
+      "Description": "Legacy app pointing at an external .rdp template file with CRLF endings.",
+      "Parser": {
+        "ParserId": "rdp",
+        "Options": [ "wait:5" ],
+        "UseTemplateFile": "__FIXTURES__\\WinRdpTemplate.rdp",
+        "PostProcessingExec": "%AppData%\\sign.exe",
+        "PostProcessingArgs": [ "%GeneratedFile%" ]
+      }
+    },
+    {
+      "Id": "remmina-ssh",
+      "Name": "Remmina SSH",
+      "Platforms": [ "Linux" ],
+      "Protocol": "ssh",
+      "Exec": "remmina",
+      "Args": [ "-c", "%GeneratedFile%" ],
+      "Description": "Legacy app pointing at an external .remmina template so the generated extension is derived.",
+      "Parser": {
+        "ParserId": "ssh",
+        "UseTemplateFile": "__FIXTURES__/ssh.remmina"
+      }
+    },
+    {
+      "Id": "plain-ssh",
+      "Name": "OpenSSH (no template)",
+      "Platforms": [ "Windows", "Linux", "Mac" ],
+      "Protocol": "ssh",
+      "Exec": "ssh.exe",
+      "Args": [ "-l", "%User%", "%Host%", "-p", "%Port%" ],
+      "Description": "Command-line only app with no generated file; nothing to migrate.",
+      "Parser": {
+        "ParserId": "ssh",
+        "Options": [ "waitforexit" ]
+      }
+    }
+  ]
+}
