@@ -48,12 +48,31 @@ namespace OneIdentity.Scalus
 
         public bool IsScalusRegistered(string protocol)
         {
-            return RegistryUtils.GetStringValue(GetAppPath() + CapabilitiesUrlAssociationsFragment, protocol) == Clsid;
+            // The URL association for this protocol must point at our ProgId ...
+            if (RegistryUtils.GetStringValue(GetAppPath() + CapabilitiesUrlAssociationsFragment, protocol) != Clsid)
+            {
+                return false;
+            }
+
+            // ... and the ProgId's launch command must invoke *this* binary. A previous
+            // install (for example the packaged build under Program Files) leaves the
+            // association mapped to the same ProgId but with a command that launches a
+            // different executable. Browsers such as Edge resolve the protocol through the
+            // registered-application capability to that stale ProgId, so unless we confirm
+            // the command targets the running binary we would silently hand launches to the
+            // old install. Treat that as "not registered" so registration takes it over.
+            var command = GetClsidCommand();
+            return WindowsCommandLine.InvokesThisBinary(command);
         }
 
         public string GetRegisteredCommand(string protocol)
         {
-            return RegistryUtils.GetStringValue(GetAppPath() + CapabilitiesUrlAssociationsFragment, protocol);
+            if (RegistryUtils.GetStringValue(GetAppPath() + CapabilitiesUrlAssociationsFragment, protocol) != Clsid)
+            {
+                return null;
+            }
+
+            return GetClsidCommand();
         }
 
         public bool Register(string protocol)
@@ -131,15 +150,18 @@ namespace OneIdentity.Scalus
 
         private static bool RegisterClassId(string registrationCommand)
         {
+            // Always (re)write the launch command so a stale command left by a previous
+            // install is corrected. Returning early when the ProgId key already exists
+            // would leave the old executable path in place and defeat re-registration.
             var path = GetClassRegistrationPath();
-            if (RegistryUtils.GetKey(path) != null)
-            {
-                return true;
-            }
-
             return RegistryUtils.SetValue(path, string.Empty, AppName) &&
                    RegistryUtils.SetValue(path, "URL Protocol", string.Empty) &&
                    RegistryUtils.SetValue(path + "\\shell\\open\\command", string.Empty, registrationCommand);
+        }
+
+        private static string GetClsidCommand()
+        {
+            return RegistryUtils.GetStringValue(GetClassRegistrationPath() + "\\shell\\open\\command", string.Empty);
         }
 
         private static bool RegisterCapabilities(string protocol)
