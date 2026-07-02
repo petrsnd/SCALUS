@@ -9,8 +9,9 @@ import { UiModalComponent } from './shared/ui/modal.component';
 import { UiSegmentedControlComponent } from './shared/ui/segmented-control.component';
 import { UiSelectComponent } from './shared/ui/select.component';
 import { UiToggleComponent } from './shared/ui/toggle.component';
-import { ApplicationConfig, Platform, ProtocolMapping, RegistrationScope, SCALUS_BRIDGE, ScalusBridge, ScalusConfig } from './core/bridge/scalus-bridge';
+import { ApplicationConfig, Platform, ProtocolMapping, RegistrationScope, SCALUS_BRIDGE, ScalusBridge, ScalusConfig, TemplateEncoding, TemplateLineEnding } from './core/bridge/scalus-bridge';
 import { cloneConfig, normalizeApplication, normalizeConfig } from './core/bridge/seed-data';
+import { DEFAULT_RDP_TEMPLATE } from './core/bridge/default-template';
 
 type Tab = 'protocols' | 'applications' | 'io' | 'about';
 type EditorMode = 'new' | 'edit';
@@ -47,6 +48,21 @@ export class App implements OnInit {
   scope: RegistrationScope = 'user';
   platform: Platform = 'Windows';
   parsers: string[] = [];
+  readonly lineEndings: TemplateLineEnding[] = ['Default', 'Lf', 'CrLf', 'Platform'];
+  readonly encodings: TemplateEncoding[] = ['Default', 'Utf8', 'Utf8Bom', 'Utf16LeBom', 'Ansi'];
+  readonly eolLabels: Record<TemplateLineEnding, string> = {
+    Default: 'Default (CRLF for .rdp, else LF)',
+    Lf: 'LF (\\n)',
+    CrLf: 'CRLF (\\r\\n)',
+    Platform: 'This platform'
+  };
+  readonly encLabels: Record<TemplateEncoding, string> = {
+    Default: 'Default (UTF-16 LE + BOM for .rdp, else UTF-8)',
+    Utf8: 'UTF-8 (no BOM)',
+    Utf8Bom: 'UTF-8 with BOM',
+    Utf16LeBom: 'UTF-16 LE with BOM',
+    Ansi: 'ANSI (Latin-1)'
+  };
   tokens: Record<string, string> = {};
   info = '';
   message = '';
@@ -163,7 +179,7 @@ export class App implements OnInit {
   newApplication(): void {
     this.editorMode = 'new';
     this.editorOriginalId = null;
-    this.editor = { Id: this.uniqueId('new-app'), Name: '', Description: '', Platforms: [this.platform], Protocol: 'rdp', Parser: { ParserId: 'rdp', Options: [], UseDefaultTemplate: true }, Exec: '', Args: ['%GeneratedFile%'] };
+    this.editor = { Id: this.uniqueId('new-app'), Name: '', Description: '', Platforms: [this.platform], Protocol: 'rdp', Parser: { ParserId: 'rdp', Options: [], TemplateContent: DEFAULT_RDP_TEMPLATE, TemplateExtension: '.rdp' }, Exec: '', Args: ['%GeneratedFile%'] };
     this.editorOpen = true; this.editorDirty = false; this.editorErrors = [];
   }
   editApplication(app: ApplicationConfig): void {
@@ -201,22 +217,48 @@ export class App implements OnInit {
     if (!this.editor) return;
     this.editor.Parser.ParserId = parser;
     this.editor.Protocol = parser === 'url' ? this.editor.Protocol : parser;
-    if (parser === 'rdp') { this.editor.Parser.UseDefaultTemplate = true; this.editor.Args = this.editor.Args?.length ? this.editor.Args : ['%GeneratedFile%']; }
-    else { delete this.editor.Parser.UseDefaultTemplate; delete this.editor.Parser.UseTemplateFile; }
+    if (parser === 'rdp') {
+      if (this.editor.Parser.TemplateContent == null) {
+        this.editor.Parser.TemplateContent = DEFAULT_RDP_TEMPLATE;
+        this.editor.Parser.TemplateExtension = '.rdp';
+      }
+      this.editor.Args = this.editor.Args?.length ? this.editor.Args : ['%GeneratedFile%'];
+    }
     this.markDirty();
   }
-  setTemplateMode(mode: 'none' | 'default' | 'file'): void {
+  templateEnabled(): boolean {
+    return this.editor?.Parser.TemplateContent != null;
+  }
+  toggleTemplate(on: boolean): void {
     if (!this.editor) return;
-    delete this.editor.Parser.UseDefaultTemplate; delete this.editor.Parser.UseTemplateFile;
-    if (mode === 'default') this.editor.Parser.UseDefaultTemplate = true;
-    if (mode === 'file') this.editor.Parser.UseTemplateFile = this.editor.Parser.UseTemplateFile || '%AppData%\\template.txt';
+    const parser = this.editor.Parser;
+    if (on) {
+      parser.TemplateContent = parser.TemplateContent ?? (parser.ParserId === 'rdp' ? DEFAULT_RDP_TEMPLATE : '');
+      if (!parser.TemplateExtension) parser.TemplateExtension = parser.ParserId === 'rdp' ? '.rdp' : '';
+      if (this.editor.Args == null || this.editor.Args.length === 0) this.editor.Args = ['%GeneratedFile%'];
+    } else {
+      delete parser.TemplateContent;
+      delete parser.TemplateExtension;
+      delete parser.LineEnding;
+      delete parser.Encoding;
+    }
     this.markDirty();
   }
-  templateMode(): 'none' | 'default' | 'file' {
-    const parser = this.editor?.Parser;
-    if (parser?.UseDefaultTemplate) return 'default';
-    if (parser?.UseTemplateFile) return 'file';
-    return 'none';
+  templateContentText(): string { return this.editor?.Parser.TemplateContent ?? ''; }
+  setTemplateContentText(value: string): void {
+    if (this.editor) { this.editor.Parser.TemplateContent = value; this.markDirty(); }
+  }
+  resetTemplateToDefault(): void {
+    if (!this.editor) return;
+    this.editor.Parser.TemplateContent = DEFAULT_RDP_TEMPLATE;
+    this.editor.Parser.TemplateExtension = '.rdp';
+    this.markDirty();
+  }
+  setLineEnding(value: TemplateLineEnding): void {
+    if (this.editor) { this.editor.Parser.LineEnding = value; this.markDirty(); }
+  }
+  setEncoding(value: TemplateEncoding): void {
+    if (this.editor) { this.editor.Parser.Encoding = value; this.markDirty(); }
   }
   togglePlatform(platform: Platform, checked: boolean): void {
     if (!this.editor) return;
@@ -234,7 +276,7 @@ export class App implements OnInit {
   tokenGroups(): { label: string; tokens: string[]; tone: 'brand' | 'warn' | 'muted' }[] {
     const parser = this.editor?.Parser.ParserId || 'url';
     const spec = TOKEN_GROUPS[parser] || TOKEN_GROUPS['url'];
-    const env = this.templateMode() === 'none' ? ENV_TOKENS.filter(t => t !== '%GeneratedFile%') : ENV_TOKENS;
+    const env = !this.templateEnabled() ? ENV_TOKENS.filter(t => t !== '%GeneratedFile%') : ENV_TOKENS;
     const groups: { label: string; tokens: string[]; tone: 'brand' | 'warn' | 'muted' }[] = [
       { label: `Connection tokens · ${parser}`, tokens: spec.connection, tone: 'brand' },
       { label: 'Generated file & environment', tokens: env, tone: 'muted' }

@@ -2,11 +2,16 @@ import { InjectionToken } from '@angular/core';
 
 export type Platform = 'Windows' | 'Linux' | 'Mac';
 
+export type TemplateLineEnding = 'Default' | 'Lf' | 'CrLf' | 'Platform';
+export type TemplateEncoding = 'Default' | 'Utf8' | 'Utf8Bom' | 'Utf16LeBom' | 'Ansi';
+
 export interface ParserConfig {
   ParserId: string;
   Options?: string[];
-  UseDefaultTemplate?: boolean;
-  UseTemplateFile?: string;
+  TemplateContent?: string | null;
+  TemplateExtension?: string | null;
+  LineEnding?: TemplateLineEnding;
+  Encoding?: TemplateEncoding;
   PostProcessingExec?: string;
   PostProcessingArgs?: string[];
 }

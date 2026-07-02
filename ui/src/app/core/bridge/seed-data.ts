@@ -1,4 +1,22 @@
 import { ApplicationConfig, ScalusConfig } from './scalus-bridge';
+import { DEFAULT_RDP_TEMPLATE } from './default-template';
+
+const REMMINA_RDP_TEMPLATE = [
+  '[remmina]',
+  'name=Safeguard RDP',
+  'protocol=RDP',
+  'server=%Host%',
+  'username=%User%',
+  'password=Safeguard',
+].join('\n');
+
+const REMMINA_SSH_TEMPLATE = [
+  '[remmina]',
+  'name=Safeguard SSH',
+  'protocol=SSH',
+  'server=%Host%',
+  'ssh_username=%User%',
+].join('\n');
 
 export const SEED_CONFIG: ScalusConfig = {
   Protocols: [
@@ -13,7 +31,7 @@ export const SEED_CONFIG: ScalusConfig = {
       Description: 'Run an RDP desktop session or an RDP remote app, using a template file',
       Platforms: ['Windows'],
       Protocol: 'rdp',
-      Parser: { ParserId: 'rdp', Options: ['waitforexit'], UseTemplateFile: '%AppData%\\WinRdpTemplate.rdp' },
+      Parser: { ParserId: 'rdp', Options: ['waitforexit'], TemplateContent: DEFAULT_RDP_TEMPLATE, TemplateExtension: '.rdp' },
       Exec: 'C:\\windows\\system32\\mstsc.exe',
       Args: ['%GeneratedFile%']
     },
@@ -23,7 +41,7 @@ export const SEED_CONFIG: ScalusConfig = {
       Description: 'Run MS Windows RDP Client with a default connection file.',
       Platforms: ['Windows'],
       Protocol: 'rdp',
-      Parser: { ParserId: 'rdp', Options: ['waitForInputIdle'], UseDefaultTemplate: true },
+      Parser: { ParserId: 'rdp', Options: ['waitForInputIdle'], TemplateContent: DEFAULT_RDP_TEMPLATE, TemplateExtension: '.rdp' },
       Exec: 'C:\\windows\\system32\\mstsc.exe',
       Args: ['%GeneratedFile%']
     },
@@ -33,7 +51,7 @@ export const SEED_CONFIG: ScalusConfig = {
       Description: 'Run MS Windows RDP Client with a user-supplied connection file.',
       Platforms: ['Windows'],
       Protocol: 'rdp',
-      Parser: { ParserId: 'rdp', Options: ['waitForInputIdle'], UseTemplateFile: '%AppData%\\exampleRdpTemplate.rdp' },
+      Parser: { ParserId: 'rdp', Options: ['waitForInputIdle'], TemplateContent: DEFAULT_RDP_TEMPLATE, TemplateExtension: '.rdp' },
       Exec: 'C:\\windows\\system32\\mstsc.exe',
       Args: ['%GeneratedFile%']
     },
@@ -43,7 +61,7 @@ export const SEED_CONFIG: ScalusConfig = {
       Description: 'Run MS Windows RDP Client with a RemoteApp template.',
       Platforms: ['Windows'],
       Protocol: 'rdp',
-      Parser: { ParserId: 'rdp', Options: ['waitforexit'], UseTemplateFile: '%AppData%\\RdpRemoteAppTemplate.rdp' },
+      Parser: { ParserId: 'rdp', Options: ['waitforexit'], TemplateContent: DEFAULT_RDP_TEMPLATE, TemplateExtension: '.rdp' },
       Exec: 'C:\\windows\\system32\\mstsc.exe',
       Args: ['%GeneratedFile%']
     },
@@ -83,7 +101,7 @@ export const SEED_CONFIG: ScalusConfig = {
       Description: 'Run Microsoft Remote Desktop on macOS using default connection settings.',
       Platforms: ['Mac'],
       Protocol: 'rdp',
-      Parser: { ParserId: 'rdp', Options: ['wait:60'], UseDefaultTemplate: true },
+      Parser: { ParserId: 'rdp', Options: ['wait:60'], TemplateContent: DEFAULT_RDP_TEMPLATE, TemplateExtension: '.rdp' },
       Exec: '/usr/bin/open',
       Args: ['-nb', 'com.microsoft.rdc.macos', '%GeneratedFile%']
     },
@@ -103,7 +121,7 @@ export const SEED_CONFIG: ScalusConfig = {
       Description: 'Run iTerm2 on macOS with SSH connection information.',
       Platforms: ['Mac'],
       Protocol: 'ssh',
-      Parser: { ParserId: 'ssh', Options: ['wait:10'], UseDefaultTemplate: true },
+      Parser: { ParserId: 'ssh', Options: ['wait:10'], TemplateContent: '#!/bin/sh\nexec ssh -l %User% %Host%', TemplateExtension: '.command' },
       Exec: '/usr/bin/open',
       Args: ['-b', 'com.googlecode.iterm2', '%GeneratedFile%']
     },
@@ -133,7 +151,7 @@ export const SEED_CONFIG: ScalusConfig = {
       Description: 'Run Remmina on Linux to connect to RDP using a template.',
       Platforms: ['Linux'],
       Protocol: 'rdp',
-      Parser: { ParserId: 'rdp', Options: ['waitforexit'], UseTemplateFile: '%AppData%/rdp.remmina' },
+      Parser: { ParserId: 'rdp', Options: ['waitforexit'], TemplateContent: REMMINA_RDP_TEMPLATE, TemplateExtension: '.remmina' },
       Exec: '/usr/bin/remmina',
       Args: ['%GeneratedFile%']
     },
@@ -143,7 +161,7 @@ export const SEED_CONFIG: ScalusConfig = {
       Description: 'Run Remmina on Linux to connect to SSH using a template.',
       Platforms: ['Linux'],
       Protocol: 'ssh',
-      Parser: { ParserId: 'ssh', Options: ['waitforexit'], UseTemplateFile: '%AppData%/ssh.remmina' },
+      Parser: { ParserId: 'ssh', Options: ['waitforexit'], TemplateContent: REMMINA_SSH_TEMPLATE, TemplateExtension: '.remmina' },
       Exec: '/usr/bin/remmina',
       Args: ['%GeneratedFile%']
     }
@@ -208,8 +226,10 @@ export function normalizeApplication(raw: any): ApplicationConfig | null {
     Parser: {
       ParserId: String(parserGet('ParserId') ?? 'url'),
       Options: parserGet('Options') ?? [],
-      UseDefaultTemplate: parserGet('UseDefaultTemplate') ?? undefined,
-      UseTemplateFile: parserGet('UseTemplateFile') ?? undefined,
+      TemplateContent: parserGet('TemplateContent') ?? undefined,
+      TemplateExtension: parserGet('TemplateExtension') ?? undefined,
+      LineEnding: parserGet('LineEnding') ?? undefined,
+      Encoding: parserGet('Encoding') ?? undefined,
       PostProcessingExec: parserGet('PostProcessingExec') ?? undefined,
       PostProcessingArgs: parserGet('PostProcessingArgs') ?? undefined
     },
