@@ -1,7 +1,10 @@
 import { Injectable } from '@angular/core';
 import { Platform, RegistrationScope, ScalusBridge, ScalusConfig } from './scalus-bridge';
 
-type PhotinoExternal = { sendMessage(message: string): void; receiveMessage?: (message: string) => void };
+type PhotinoExternal = {
+  sendMessage(message: string): void;
+  receiveMessage?: (handler: (message: string) => void) => void;
+};
 
 type Pending = { resolve: (value: any) => void; reject: (reason?: any) => void };
 
@@ -11,8 +14,8 @@ export class PhotinoBridge implements ScalusBridge {
 
   constructor() {
     const external = (window as any).external as PhotinoExternal | undefined;
-    if (external) {
-      external.receiveMessage = (message: string) => this.receive(message);
+    if (external?.receiveMessage) {
+      external.receiveMessage((message: string) => this.receive(message));
     }
   }
 
