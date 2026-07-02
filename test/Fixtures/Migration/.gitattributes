@@ -1,0 +1,5 @@
+# Preserve exact bytes of migration fixtures so line-ending normalization is actually exercised.
+WinRdpTemplate.rdp -text eol=crlf
+ssh.remmina -text eol=lf
+legacy-config.json -text eol=lf
+expected-inlined.json -text eol=lf
