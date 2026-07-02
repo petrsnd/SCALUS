@@ -122,12 +122,12 @@ namespace OneIdentity.Scalus.UrlParser
                 ParseConfig();
             }
 
-            if (!Dictionary.ContainsKey(Token.User) || string.IsNullOrEmpty(Dictionary[Token.User]))
+            if (!Dictionary.TryGetValue(Token.User, out var userToken) || string.IsNullOrEmpty(userToken))
             {
                 Log.Warning($"The RDP parser could not extract the '{Token.User}' token from the url:{url}");
             }
 
-            if (!Dictionary.ContainsKey(Token.Host) || string.IsNullOrEmpty(Dictionary[Token.Host]))
+            if (!Dictionary.TryGetValue(Token.Host, out var hostToken) || string.IsNullOrEmpty(hostToken))
             {
                 Log.Warning($"The RDP parser could not extract the '{Token.Host}' token from the url:{url}");
             }

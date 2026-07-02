@@ -9,10 +9,10 @@ namespace OneIdentity.Scalus.Test
     // username decode so the Core extraction/refactor is provably behavior-preserving.
     public class TestSafeguardDecode
     {
-        private static IDictionary<Token, string> Decode(string user)
+        private static Dictionary<Token, string> Decode(string user)
         {
             var dict = new Dictionary<Token, string> { { Token.User, user } };
-            foreach (Token t in System.Enum.GetValues(typeof(Token)))
+            foreach (Token t in System.Enum.GetValues<Token>())
             {
                 if (!dict.ContainsKey(t))
                 {

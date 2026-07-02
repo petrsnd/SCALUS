@@ -68,7 +68,7 @@ namespace OneIdentity.Scalus.UrlParser
         public const string UsernameKey = "username";
         public const string RdpPasswordHashKey = "password 51";
 
-        private readonly IDictionary<string, Tuple<bool, string>> msArgList1 = new Dictionary<string, Tuple<bool, string>>();
+        private readonly Dictionary<string, Tuple<bool, string>> msArgList1 = new Dictionary<string, Tuple<bool, string>>();
 
         private List<(string, Token)> rdpKeys = new List<(string, Token)>
         {
@@ -186,12 +186,12 @@ namespace OneIdentity.Scalus.UrlParser
 
             // tokens required are username and host
 
-            if (!Dictionary.ContainsKey(Token.User) || string.IsNullOrEmpty(Dictionary[Token.User]))
+            if (!Dictionary.TryGetValue(Token.User, out var userToken) || string.IsNullOrEmpty(userToken))
             {
                 Log.Warning($"The RDP parser could not extract the '{Token.User}' token from the url:{url}");
             }
 
-            if (!Dictionary.ContainsKey(Token.Host) || string.IsNullOrEmpty(Dictionary[Token.Host]))
+            if (!Dictionary.TryGetValue(Token.Host, out var hostToken) || string.IsNullOrEmpty(hostToken))
             {
                 Log.Warning($"The RDP parser could not extract the '{Token.Host}' token from the url:{url}");
             }
@@ -230,9 +230,9 @@ namespace OneIdentity.Scalus.UrlParser
             {
                 var name = match.Groups[2].Value;
                 var val = match.Groups[3].Value + ":" + match.Groups[4].Value;
-                if (msArgList1.ContainsKey(name) && msArgList1[name].Item1)
+                if (msArgList1.TryGetValue(name, out var msArg) && msArg.Item1)
                 {
-                    val = msArgList1[name].Item2;
+                    val = msArg.Item2;
                     newline = name + ":" + val;
                 }
             }

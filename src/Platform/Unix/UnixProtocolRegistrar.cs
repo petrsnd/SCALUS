@@ -273,7 +273,7 @@ namespace OneIdentity.Scalus
             if (exitCode == 0)
             {
                 var lines = stdOut.Split("\n");
-                if (lines.Any())
+                if (lines.Length > 0)
                 {
                     var path = lines[0];
                     var match = Regex.Match(path, "\\s*Checking\\s*(\\S+)", RegexOptions.IgnoreCase);

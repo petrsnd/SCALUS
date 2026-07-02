@@ -69,10 +69,8 @@ namespace OneIdentity.Scalus
                 str.Append(string.Format("   - {0,-16} : {1}{2}", key, val, Environment.NewLine));
             }
 
-            if (dictionary.ContainsKey(ParserConfigDefinitions.Token.GeneratedFile))
+            if (dictionary.TryGetValue(ParserConfigDefinitions.Token.GeneratedFile, out var fname))
             {
-                var fname = dictionary[ParserConfigDefinitions.Token.GeneratedFile];
-
                 if (!string.IsNullOrEmpty(fname) && File.Exists(fname))
                 {
                     var contents = File.ReadAllText(fname);

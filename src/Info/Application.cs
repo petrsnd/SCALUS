@@ -236,7 +236,7 @@ namespace OneIdentity.Scalus.Info
    The following tokens can be used in the scalus configuration file. 
    Each token will be evaluated and replaced when launching the configured application.
 ");
-            var tokenList = ((string[])Enum.GetNames(typeof(ParserConfigDefinitions.Token))).ToList();
+            var tokenList = Enum.GetNames<ParserConfigDefinitions.Token>().ToList();
             tokenList.Sort();
             foreach (var one in tokenList)
             {

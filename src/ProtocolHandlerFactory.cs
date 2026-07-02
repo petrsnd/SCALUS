@@ -46,7 +46,7 @@ namespace OneIdentity.Scalus
             var nameList = new List<string>();
             foreach (var t in tlist)
             {
-                var name = t.GetCustomAttribute(typeof(ParserName)) as ParserName;
+                var name = t.GetCustomAttribute<ParserName>();
                 nameList.Add(name.GetName());
             }
 
@@ -61,7 +61,7 @@ namespace OneIdentity.Scalus
 
             foreach (var t in tlist)
             {
-                if (t.GetCustomAttribute(typeof(ParserName)) is ParserName c &&
+                if (t.GetCustomAttribute<ParserName>() is { } c &&
                     c.GetName().Equals(config.Parser.ParserId, StringComparison.Ordinal))
                 {
                     Serilog.Log.Information($"Found parser:{t.Name}");

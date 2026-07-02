@@ -10,6 +10,12 @@
 # Default severity for analyzer diagnostics - Requires **VS2019 16.5** or later
 dotnet_analyzer_diagnostic.severity = error
 
+# Source-generator adoption suggestions (regex/interop). These are performance and
+# trimming/AOT hardening opportunities rather than defects; they are tracked as
+# follow-up work and kept as warnings so they do not block the build.
+dotnet_diagnostic.SYSLIB1045.severity = warning
+dotnet_diagnostic.SYSLIB1054.severity = warning
+
 # SA0001: XmlCommentAnalysisDisabled
 dotnet_diagnostic.SA0001.severity = none
 

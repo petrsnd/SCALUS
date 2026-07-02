@@ -222,9 +222,9 @@ namespace OneIdentity.Scalus.UrlParser
         protected static IDictionary<Token, string> DefaultDictionary()
         {
             var dictionary = new Dictionary<Token, string>();
-            foreach (var one in Enum.GetValues(typeof(Token)))
+            foreach (var one in Enum.GetValues<Token>())
             {
-                dictionary[(Token)one] = string.Empty;
+                dictionary[one] = string.Empty;
             }
 
             return dictionary;
@@ -273,7 +273,7 @@ namespace OneIdentity.Scalus.UrlParser
 
         protected static (string host, string port) ParseHost(string host)
         {
-            var sep = host.LastIndexOf(":", StringComparison.Ordinal);
+            var sep = host.LastIndexOf(':');
             if (sep == -1)
             {
                 return (host, null);
@@ -410,11 +410,11 @@ namespace OneIdentity.Scalus.UrlParser
                 }
                 else
                 {
-                    var host = Dictionary.ContainsKey(Token.Host) && !string.IsNullOrEmpty(Dictionary[Token.Host])
-                        ? Dictionary[Token.Host]
+                    var host = Dictionary.TryGetValue(Token.Host, out var hostValue) && !string.IsNullOrEmpty(hostValue)
+                        ? hostValue
                         : string.Empty;
-                    var user = Dictionary.ContainsKey(Token.User) && !string.IsNullOrEmpty(Dictionary[Token.User])
-                        ? Dictionary[Token.User]
+                    var user = Dictionary.TryGetValue(Token.User, out var userValue) && !string.IsNullOrEmpty(userValue)
+                        ? userValue
                         : string.Empty;
                     if (!string.IsNullOrEmpty(host) || !string.IsNullOrEmpty(user))
                     {

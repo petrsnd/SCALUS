@@ -25,7 +25,7 @@ namespace OneIdentity.Scalus.Test
         private string url;
         private string filename = Path.GetTempPath() + "tmpfile.rdp";
 
-        private IDictionary<Token, string> SetupData()
+        private Dictionary<Token, string> SetupData()
         {
             fulluser = $"vaultaddress={vault}@token={token}@{targetuser}@{targethost}";
             url = $"{prot}://{fulluser}@{host}";
