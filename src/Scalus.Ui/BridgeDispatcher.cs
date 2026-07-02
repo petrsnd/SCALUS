@@ -28,7 +28,7 @@ namespace OneIdentity.Scalus.Ui
     /// </summary>
     internal sealed class BridgeDispatcher
     {
-        private static readonly string[] BuiltInProtocols = { "rdp", "ssh", "telnet" };
+        private static readonly string[] BuiltInProtocols = { "rdp", "ssh" };
 
         private readonly ILifetimeScope container;
         private readonly IRegistration registration;
@@ -198,14 +198,71 @@ namespace OneIdentity.Scalus.Ui
             return "Linux";
         }
 
-        private static void SeedDefaultConfiguration()
+        private void SeedDefaultConfiguration()
         {
-            var target = ConfigurationManager.ScalusJson;
-            if (File.Exists(target))
+            try
             {
-                return;
+                var api = this.container.Resolve<IScalusApiConfiguration>();
+                var config = api.GetConfiguration();
+                var changed = false;
+
+                // First run (or a previously emptied config): preload the shipped
+                // applications so the Applications screen isn't blank, and present the
+                // built-in protocols as unconfigured so nothing is registered without
+                // the user explicitly choosing an application.
+                if (config.Applications == null || config.Applications.Count == 0)
+                {
+                    var seedApps = LoadSeedApplications();
+                    if (seedApps.Count > 0)
+                    {
+                        config.Applications = seedApps;
+                        config.Protocols = BuiltInProtocols
+                            .Select(p => new ProtocolMapping { Protocol = p, AppId = string.Empty })
+                            .ToList();
+                        changed = true;
+                        Serilog.Log.Information(
+                            "Seeded {Count} default applications with unconfigured built-in protocols",
+                            seedApps.Count);
+                    }
+                }
+
+                // The built-in protocols can never be deleted, so make sure a row exists
+                // for each one even in a hand-edited or imported configuration.
+                if (EnsureBuiltInProtocols(config))
+                {
+                    changed = true;
+                }
+
+                if (changed)
+                {
+                    api.SaveConfiguration(config);
+                }
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Warning(ex, "Failed to seed the default configuration");
+            }
+        }
+
+        private static bool EnsureBuiltInProtocols(ScalusConfig config)
+        {
+            config.Protocols ??= new List<ProtocolMapping>();
+            var changed = false;
+            foreach (var scheme in BuiltInProtocols)
+            {
+                if (!config.Protocols.Any(p =>
+                    string.Equals(p.Protocol, scheme, StringComparison.OrdinalIgnoreCase)))
+                {
+                    config.Protocols.Add(new ProtocolMapping { Protocol = scheme, AppId = string.Empty });
+                    changed = true;
+                }
             }
 
+            return changed;
+        }
+
+        private static List<ApplicationConfig> LoadSeedApplications()
+        {
             var seedName = GetPlatform() switch
             {
                 "Windows" => "windows.json",
@@ -215,12 +272,19 @@ namespace OneIdentity.Scalus.Ui
             var seed = Path.Combine(AppContext.BaseDirectory, "defaults", seedName);
             if (!File.Exists(seed))
             {
-                return;
+                return new List<ApplicationConfig>();
             }
 
-            Directory.CreateDirectory(Path.GetDirectoryName(target));
-            File.Copy(seed, target);
-            Serilog.Log.Information($"Seeded default configuration from {seed} to {target}");
+            try
+            {
+                var parsed = JsonConvert.DeserializeObject<ScalusConfig>(File.ReadAllText(seed));
+                return parsed?.Applications ?? new List<ApplicationConfig>();
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Warning(ex, "Failed to read seed applications from {Seed}", seed);
+                return new List<ApplicationConfig>();
+            }
         }
     }
 }
