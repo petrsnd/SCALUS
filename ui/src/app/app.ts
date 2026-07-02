@@ -269,10 +269,32 @@ export class App implements OnInit {
   }
   setArgsText(value: string): void { if (this.editor) { this.editor.Args = value.split('\n').map(x => x.trim()).filter(Boolean); this.markDirty(); } }
   argsText(): string { return (this.editor?.Args || []).join('\n'); }
-  setOptionsText(value: string): void { if (this.editor) { this.editor.Parser.Options = value.split(/\n|,/).map(x => x.trim()).filter(Boolean); this.markDirty(); } }
-  optionsText(): string { return (this.editor?.Parser.Options || []).join('\n'); }
-  setPostArgsText(value: string): void { if (this.editor) { this.editor.Parser.PostProcessingArgs = value.split('\n').map(x => x.trim()).filter(Boolean); this.markDirty(); } }
-  postArgsText(): string { return (this.editor?.Parser.PostProcessingArgs || []).join('\n'); }
+  waitMode(): 'default' | 'exit' | 'inputidle' | 'timed' {
+    const opts = this.editor?.Parser.Options ?? [];
+    if (opts.some(o => /^waitforexit$/i.test(o))) return 'exit';
+    if (opts.some(o => /^waitforinputidle$/i.test(o))) return 'inputidle';
+    if (opts.some(o => /^wait(:\d+)?$/i.test(o))) return 'timed';
+    return 'default';
+  }
+  setWaitMode(mode: 'default' | 'exit' | 'inputidle' | 'timed'): void {
+    if (!this.editor) return;
+    const seconds = this.waitSeconds();
+    if (mode === 'default') this.editor.Parser.Options = [];
+    else if (mode === 'exit') this.editor.Parser.Options = ['waitforexit'];
+    else if (mode === 'inputidle') this.editor.Parser.Options = ['waitforinputidle'];
+    else this.editor.Parser.Options = [`wait:${seconds}`];
+    this.markDirty();
+  }
+  waitSeconds(): number {
+    const opt = (this.editor?.Parser.Options ?? []).find(o => /^wait:\d+$/i.test(o));
+    return opt ? Number(opt.split(':')[1]) : 10;
+  }
+  setWaitSeconds(value: number | string): void {
+    if (!this.editor) return;
+    const n = Math.max(0, Math.floor(Number(value) || 0));
+    this.editor.Parser.Options = [`wait:${n}`];
+    this.markDirty();
+  }
   tokenGroups(): { label: string; tokens: string[]; tone: 'brand' | 'warn' | 'muted' }[] {
     const parser = this.editor?.Parser.ParserId || 'url';
     const spec = TOKEN_GROUPS[parser] || TOKEN_GROUPS['url'];
