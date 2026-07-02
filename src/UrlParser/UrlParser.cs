@@ -59,7 +59,7 @@ namespace OneIdentity.Scalus.UrlParser
             }
             else
             {
-                Serilog.Log.Warning($"The string does not appear to be a valid URL: {url}");
+                Serilog.Log.Warning($"The string does not appear to be a valid URL: {SensitiveData.Redact(url)}");
             }
 
             ParseConfig();

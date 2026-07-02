@@ -44,7 +44,7 @@ namespace OneIdentity.Scalus.Launch
 
         public int Run()
         {
-            Serilog.Log.Debug($"Dispatching URL: {Options.Url}");
+            Serilog.Log.Debug($"Dispatching URL: {SensitiveData.Redact(Options.Url)}");
 
             try
             {

@@ -158,7 +158,7 @@ namespace OneIdentity.Scalus.UrlParser
                     throw new ParserException($"The RDP parser cannot parse the URL:{url}");
                 }
 
-                Log.Information($"Parsing URL{url} as a default URL");
+                Log.Information($"Parsing URL{SensitiveData.Redact(url)} as a default URL");
                 foreach (var (key, value) in defaultArgs)
                 {
                     if (key.Equals(FullAddressKey, StringComparison.Ordinal))
@@ -179,7 +179,7 @@ namespace OneIdentity.Scalus.UrlParser
             }
             else
             {
-                Log.Information($"Parsing URL{url} as an rdp URL");
+                Log.Information($"Parsing URL{SensitiveData.Redact(url)} as an rdp URL");
                 ParseArgs(Dictionary[Token.RelativeUrl]);
                 ParseConfig();
             }
@@ -188,12 +188,12 @@ namespace OneIdentity.Scalus.UrlParser
 
             if (!Dictionary.TryGetValue(Token.User, out var userToken) || string.IsNullOrEmpty(userToken))
             {
-                Log.Warning($"The RDP parser could not extract the '{Token.User}' token from the url:{url}");
+                Log.Warning($"The RDP parser could not extract the '{Token.User}' token from the url:{SensitiveData.Redact(url)}");
             }
 
             if (!Dictionary.TryGetValue(Token.Host, out var hostToken) || string.IsNullOrEmpty(hostToken))
             {
-                Log.Warning($"The RDP parser could not extract the '{Token.Host}' token from the url:{url}");
+                Log.Warning($"The RDP parser could not extract the '{Token.Host}' token from the url:{SensitiveData.Redact(url)}");
             }
 
             return Dictionary;

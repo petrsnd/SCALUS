@@ -69,7 +69,7 @@ namespace OneIdentity.Scalus.UrlParser
                 return;
             }
 
-            Log.Debug($"Starting file preprocessor: '{fileProcessorExe}' with args: '{string.Join(' ', fileProcessorArgs)}'");
+            Log.Debug($"Starting file preprocessor: '{fileProcessorExe}' with args: '{SensitiveData.Redact(string.Join(' ', fileProcessorArgs))}'");
 
             if (!File.Exists(fileProcessorExe))
             {
@@ -370,7 +370,7 @@ namespace OneIdentity.Scalus.UrlParser
             }
             catch
             {
-                Log.Warning($"The string does not appear to be a valid URL: {url} ");
+                Log.Warning($"The string does not appear to be a valid URL: {SensitiveData.Redact(url?.OriginalString)} ");
             }
         }
 

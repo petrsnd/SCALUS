@@ -124,12 +124,12 @@ namespace OneIdentity.Scalus.UrlParser
 
             if (!Dictionary.TryGetValue(Token.User, out var userToken) || string.IsNullOrEmpty(userToken))
             {
-                Log.Warning($"The RDP parser could not extract the '{Token.User}' token from the url:{url}");
+                Log.Warning($"The RDP parser could not extract the '{Token.User}' token from the url:{SensitiveData.Redact(url)}");
             }
 
             if (!Dictionary.TryGetValue(Token.Host, out var hostToken) || string.IsNullOrEmpty(hostToken))
             {
-                Log.Warning($"The RDP parser could not extract the '{Token.Host}' token from the url:{url}");
+                Log.Warning($"The RDP parser could not extract the '{Token.Host}' token from the url:{SensitiveData.Redact(url)}");
             }
 
             return Dictionary;

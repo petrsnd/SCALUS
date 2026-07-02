@@ -91,7 +91,7 @@ namespace OneIdentity.Scalus
                 var args = Parser.ReplaceTokens(ApplicationConfig.Args);
 
                 var cmd = Parser.ReplaceTokens(ApplicationConfig.Exec.Trim());
-                Serilog.Log.Debug($"Starting external application: '{cmd}' with args: '{string.Join(',', args)}'");
+                Serilog.Log.Debug($"Starting external application: '{cmd}' with args: '{SensitiveData.Redact(string.Join(',', args))}'");
                 if (!File.Exists(cmd))
                 {
                     Serilog.Log.Error($"Selected application does not exist:{cmd}");
