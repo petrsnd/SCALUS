@@ -1,0 +1,93 @@
+<div class="app-shell">
+  <aside class="sidebar" aria-label="SCALUS navigation">
+    <div class="brand">
+      <div class="logo" aria-hidden="true"><svg viewBox="0 0 256 256"><path [attr.d]="iconPath('link')" /></svg></div>
+      <div><h1>SCALUS</h1><p class="sub">Session launch handlers</p></div>
+    </div>
+
+    <nav class="nav">
+      <button *ngFor="let item of nav" type="button" class="nav-item" [class.active]="tab === item.id" (click)="setTab(item.id)">
+        <svg viewBox="0 0 256 256"><path [attr.d]="iconPath(item.icon)" /></svg>
+        {{ item.label }}
+      </button>
+    </nav>
+
+    <div class="spacer"></div>
+    <div class="footer">
+      <div><span class="status-dot" [class.warn]="handlerTone === 'warn'" [class.off]="handlerTone === 'muted'"></span>{{ handlerStatus }}</div>
+      <div class="version">{{ versionLine }} · .NET 10</div>
+      <div class="oi-brand" title="A One Identity product">
+        <svg fill="none" viewBox="0 0 24 24" aria-hidden="true"><path fill="#00a6f4" d="M22 16.747q-1.317 2.226-3.623 3.577a10.1 10.1 0 0 1-4.942 1.272q-2.635 0-5.023-1.272-2.306-1.35-3.624-3.577a9.2 9.2 0 0 1-1.317-4.769q0-2.543 1.317-4.769l1.07.557q-1.152 1.987-1.152 4.212 0 2.226 1.153 4.213 1.152 1.908 3.212 3.1a9.05 9.05 0 0 0 4.364 1.112 9.86 9.86 0 0 0 4.283-1.112 8.07 8.07 0 0 0 3.211-3.1zM13.435 2.361q2.635 0 4.942 1.351A9.4 9.4 0 0 1 22 7.209l-1.07.557q-1.154-1.908-3.212-3.02a8.14 8.14 0 0 0-4.283-1.193zm6.177 20.03q-3.87 2.145-8.318 1.43-4.447-.795-7.412-4.133Q1 16.351 1 11.978q0-4.371 2.882-7.71Q6.847.93 11.294.215q4.447-.795 8.318 1.351l-.577 1.033Q15.495.692 11.46 1.407q-3.953.636-6.588 3.656t-2.636 6.915 2.636 6.915 6.588 3.736q4.035.636 7.576-1.272zM13.435 4.744q3.048 0 5.188 2.146 2.224 2.147 2.224 5.087t-2.224 5.087q-2.14 2.067-5.27 2.067-3.047 0-5.27-2.067Q5.94 14.92 5.94 11.978q0-2.94 2.141-5.087 2.224-2.145 5.353-2.146m-4.364 7.233q0 1.75 1.235 3.02 1.318 1.193 3.13 1.193t3.046-1.192q1.318-1.272 1.318-3.02 0-1.75-1.318-2.942-1.235-1.27-3.047-1.271-1.811 0-3.13 1.271-1.234 1.192-1.234 2.941" /></svg>
+        <span class="oi-word">One Identity</span>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <section class="screen" [class.active]="tab === 'protocols'">
+      <header class="topbar"><div><div class="crumb">Configuration</div><h2>Protocols</h2></div><ui-button variant="primary" (click)="openProtocolModal()">+ New protocol</ui-button></header>
+      <div class="content">
+        <p class="lead">For each link type, pick the application that opens it and whether a handler is registered with the OS. Define the applications on the <strong>Applications</strong> tab.</p>
+        <div class="scope-bar">
+          <div class="scope-info"><div class="scope-title">Registration scope <ui-badge *ngIf="scope === 'all'" tone="warn">{{ elevationText }}</ui-badge></div><div class="scope-note" [innerHTML]="scope === 'all' ? 'Handlers are registered for <strong>every account</strong> on this machine — updates system files in addition to your own.' : 'Handlers are registered for <strong>your account only</strong> — no elevated privileges needed.'"></div></div>
+          <ui-segmented-control [options]="scopeOptions" [value]="scope" (valueChange)="setScope($event)"></ui-segmented-control>
+        </div>
+        <div class="section-head"><h3>Active handlers</h3></div>
+        <div class="proto-list">
+          <article *ngFor="let protocol of config.Protocols" class="proto-row" [class.custom]="!isBuiltIn(protocol.Protocol)">
+            <div class="proto-icon" [class.rdp]="protocol.Protocol === 'rdp'" [class.ssh]="protocol.Protocol === 'ssh'" [class.telnet]="protocol.Protocol === 'telnet'" [class.custom-icon]="!isBuiltIn(protocol.Protocol)"><svg viewBox="0 0 256 256"><path [attr.d]="iconPath(protocolIcon(protocol.Protocol))" /></svg></div>
+            <div class="proto-sentence"><div class="line1"><code>{{ protocol.Protocol }}://</code><span class="arrow">→</span><ng-container *ngIf="appById(protocol.AppId) as app; else noApp"><strong><span class="dn">{{ app.Name }}</span> <span class="exec">({{ execLeaf(app.Exec) }})</span></strong></ng-container><ng-template #noApp><em>No application assigned</em></ng-template><ui-badge *ngIf="!isBuiltIn(protocol.Protocol)" tone="muted">Custom</ui-badge><ui-badge *ngIf="protocol.Protocol === 'telnet'" tone="muted">Legacy</ui-badge></div><div class="line2">{{ protocolLine(protocol) }}</div></div>
+            <ui-select class="app-select-host" [options]="appOptionsFor(protocol)" [value]="protocol.AppId" placeholder="Choose an application…" (valueChange)="onAppForProtocol(protocol, $event)"></ui-select>
+            <div class="handler"><ui-toggle [checked]="isRegistered(protocol.Protocol)" [disabled]="!protocol.AppId" (changed)="toggleRegistration(protocol, $event)"></ui-toggle><div class="handler-label"><span class="t">Register handler</span><span class="s" [class.on]="isRegistered(protocol.Protocol)">{{ !protocol.AppId ? 'Disabled · no application' : (isRegistered(protocol.Protocol) ? 'On · registered with OS' : 'Off · not registered') }}</span></div></div>
+            <button *ngIf="!isBuiltIn(protocol.Protocol)" class="row-remove" type="button" aria-label="Remove protocol" (click)="removeProtocol(protocol)">×</button>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" [class.active]="tab === 'applications'">
+      <header class="topbar"><div><div class="crumb">Configuration</div><h2>Applications</h2></div><ui-button variant="primary" (click)="newApplication()">+ New application</ui-button></header>
+      <div class="content"><p class="lead">The clients SCALUS can launch. Each maps a protocol to an executable and the arguments built from the incoming link.</p>
+        <div class="app-grid">
+          <article *ngFor="let app of config.Applications" class="app-card" (click)="editApplication(app)">
+            <div class="row1"><div class="aicon"><svg viewBox="0 0 256 256"><path [attr.d]="iconPath(protocolIcon(app.Parser.ParserId))" /></svg></div><div class="app-title"><div class="aname">{{ app.Name }}</div><div class="ameta">{{ app.Parser.ParserId }}:// · {{ app.Platforms.join(', ') }}</div></div><ui-badge [tone]="appStatus(app).tone">{{ appStatus(app).label }}</ui-badge><details class="menu" (click)="$event.stopPropagation()"><summary aria-label="Application actions">⋮</summary><div class="menu-panel"><button (click)="editApplication(app)">Edit…</button><button (click)="exportApplication(app)">Export / share…</button><button (click)="duplicateApplication(app)">Duplicate</button><button class="danger" (click)="removeApplication(app)">Remove</button></div></details></div>
+            <p>{{ app.Description || 'No description yet.' }}</p><div class="cmd">{{ execLeaf(app.Exec) }} {{ (app.Args || []).join(' ') }}</div><div class="tags"><ui-badge tone="muted">{{ app.Parser.ParserId }} parser</ui-badge><ui-badge *ngIf="app.Parser.UseDefaultTemplate || app.Parser.UseTemplateFile" tone="muted">generated file</ui-badge></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" [class.active]="tab === 'io'">
+      <header class="topbar"><div><div class="crumb">Configuration</div><h2>Import / Export</h2></div></header>
+      <div class="content"><p class="lead">Move configuration between machines or share a single launcher with a colleague. Exports never contain credentials — the Safeguard proxy owns those.</p>
+        <div class="io-cols"><ui-card><div class="io-head"><span class="io-badge full"><svg viewBox="0 0 256 256"><path [attr.d]="iconPath('grid')" /></svg></span><div><h4>Full configuration</h4><div class="io-sub">Every protocol and application, as one file</div></div></div><p>Best for backing up a machine or standing up an identical setup elsewhere.</p><div class="io-actions"><ui-button variant="primary" (click)="exportAll()">Export everything…</ui-button><ui-button variant="ghost" (click)="importReplace()">Import & replace…</ui-button></div><div class="io-note">Importing a full file <strong>replaces</strong> everything after you confirm a summary.</div></ui-card>
+        <ui-card><div class="io-head"><span class="io-badge item"><svg viewBox="0 0 256 256"><path [attr.d]="iconPath('link')" /></svg></span><div><h4>Individual applications</h4><div class="io-sub">Bring in just one launcher without touching the rest</div></div></div><p>Import a single application a colleague shared with you. Name clashes are renamed on merge.</p><div class="io-actions"><ui-button variant="ghost" (click)="importApplication()">Import an application…</ui-button></div><div class="io-note">To export one, open its <span class="kbd">⋮</span> menu on the <strong>Applications</strong> screen and choose <em>Export</em>.</div></ui-card></div>
+      </div>
+    </section>
+
+    <section class="screen" [class.active]="tab === 'about'">
+      <header class="topbar"><div><div class="crumb">Configuration</div><h2>About SCALUS</h2></div></header>
+      <div class="content"><ui-card><h4>Session Client Application Launch Uri System</h4><p>Registers this machine as the handler for session-launch links and opens the right client with the right parameters.</p><dl class="kv"><dt>Version</dt><dd>{{ versionLine }}</dd><dt>Runtime</dt><dd>.NET 10 · NativeAOT dispatcher</dd><dt>UI host</dt><dd>Photino webview</dd><dt>Platform</dt><dd>{{ platform }}</dd><dt>Registered handlers</dt><dd><ui-badge [tone]="handlerTone">{{ registeredCount }} of {{ config.Protocols.length }}</ui-badge></dd></dl></ui-card><ui-card><h4>Diagnostics</h4><pre>{{ info }}</pre></ui-card></div>
+    </section>
+  </main>
+</div>
+
+<ui-drawer [open]="editorOpen" (close)="closeEditor()">
+  <ng-container *ngIf="editor as e">
+    <div class="drawer-head"><div><h3>{{ e.Name || 'New application' }}</h3><div class="sub">{{ editorMode === 'new' ? 'New launch definition' : 'Launch definition · ' + e.Platforms.join(', ') }}</div></div><button class="btn-icon" type="button" (click)="closeEditor()" aria-label="Close">×</button></div>
+    <div class="drawer-body">
+      <p class="lead drawer-lead">An <strong>application</strong> is a reusable launch definition. When a link opens for a protocol this app is assigned to, SCALUS runs the command below, filling <code>%Tokens%</code> with values parsed from the incoming link.</p>
+      <div class="field"><label for="app-name">Name</label><input id="app-name" class="input" [(ngModel)]="e.Name" (ngModelChange)="markDirty()" /></div>
+      <div class="field"><label for="app-description">Description</label><textarea id="app-description" class="input" rows="2" [(ngModel)]="e.Description" (ngModelChange)="markDirty()"></textarea></div>
+      <div class="acc open"><div class="acc-head"><span class="ttl">Command <span class="n">— what gets launched</span></span></div><div class="acc-body"><div class="field"><label for="app-exec">Exec</label><input id="app-exec" class="input" [(ngModel)]="e.Exec" (ngModelChange)="markDirty()" /></div><div class="field"><label for="app-args">Args</label><textarea #argsBox id="app-args" class="input mono" rows="3" [ngModel]="argsText()" (ngModelChange)="setArgsText($event)"></textarea><div class="hint">One argument per line. Click a token below to insert it at the cursor.</div><div *ngFor="let group of tokenGroups()" class="token-section"><div class="picker-label">{{ group.label }} <ui-badge [tone]="group.tone">{{ e.Parser.ParserId }}</ui-badge></div><div class="token-picker"><button *ngFor="let token of group.tokens" type="button" class="token-chip" [class.inband]="group.tone === 'warn'" [title]="tokens[token]" (click)="insertToken(token, argsBox)">{{ token }}</button></div></div></div><div class="preview"><span class="lbl">Live preview — example Safeguard link</span><div>{{ commandPreview() }}</div></div></div></div>
+      <div class="acc open"><div class="acc-head"><span class="ttl">Parser & generated file <span class="n">— advanced</span></span></div><div class="acc-body"><div class="row2"><div class="field"><label for="app-protocol">Protocol</label><input id="app-protocol" class="input" [(ngModel)]="e.Protocol" (ngModelChange)="markDirty()" /></div><div class="field"><label for="app-parser">Parser</label><select id="app-parser" class="select" [ngModel]="e.Parser.ParserId" (ngModelChange)="parserChanged($event)"><option *ngFor="let parser of parsers" [value]="parser">{{ parser }}</option></select></div></div><div class="field"><label>Launch strategy</label><select class="select" [ngModel]="templateMode()" (ngModelChange)="setTemplateMode($event)"><option value="none">Command line only</option><option value="default" [disabled]="e.Parser.ParserId !== 'rdp'">Generated file — default RDP template</option><option value="file">Generated file — custom template file</option></select></div><div class="field" *ngIf="templateMode() === 'file'"><label for="template-file">UseTemplateFile</label><input id="template-file" class="input" [(ngModel)]="e.Parser.UseTemplateFile" (ngModelChange)="markDirty()" /></div><div class="field"><label for="parser-options">Options</label><textarea id="parser-options" class="input mono" rows="2" [ngModel]="optionsText()" (ngModelChange)="setOptionsText($event)"></textarea></div><div class="row2"><div class="field"><label for="post-exec">PostProcessingExec</label><input id="post-exec" class="input" [(ngModel)]="e.Parser.PostProcessingExec" (ngModelChange)="markDirty()" /></div><div class="field"><label for="post-args">PostProcessingArgs</label><textarea id="post-args" class="input mono" rows="2" [ngModel]="postArgsText()" (ngModelChange)="setPostArgsText($event)"></textarea></div></div></div></div>
+      <div class="acc open"><div class="acc-head"><span class="ttl">Platforms <span class="n">— where this applies</span></span></div><div class="acc-body platform-list"><label *ngFor="let platformName of platformOptions" class="platform-chip"><input type="checkbox" [checked]="e.Platforms.includes(platformName)" (change)="togglePlatform(platformName, $any($event.target).checked)" />{{ platformName }}</label></div></div>
+      <div class="error-list" *ngIf="editorErrors.length"><strong>Fix before saving:</strong><ul><li *ngFor="let error of editorErrors">{{ error }}</li></ul></div>
+    </div>
+    <div class="drawer-foot"><ui-button variant="danger" *ngIf="editorMode === 'edit'" (click)="removeApplication(e); editorOpen = false">Delete</ui-button><span></span><div class="foot-actions"><ui-button variant="ghost" (click)="closeEditor()">Cancel</ui-button><ui-button variant="primary" (click)="saveEditor()" [disabled]="!editorDirty && editorMode === 'edit'">Save changes</ui-button></div></div>
+  </ng-container>
+</ui-drawer>
+
+<ui-modal [open]="protocolModalOpen" (close)="closeProtocolModal()"><form (ngSubmit)="addProtocol()"><div class="modal-head"><h3>New protocol</h3><p>Register a custom URI scheme with the operating system.</p></div><div class="modal-body"><label for="proto-scheme">Scheme name</label><div class="scheme-row"><input id="proto-scheme" name="proto" class="input" [(ngModel)]="newProtocol" autocomplete="off" placeholder="myapp" /><span>://</span></div><div class="modal-err">{{ protocolError }}</div></div><div class="modal-foot"><ui-button variant="ghost" type="button" (click)="closeProtocolModal()">Cancel</ui-button><ui-button variant="primary" type="submit">Register</ui-button></div></form></ui-modal>
+
+<div class="toast" *ngIf="message">{{ message }}</div>
