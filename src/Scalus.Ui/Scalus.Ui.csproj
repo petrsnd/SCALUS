@@ -29,9 +29,15 @@
     <Content Include="..\..\scripts\Linux\SCALUS.json" Link="defaults\linux.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <!-- Track the Angular sources so edits to templates/styles/ts trigger a rebuild
+       instead of being skipped because dist/index.html happens to be newer than package.json. -->
+  <ItemGroup>
+    <AngularSources Include="$(UiSourceDir)\src\**\*" />
+  </ItemGroup>
+
   <!-- Build the Angular front-end and stage it into the output as wwwroot. The web
        assets are a build product, never checked in. -->
-  <Target Name="BuildAngularUi" BeforeTargets="Build" Inputs="$(UiSourceDir)\package.json" Outputs="$(UiDistDir)\index.html">
+  <Target Name="BuildAngularUi" BeforeTargets="Build" Inputs="$(UiSourceDir)\package.json;$(UiSourceDir)\angular.json;$(UiSourceDir)\tsconfig.json;@(AngularSources)" Outputs="$(UiDistDir)\index.html">
     <Message Importance="high" Text="Installing Angular dependencies..." Condition="!Exists('$(UiSourceDir)\node_modules')" />
     <Exec Command="npm ci" WorkingDirectory="$(UiSourceDir)" Condition="!Exists('$(UiSourceDir)\node_modules')" />
     <Message Importance="high" Text="Building Angular front-end..." />

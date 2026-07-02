@@ -29,8 +29,8 @@ svg { width: 18px; height: 18px; fill: currentColor; flex: none; }
 .app-shell { display: grid; grid-template-columns: 248px 1fr; height: 100vh; overflow: hidden; }
 .sidebar { background: var(--oi-bg-primary); border-right: 1px solid var(--oi-border-muted); display: flex; flex-direction: column; padding: var(--oi-space-l) var(--oi-space-m); }
 .brand { display: flex; align-items: center; gap: var(--oi-space-m); padding: var(--oi-space-s) var(--oi-space-s) var(--oi-space-l); }
-.logo { width: 34px; height: 34px; border-radius: var(--oi-radius-l); background: linear-gradient(135deg, var(--oi-brand-base), var(--oi-btn-primary-hover)); display: grid; place-items: center; color: #fff; box-shadow: var(--oi-shadow-low); }
-.logo svg { width: 18px; height: 18px; }
+.logo { width: 40px; height: 40px; display: block; flex: none; }
+.logo svg { width: 100%; height: 100%; display: block; }
 .brand h1 { font-size: 15px; margin: 0; font-weight: 650; letter-spacing: .2px; }
 .brand .sub { font-size: 11px; color: var(--oi-content-tertiary); margin: 0; }
 .nav { display: flex; flex-direction: column; gap: 2px; margin-top: var(--oi-space-s); }
@@ -74,7 +74,7 @@ svg { width: 18px; height: 18px; fill: currentColor; flex: none; }
 .proto-sentence { grid-area: sentence; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .line1 { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; min-width: 0; }
 .line1 strong, .line1 em { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.exec { color: var(--oi-content-tertiary); font-weight: 500; }
+.exec { color: var(--oi-content-tertiary); font-weight: 500; margin-left: .4ch; }
 .line1 code { background: var(--oi-bg-secondary); color: var(--oi-content-brand); padding: 1px 7px; border-radius: var(--oi-radius); font-size: 13px; font-weight: 600; }
 .arrow, .line2 { color: var(--oi-content-tertiary); }
 .line2 { font-size: 12.5px; }
@@ -84,8 +84,8 @@ svg { width: 18px; height: 18px; fill: currentColor; flex: none; }
 .handler-label .t { font-size: 12.5px; font-weight: 600; }
 .handler-label .s { font-size: 11px; color: var(--oi-content-tertiary); }
 .handler-label .s.on { color: var(--oi-content-success); }
-.row-remove { position: absolute; top: 10px; right: 12px; opacity: 0; width: 26px; height: 26px; border: none; border-radius: var(--oi-radius); background: transparent; color: var(--oi-content-tertiary); font-size: 20px; line-height: 1; }
-.proto-row.custom:hover .row-remove { opacity: 1; }
+.row-remove { position: absolute; top: 10px; right: 12px; opacity: .45; cursor: pointer; width: 26px; height: 26px; border: none; border-radius: var(--oi-radius); background: transparent; color: var(--oi-content-tertiary); font-size: 20px; line-height: 1; transition: opacity .12s, background .12s, color .12s; }
+.proto-row:hover .row-remove { opacity: 1; }
 .row-remove:hover { background: var(--oi-bg-error); color: var(--oi-content-error); }
 .app-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--oi-space-m); }
 .app-card { background: var(--oi-bg-primary); border: 1px solid var(--oi-border-muted); border-radius: var(--oi-radius-l); padding: var(--oi-space-l); display: flex; flex-direction: column; gap: var(--oi-space-s); transition: border-color .12s, box-shadow .12s; box-shadow: var(--oi-shadow-low); }
@@ -133,6 +133,9 @@ pre { white-space: pre-wrap; margin: 0; background: var(--oi-bg-secondary); padd
 .field { margin-bottom: var(--oi-space-l); }
 .field > label, .modal-body label { display: block; font-size: 12.5px; font-weight: 600; margin-bottom: 6px; color: var(--oi-content-secondary); }
 .hint { font-size: 11.5px; color: var(--oi-content-tertiary); margin-top: 5px; }
+.field-error { font-size: 11.5px; color: var(--oi-content-error); margin-top: 5px; font-weight: 500; }
+.input.invalid { border-color: var(--oi-content-error); }
+.input.invalid:focus { box-shadow: 0 0 0 3px var(--oi-bg-error); }
 .field > label.tgl-row { display: flex; align-items: center; gap: var(--oi-space-m); margin-bottom: 0; font-weight: 600; color: var(--oi-content-primary); cursor: pointer; }
 .lbl-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
 .lbl-row > label { margin-bottom: 0; }

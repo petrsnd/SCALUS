@@ -170,8 +170,17 @@ export class App implements OnInit {
     this.closeProtocolModal();
   }
   async removeProtocol(protocol: ProtocolMapping): Promise<void> {
-    if (this.isBuiltIn(protocol.Protocol)) return;
-    if (this.isRegistered(protocol.Protocol)) await this.toggleRegistration(protocol, false);
+    if (this.isRegistered(protocol.Protocol)) {
+      const reAdd = this.isBuiltIn(protocol.Protocol) ? ' You can add it back later with “New protocol”.' : '';
+      const ok = await this.askConfirm({
+        title: `Remove ${protocol.Protocol}://?`,
+        message: `${protocol.Protocol}:// is currently registered as an OS handler. Removing it unregisters the handler and deletes the protocol from SCALUS.${reAdd}`,
+        confirmLabel: 'Unregister & remove',
+        variant: 'danger'
+      });
+      if (!ok) return;
+      await this.toggleRegistration(protocol, false);
+    }
     this.config.Protocols = this.config.Protocols.filter(p => p !== protocol);
     await this.saveCurrentConfig('Protocol removed.');
   }
@@ -213,6 +222,15 @@ export class App implements OnInit {
     resolve?.(ok);
   }
   markDirty(): void { this.editorDirty = true; }
+  idError(): string {
+    const e = this.editor;
+    if (!e) return '';
+    const id = (e.Id || '').trim();
+    if (!id) return '';
+    if (!/^[a-z0-9][a-z0-9._-]*$/i.test(id)) return 'Only letters, numbers, dots, dashes, and underscores — must start with a letter or number.';
+    if (this.config.Applications.some(a => a.Id === id && a.Id !== this.editorOriginalId)) return `Another application already uses the ID “${id}”.`;
+    return '';
+  }
   parserChanged(parser: string): void {
     if (!this.editor) return;
     this.editor.Parser.ParserId = parser;
@@ -321,8 +339,10 @@ export class App implements OnInit {
   async saveEditor(): Promise<void> {
     if (!this.editor) return;
     const app = JSON.parse(JSON.stringify(this.editor)) as ApplicationConfig;
-    app.Id = app.Id.trim() || this.uniqueId(app.Name || 'application');
-    app.Name = app.Name.trim();
+    app.Name = (app.Name || '').trim();
+    app.Id = (app.Id || '').trim() || this.uniqueId(app.Name || 'application');
+    const localErrors = this.validateEditor(app);
+    if (localErrors.length) { this.editorErrors = localErrors; return; }
     this.editorErrors = await this.bridge.validate({ ...this.config, Applications: this.upsertApplication(this.config.Applications, app, this.editorOriginalId) });
     if (this.editorErrors.length) return;
     this.config.Applications = this.upsertApplication(this.config.Applications, app, this.editorOriginalId);
@@ -331,6 +351,16 @@ export class App implements OnInit {
     }
     await this.saveCurrentConfig('Application saved.');
     this.editorOpen = false;
+  }
+  private validateEditor(app: ApplicationConfig): string[] {
+    const errors: string[] = [];
+    if (!app.Name) errors.push('Name is required.');
+    if (!app.Id) errors.push('Application ID is required.');
+    else if (!/^[a-z0-9][a-z0-9._-]*$/i.test(app.Id)) errors.push('Application ID must start with a letter or number and use only letters, numbers, dots, dashes, or underscores (no spaces).');
+    if (app.Id && this.config.Applications.some(a => a.Id === app.Id && a.Id !== this.editorOriginalId)) {
+      errors.push(`Another application already uses the ID “${app.Id}”. IDs must be unique.`);
+    }
+    return errors;
   }
   upsertApplication(apps: ApplicationConfig[], app: ApplicationConfig, originalId: string | null): ApplicationConfig[] {
     const next = apps.filter(a => a.Id !== (originalId ?? app.Id));
