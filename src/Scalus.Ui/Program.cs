@@ -12,16 +12,11 @@ namespace OneIdentity.Scalus.Ui
 {
     using System;
     using System.IO;
-    using System.Runtime.InteropServices;
-    using Autofac;
     using Photino.NET;
     using Serilog;
 
     internal static class Program
     {
-        private const string Scheme = "app";
-        private const string StartUrl = "app://scalus/index.html";
-
         [STAThread]
         private static void Main(string[] args)
         {
@@ -49,11 +44,13 @@ namespace OneIdentity.Scalus.Ui
 
         private static void Run()
         {
-            var wwwroot = Path.Combine(AppContext.BaseDirectory, "wwwroot");
+            var baseDir = AppContext.BaseDirectory;
+            var indexPath = Path.Combine(baseDir, "wwwroot", "index.html");
+            var iconPath = Path.Combine(baseDir, "scalus.ico");
             var container = Ioc.RegisterApplication(Log.Logger);
             var dispatcher = new BridgeDispatcher(container);
 
-            Log.Information("Starting SCALUS configuration app (wwwroot: {WwwRoot})", wwwroot);
+            Log.Information("Starting SCALUS configuration app ({IndexPath})", indexPath);
 
             var window = new PhotinoWindow()
                 .SetTitle("SCALUS")
@@ -62,9 +59,12 @@ namespace OneIdentity.Scalus.Ui
                 .SetMinSize(960, 640)
                 .Center()
                 .SetContextMenuEnabled(false)
-                .SetDevToolsEnabled(true)
-                .RegisterCustomSchemeHandler(Scheme, (object sender, string scheme, string url, out string contentType) =>
-                    ServeAsset(wwwroot, url, out contentType));
+                .SetDevToolsEnabled(true);
+
+            if (File.Exists(iconPath))
+            {
+                window.SetIconFile(iconPath);
+            }
 
             dispatcher.Attach(window);
             window.RegisterWebMessageReceivedHandler((sender, message) =>
@@ -74,52 +74,8 @@ namespace OneIdentity.Scalus.Ui
                 self.SendWebMessage(response);
             });
 
-            window.Load(new Uri(StartUrl));
+            window.Load(indexPath);
             window.WaitForClose();
         }
-
-        private static Stream ServeAsset(string wwwroot, string url, out string contentType)
-        {
-            var path = "/index.html";
-            if (Uri.TryCreate(url, UriKind.Absolute, out var uri))
-            {
-                path = string.IsNullOrEmpty(uri.AbsolutePath) || uri.AbsolutePath == "/"
-                    ? "/index.html"
-                    : uri.AbsolutePath;
-            }
-
-            var relative = Uri.UnescapeDataString(path.TrimStart('/')).Replace('/', Path.DirectorySeparatorChar);
-            var fullPath = Path.GetFullPath(Path.Combine(wwwroot, relative));
-
-            // Guard against path traversal outside the web root.
-            if (!fullPath.StartsWith(Path.GetFullPath(wwwroot), StringComparison.OrdinalIgnoreCase) ||
-                !File.Exists(fullPath))
-            {
-                fullPath = Path.Combine(wwwroot, "index.html");
-            }
-
-            contentType = ContentType(fullPath);
-            return new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read);
-        }
-
-        private static string ContentType(string path) =>
-            Path.GetExtension(path).ToLowerInvariant() switch
-            {
-                ".html" => "text/html",
-                ".js" => "text/javascript",
-                ".mjs" => "text/javascript",
-                ".css" => "text/css",
-                ".json" => "application/json",
-                ".ico" => "image/x-icon",
-                ".svg" => "image/svg+xml",
-                ".png" => "image/png",
-                ".jpg" => "image/jpeg",
-                ".jpeg" => "image/jpeg",
-                ".woff" => "font/woff",
-                ".woff2" => "font/woff2",
-                ".ttf" => "font/ttf",
-                ".map" => "application/json",
-                _ => "application/octet-stream",
-            };
     }
 }
