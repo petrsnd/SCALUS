@@ -9,7 +9,7 @@
       "AppId": "gnome-terminal-ssh"
     },
     {
-      "Protocol":  "telnet" 
+      "Protocol": "telnet"
     }
   ],
   "Applications": [
@@ -17,98 +17,141 @@
       "Id": "windows-rdp",
       "Description": "Run MS Windows RDP Client with a default connection file, which can be customized by the examplePlugin.pl perl script ",
       "Name": "Windows RDP Client",
-      "Platforms": [ "Windows" ],
+      "Platforms": [
+        "Windows"
+      ],
       "Protocol": "rdp",
       "Parser": {
         "ParserId": "rdp",
-        "Options": [ "waitForInputIdle" ],
-        "UseDefaultTemplate": true,
+        "Options": [
+          "waitForInputIdle"
+        ],
         "PostProcessingExec": null,
-        "PostProcessingArgs": null
-
+        "PostProcessingArgs": null,
+        "TemplateContent": "allow desktop composition:i:0\nallow font smoothing:i:0\nalternate full address:s:\nalternate shell:s:%AlternateShell%\naudiocapturemode:i:0\naudiomode:i:0\nauthentication level:i:2\nautoreconnection enabled:i:1\nbandwidthautodetect:i:1\nbitmapcachepersistenable:i:0\ncamerastoredirect:s:\ncompression:i:0\nconnection type:i:7\ndesktop size id:i:1\ndesktopheight:i:768\ndesktopscalefactor:i:100\ndesktopwidth:i:1024\ndevicestoredirect:s:\ndisable cursor setting:i:0\ndisable full window drag:i:1\ndisable menu anims:i:1\ndisable themes:i:0\ndisable wallpaper:i:0\ndisableconnectionsharing:i:0\ndisplayconnectionbar:i:1\ndomain:s:\ndrivestoredirect:s:\ndynamic resolution:i:0\nenablecredsspsupport:i:1\nenableworkspacereconnect:i:0\nencode redirected video capture:i:1\nfull address:s:%Host%\ngatewaybrokeringtype:i:0\ngatewaycredentialssource:i:4\ngatewayhostname:s:\ngatewayprofileusagemethod:i:0\ngatewayusagemethod:i:4\nkdcproxyname:s:\nkeyboardhook:i:2\nmaximizetocurrentdisplays:i:0\nnegotiate security layer:i:1\nnetworkautodetect:i:1\npromptcredentialonce:i:0\nprompt for credentials on client:i:0\nrdgiskdcproxy:i:0\nredirectclipboard:i:1\nredirectcomports:i:0\nredirectdrives:i:1\nredirected video capture encoding quality:i:0\nredirectposdevices:i:0\nredirectprinters:i:1\nredirectsmartcards:i:1\nremoteapplicationcmdline:s:\nremoteapplicationexpandcmdline:i:1\nremoteapplicationexpandworkingdir:s:\nremoteapplicationfile:s:\nremoteapplicationicon:s:\nremoteapplicationmode:i:0\nremoteapplicationname:s:%Remoteapplicationname%\nremoteapplicationprogram:s:%Remoteapplicationprogram%\nscreen mode id:i:1\nselectedmonitors:s:\nserver port:i:3389\nsession bpp:i:32\nshell working directory:s:\nsinglemoninwindowedmode:i:0\nsmart sizing:i:1\nspan monitors:i:1\nuse multimon:i:0\nusbdevicestoredirect:s:\nuse redirection server name:i:0\nusername:s:%user%\nvideoplaybackmode:i:1\nwinposstr:s:0,1,31,47,1688,737",
+        "TemplateExtension": ".rdp"
       },
       "Exec": "C:\\windows\\system32\\mstsc.exe",
-      "Args": [ "%GeneratedFile%" ]
+      "Args": [
+        "%GeneratedFile%"
+      ]
     },
     {
       "Id": "windows-rdp-withtemplate",
       "Description": "Run MS Windows RDP Client with a user-supplied connection file: exampleRdpTemplate.rdp",
       "Name": "Windows RDP Client with template",
-      "Platforms": [ "Windows" ],
+      "Platforms": [
+        "Windows"
+      ],
       "Protocol": "rdp",
       "Parser": {
         "ParserId": "rdp",
-        "UseTemplateFile": "%AppData%\\exampleRdpTemplate.rdp",
-        "Options": [ "waitForInputIdle" ]
+        "Options": [
+          "waitForInputIdle"
+        ],
+        "TemplateContent": "allow desktop composition:i:0\nallow font smoothing:i:0\nalternate full address:s:\nalternate shell:s:%AlternateShell%\naudiocapturemode:i:0\naudiomode:i:0\nauthentication level:i:2\nautoreconnection enabled:i:1\nbandwidthautodetect:i:1\nbitmapcachepersistenable:i:0\ncamerastoredirect:s:\ncompression:i:0\nconnection type:i:7\ndesktop size id:i:1\ndesktopheight:i:768\ndesktopscalefactor:i:100\ndesktopwidth:i:1024\ndevicestoredirect:s:\ndisable cursor setting:i:0\ndisable full window drag:i:1\ndisable menu anims:i:1\ndisable themes:i:0\ndisable wallpaper:i:0\ndisableconnectionsharing:i:0\ndisplayconnectionbar:i:1\ndomain:s:\ndrivestoredirect:s:\ndynamic resolution:i:0\nenablecredsspsupport:i:1\nenableworkspacereconnect:i:0\nencode redirected video capture:i:1\nfull address:s:%Host%\ngatewaybrokeringtype:i:0\ngatewaycredentialssource:i:4\ngatewayhostname:s:\ngatewayprofileusagemethod:i:0\ngatewayusagemethod:i:4\nkdcproxyname:s:\nkeyboardhook:i:2\nmaximizetocurrentdisplays:i:0\nnegotiate security layer:i:1\nnetworkautodetect:i:1\npromptcredentialonce:i:0\nprompt for credentials on client:i:0\nrdgiskdcproxy:i:0\nredirectclipboard:i:1\nredirectcomports:i:0\nredirectdrives:i:1\nredirected video capture encoding quality:i:0\nredirectposdevices:i:0\nredirectprinters:i:1\nredirectsmartcards:i:1\nremoteapplicationcmdline:s:\nremoteapplicationexpandcmdline:i:1\nremoteapplicationexpandworkingdir:s:\nremoteapplicationfile:s:\nremoteapplicationicon:s:\nremoteapplicationmode:i:0\nremoteapplicationname:s:%Remoteapplicationname%\nremoteapplicationprogram:s:%Remoteapplicationprogram%\nscreen mode id:i:1\nselectedmonitors:s:\nserver port:i:3389\nsession bpp:i:32\nshell working directory:s:\nsinglemoninwindowedmode:i:0\nsmart sizing:i:1\nspan monitors:i:1\nuse multimon:i:0\nusbdevicestoredirect:s:\nuse redirection server name:i:1\nusername:s:%user%\nvideoplaybackmode:i:1\nwinposstr:s:0,1,31,47,1688,737",
+        "TemplateExtension": ".rdp"
       },
       "Exec": "C:\\windows\\system32\\mstsc.exe",
-      "Args": [ "%GeneratedFile%" ]
+      "Args": [
+        "%GeneratedFile%"
+      ]
     },
-
     {
       "Id": "freerdp",
       "Description": "Run FreeRdp client with the supplied connection settings",
       "Name": "FreeRDP",
-      "Platforms": [ "Linux" ],
+      "Platforms": [
+        "Linux"
+      ],
       "Protocol": "rdp",
       "Parser": {
         "ParserId": "rdp",
         "Options": []
       },
       "Exec": "/usr/bin/xfreerdp",
-      "Args": [ "/u:%User%", "/v:%host%:%Port%", "/p:Safeguard" ]
+      "Args": [
+        "/u:%User%",
+        "/v:%host%:%Port%",
+        "/p:Safeguard"
+      ]
     },
     {
       "Id": "windows-openssh",
       "Description": "Run the Windows OpenSSH client. An auth key can be provided by adding the '-i, keypath' arguments.",
       "Name": "Windows OpenSSH",
-      "Platforms": [ "Windows" ],
+      "Platforms": [
+        "Windows"
+      ],
       "Protocol": "ssh",
       "Parser": {
         "ParserId": "ssh",
         "Options": []
       },
       "Exec": "C:\\windows\\system32\\cmd.exe",
-      "Args": [ "/c", "C:\\Windows\\System32\\OpenSSH\\ssh.exe -l %User% %Host%" ]
+      "Args": [
+        "/c",
+        "C:\\Windows\\System32\\OpenSSH\\ssh.exe -l %User% %Host%"
+      ]
     },
-
     {
       "Id": "gnome-terminal-ssh",
       "Name": "Gnome Terminal SSH",
       "Description": "Run Open Gnome Terminal on Linux to connect to SSH. An SSH key can be provided by adding the '-i, keyfile' args",
-      "Platforms": [ "Linux" ],
+      "Platforms": [
+        "Linux"
+      ],
       "Protocol": "ssh",
       "Parser": {
         "ParserId": "ssh",
         "Options": []
       },
       "Exec": "/usr/bin/gnome-terminal",
-      "Args": [ "-x", "ssh", "-t", "-l", "%User%", "%Host%" ]
+      "Args": [
+        "-x",
+        "ssh",
+        "-t",
+        "-l",
+        "%User%",
+        "%Host%"
+      ]
     },
-
     {
       "Id": "mac-ssh",
       "Name": "MAC TerminalSSH",
       "Description": "Run Open Terminal on Mac OS with the SSH connection information",
-      "Platforms": [ "Mac" ],
+      "Platforms": [
+        "Mac"
+      ],
       "Protocol": "ssh",
       "Parser": {
         "ParserId": "ssh",
-        "Options": [ "waitforexit" ]
+        "Options": [
+          "waitforexit"
+        ]
       },
       "Exec": "/usr/bin/open",
-      "Args": [ "-b", "com.apple.terminal", "%OriginalURL%" ]
+      "Args": [
+        "-b",
+        "com.apple.terminal",
+        "%OriginalURL%"
+      ]
     },
     {
       "Id": "mac-rdp",
       "Name": "Mac RDP",
       "Description": "Run MS Windows RDP on MAC using default connection settings",
-      "Platforms": [ "Mac" ],
+      "Platforms": [
+        "Mac"
+      ],
       "Protocol": "rdp",
       "Parser": {
         "ParserId": "rdp",
-        "UseDefaultTemplate": true,
-        "Options": [ "wait:60" ]
+        "Options": [
+          "wait:60"
+        ],
+        "TemplateContent": "allow desktop composition:i:0\nallow font smoothing:i:0\nalternate full address:s:\nalternate shell:s:%AlternateShell%\naudiocapturemode:i:0\naudiomode:i:0\nauthentication level:i:2\nautoreconnection enabled:i:1\nbandwidthautodetect:i:1\nbitmapcachepersistenable:i:0\ncamerastoredirect:s:\ncompression:i:0\nconnection type:i:7\ndesktop size id:i:1\ndesktopheight:i:768\ndesktopscalefactor:i:100\ndesktopwidth:i:1024\ndevicestoredirect:s:\ndisable cursor setting:i:0\ndisable full window drag:i:1\ndisable menu anims:i:1\ndisable themes:i:0\ndisable wallpaper:i:0\ndisableconnectionsharing:i:0\ndisplayconnectionbar:i:1\ndomain:s:\ndrivestoredirect:s:\ndynamic resolution:i:0\nenablecredsspsupport:i:1\nenableworkspacereconnect:i:0\nencode redirected video capture:i:1\nfull address:s:%Host%\ngatewaybrokeringtype:i:0\ngatewaycredentialssource:i:4\ngatewayhostname:s:\ngatewayprofileusagemethod:i:0\ngatewayusagemethod:i:4\nkdcproxyname:s:\nkeyboardhook:i:2\nmaximizetocurrentdisplays:i:0\nnegotiate security layer:i:1\nnetworkautodetect:i:1\npromptcredentialonce:i:0\nprompt for credentials on client:i:0\nrdgiskdcproxy:i:0\nredirectclipboard:i:1\nredirectcomports:i:0\nredirectdrives:i:1\nredirected video capture encoding quality:i:0\nredirectposdevices:i:0\nredirectprinters:i:1\nredirectsmartcards:i:1\nremoteapplicationcmdline:s:\nremoteapplicationexpandcmdline:i:1\nremoteapplicationexpandworkingdir:s:\nremoteapplicationfile:s:\nremoteapplicationicon:s:\nremoteapplicationmode:i:0\nremoteapplicationname:s:%Remoteapplicationname%\nremoteapplicationprogram:s:%Remoteapplicationprogram%\nscreen mode id:i:1\nselectedmonitors:s:\nserver port:i:3389\nsession bpp:i:32\nshell working directory:s:\nsinglemoninwindowedmode:i:0\nsmart sizing:i:1\nspan monitors:i:1\nuse multimon:i:0\nusbdevicestoredirect:s:\nuse redirection server name:i:0\nusername:s:%user%\nvideoplaybackmode:i:1\nwinposstr:s:0,1,31,47,1688,737",
+        "TemplateExtension": ".rdp"
       },
       "Exec": "/usr/bin/open",
       "Args": [
@@ -117,60 +160,87 @@
         "%GeneratedFile%"
       ]
     },
-
     {
       "Id": "putty-ssh",
       "Description": "Run the Putty client to connect using SSH. An SSH key can be provided by adding the '-i, keyfile' args",
       "Name": "Putty",
-      "Platforms": [ "Windows" ],
+      "Platforms": [
+        "Windows"
+      ],
       "Protocol": "ssh",
       "Parser": {
         "ParserId": "ssh",
         "Options": []
       },
       "Exec": "C:\\windows\\system32\\cmd.exe",
-      "Args": [ "/c", "C:\\Program Files\\PuTTY\\putty.exe", "-ssh", "%user%@%host%" ]
+      "Args": [
+        "/c",
+        "C:\\Program Files\\PuTTY\\putty.exe",
+        "-ssh",
+        "%user%@%host%"
+      ]
     },
     {
       "Id": "putty-telnet",
       "Description": "Run the Putty client to connect using telnet",
       "Name": "Putty Telnet",
-      "Platforms": [ "Windows" ],
+      "Platforms": [
+        "Windows"
+      ],
       "Protocol": "telnet",
       "Parser": {
         "ParserId": "telnet",
         "Options": []
       },
       "Exec": "C:\\windows\\system32\\cmd.exe",
-      "Args": [ "/c", "C:\\Program Files\\PuTTY\\putty.exe", "-telnet", "%user%@%host%" ]
+      "Args": [
+        "/c",
+        "C:\\Program Files\\PuTTY\\putty.exe",
+        "-telnet",
+        "%user%@%host%"
+      ]
     },
     {
       "Id": "remmina-rdp",
       "Description": "Run Remmina client on linux to connect to RDP using a user-supplied template:rdp.remmina",
       "Name": "remmina Rdp client",
-      "Platforms": [ "Linux" ],
+      "Platforms": [
+        "Linux"
+      ],
       "Protocol": "rdp",
       "Parser": {
         "ParserId": "rdp",
-        "UseTemplateFile": "%AppData%/rdp.remmina",
-        "Options": [ "waitforexit" ]
+        "Options": [
+          "waitforexit"
+        ],
+        "TemplateContent": "[remmina]\nserver=%Host%\nusername=%User%\nprotocol=RDP\nname=scalusRdp\npassword=\ngateway_username=\nwindow_height=525\nssh_tunnel_loopback=0\nserialname=\nprinter_overrides=\nconsole=0\ncolordepth=8\nsecurity=\nprecommand=\ndisable_fastpath=0\npostcommand=\ngroup=\nglyph-cache=0\nssh_tunnel_enabled=0\ndisableclipboard=0\nparallelpath=\ncert_ignore=0\nserialpermissive=0\ngateway_server=\nssh_tunnel_password=\nold-license=0\nresolution_mode=2\ndisableautoreconnect=0\nloadbalanceinfo=\nclientbuild=\nclientname=\nresolution_width=0\nrelax-order-checks=0\ngateway_domain=\nserialdriver=\ndomain=\ngateway_password=\nsmartcardname=\nexec=\nserialpath=\nenable-autostart=0\nshareprinter=0\nshareparallel=0\nssh_tunnel_passphrase=\nquality=0\ndisablepasswordstoring=0\nparallelname=\nviewmode=1\nssh_tunnel_auth=2\nshareserial=0\nsharefolder=\nsharesmartcard=0\nssh_tunnel_username=\nexecpath=\nresolution_height=0\nuseproxyenv=0\nmicrophone=0\ngwtransp=http\nssh_tunnel_privatekey=\nssh_tunnel_server=\nignore-tls-errors=1\nwindow_maximize=0\ngateway_usage=0\nwindow_width=640\nsound=off",
+        "TemplateExtension": ".remmina"
       },
       "Exec": "/usr/bin/remmina",
-      "Args": [ "%GeneratedFile%" ]
+      "Args": [
+        "%GeneratedFile%"
+      ]
     },
     {
       "Id": "remmina-ssh",
       "Description": "Run Remmina client on Linux to connect to SSH using a user-supplied template:ssh.remmina",
       "Name": "remmina SSH client",
-      "Platforms": [ "Linux" ],
+      "Platforms": [
+        "Linux"
+      ],
       "Protocol": "ssh",
       "Parser": {
         "ParserId": "ssh",
-        "UseTemplateFile": "%AppData%/ssh.remmina",
-        "Options": [ "waitforexit" ]
+        "Options": [
+          "waitforexit"
+        ],
+        "TemplateContent": "[remmina]\nserver=%Host%\nusername=%User%\nname=scalusSSH\npassword=\nssh_proxycommand=\nssh_passphrase=\nssh_charset=\nprecommand=\nsshlogenabled=0\nssh_privatekey=\nssh_tunnel_enabled=0\nssh_tunnel_privatekey=\nssh_auth=0\nignore-tls-errors=1\npostcommand=\ndisablepasswordstoring=0\nssh_color_scheme=0\naudiblebell=0\nssh_tunnel_username=\nssh_hostkeytypes=\nssh_tunnel_password=\nenable-autostart=0\nsshlogfolder=\ngroup=\nssh_tunnel_server=\nssh_ciphers=\nssh_tunnel_auth=2\nssh_kex_algorithms=\nssh_compression=0\nssh_tunnel_loopback=0\nexec=\nsshlogname=\nprotocol=SSH\nssh_stricthostkeycheck=0\nssh_tunnel_passphrase=",
+        "TemplateExtension": ".remmina"
       },
       "Exec": "/usr/bin/remmina",
-      "Args": [ "%GeneratedFile%" ]
+      "Args": [
+        "%GeneratedFile%"
+      ]
     }
   ]
 }
