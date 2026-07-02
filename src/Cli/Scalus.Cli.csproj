@@ -29,6 +29,14 @@
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
   </PropertyGroup>
 
+  <!-- SCALUS resolves platform-specific APIs behind runtime OS checks, so the CA1416
+       platform-compatibility analyzer is suppressed project-wide. Keep this unconditional:
+       AOT publish builds with Platform=x64, so a Platform=AnyCPU condition would silently
+       stop suppressing it and break the publish. -->
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);1701;1702;CA1416</NoWarn>
+  </PropertyGroup>
+
   <PropertyGroup Condition="'$(Edition)'=='supported'">
     <ApplicationIcon>..\scalus-safeguard.ico</ApplicationIcon>
   </PropertyGroup>
