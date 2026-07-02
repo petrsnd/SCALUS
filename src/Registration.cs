@@ -21,7 +21,10 @@
 
 namespace OneIdentity.Scalus
 {
+    using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
+    using System.IO;
     using OneIdentity.Scalus.Dto;
     using OneIdentity.Scalus.Platform;
 
@@ -61,6 +64,60 @@ namespace OneIdentity.Scalus
             }
 
             return registered;
+        }
+
+        public RegistrationStatus GetStatus(string protocol, bool useSudo = false)
+        {
+            var status = new RegistrationStatus
+            {
+                Protocol = protocol,
+                State = RegistrationStatus.Unregistered,
+            };
+
+            if (!ProtocolMapping.ValidateProtocol(protocol, out string err))
+            {
+                Serilog.Log.Error($"Invalid protocol:{protocol}");
+                return status;
+            }
+
+            var allScalus = true;
+            string conflictCommand = null;
+            foreach (var registrar in Registrars)
+            {
+                if (useSudo)
+                {
+                    registrar.UseSudo = true;
+                }
+
+                if (registrar.IsScalusRegistered(protocol))
+                {
+                    continue;
+                }
+
+                allScalus = false;
+                if (conflictCommand == null)
+                {
+                    var command = registrar.GetRegisteredCommand(protocol);
+                    if (!string.IsNullOrEmpty(command))
+                    {
+                        conflictCommand = command;
+                    }
+                }
+            }
+
+            if (conflictCommand != null)
+            {
+                status.State = RegistrationStatus.Conflict;
+                status.Command = conflictCommand;
+                status.Path = WindowsCommandLine.GetExecutable(conflictCommand);
+                status.Program = DescribeProgram(status.Path);
+            }
+            else if (allScalus)
+            {
+                status.State = RegistrationStatus.Registered;
+            }
+
+            return status;
         }
 
         public bool Register(IEnumerable<string> protocols, bool force, bool rootMode = false, bool useSudo = false)
@@ -173,6 +230,47 @@ namespace OneIdentity.Scalus
             }
 
             return true;
+        }
+
+        // Best-effort friendly name for a conflicting handler's executable. On Windows the file's
+        // description/product name is preferred; otherwise the bare file name is used.
+        private static string DescribeProgram(string path)
+        {
+            if (string.IsNullOrEmpty(path))
+            {
+                return null;
+            }
+
+            try
+            {
+                if (OperatingSystem.IsWindows() && File.Exists(path))
+                {
+                    var info = FileVersionInfo.GetVersionInfo(path);
+                    var name = info.FileDescription;
+                    if (string.IsNullOrWhiteSpace(name))
+                    {
+                        name = info.ProductName;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(name))
+                    {
+                        return name.Trim();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Debug(ex, $"Could not read version info for {path}");
+            }
+
+            try
+            {
+                return Path.GetFileName(path);
+            }
+            catch (Exception)
+            {
+                return path;
+            }
         }
     }
 }

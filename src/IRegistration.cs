@@ -22,6 +22,7 @@
 namespace OneIdentity.Scalus
 {
     using System.Collections.Generic;
+    using OneIdentity.Scalus.Dto;
 
     public interface IRegistration
     {
@@ -30,5 +31,7 @@ namespace OneIdentity.Scalus
         bool UnRegister(IEnumerable<string> protocols, bool rootMode = false, bool useSudo = false);
 
         bool IsRegistered(string protocol, bool useSudo = false);
+
+        RegistrationStatus GetStatus(string protocol, bool useSudo = false);
     }
 }

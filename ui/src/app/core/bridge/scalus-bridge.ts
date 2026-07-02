@@ -39,11 +39,25 @@ export interface ScalusConfig {
 
 export type RegistrationScope = 'user' | 'all';
 
+export type RegistrationState = 'registered' | 'conflict' | 'unregistered';
+
+export interface RegistrationStatus {
+  Protocol: string;
+  State: RegistrationState;
+  /** Friendly name of the conflicting application (conflict only). */
+  Program?: string | null;
+  /** Resolved executable path of the conflicting handler (conflict only). */
+  Path?: string | null;
+  /** Raw registered command line of the conflicting handler (conflict only). */
+  Command?: string | null;
+}
+
 export interface ScalusBridge {
   getConfig(): Promise<ScalusConfig>;
   saveConfig(config: ScalusConfig): Promise<{ errors: string[] }>;
   validate(config: ScalusConfig): Promise<string[]>;
   getRegistrations(): Promise<string[]>;
+  getRegistrationStatus(): Promise<RegistrationStatus[]>;
   register(protocol: string, scope: RegistrationScope): Promise<void>;
   unregister(protocol: string): Promise<void>;
   getTokens(): Promise<Record<string, string>>;

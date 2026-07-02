@@ -9,7 +9,7 @@ import { UiModalComponent } from './shared/ui/modal.component';
 import { UiSegmentedControlComponent } from './shared/ui/segmented-control.component';
 import { UiSelectComponent } from './shared/ui/select.component';
 import { UiToggleComponent } from './shared/ui/toggle.component';
-import { ApplicationConfig, Platform, ProtocolMapping, RegistrationScope, SCALUS_BRIDGE, ScalusBridge, ScalusConfig, TemplateEncoding, TemplateLineEnding } from './core/bridge/scalus-bridge';
+import { ApplicationConfig, Platform, ProtocolMapping, RegistrationScope, RegistrationStatus, SCALUS_BRIDGE, ScalusBridge, ScalusConfig, TemplateEncoding, TemplateLineEnding } from './core/bridge/scalus-bridge';
 import { cloneConfig, normalizeApplication, normalizeConfig } from './core/bridge/seed-data';
 import { DEFAULT_RDP_TEMPLATE } from './core/bridge/default-template';
 
@@ -44,7 +44,7 @@ const SAFEGUARD_TOKENS = ['%Token%', '%Vault%', '%TargetUser%', '%TargetHost%', 
 export class App implements OnInit {
   tab: Tab = 'protocols';
   config: ScalusConfig = { Protocols: [], Applications: [] };
-  registrations = new Set<string>();
+  registrations = new Map<string, RegistrationStatus>();
   scope: RegistrationScope = 'user';
   platform: Platform = 'Windows';
   parsers: string[] = [];
@@ -98,21 +98,33 @@ export class App implements OnInit {
 
   async reload(): Promise<void> {
     this.config = await this.bridge.getConfig();
-    this.registrations = new Set(await this.bridge.getRegistrations());
+    await this.reloadStatuses();
+  }
+
+  async reloadStatuses(): Promise<void> {
+    const list = await this.bridge.getRegistrationStatus();
+    this.registrations = new Map(list.map(s => [s.Protocol, s]));
   }
 
   setTab(tab: Tab): void { this.tab = tab; }
   setScope(value: string): void { this.scope = value as RegistrationScope; }
+  get scopeLabel(): string { return this.scope === 'all' ? 'all-users' : 'current-user'; }
 
-  get registeredCount(): number { return this.config.Protocols.filter(p => this.registrations.has(p.Protocol)).length; }
+  get registeredCount(): number { return this.config.Protocols.filter(p => this.isRegistered(p.Protocol)).length; }
+  get conflictCount(): number { return this.config.Protocols.filter(p => this.isConflict(p.Protocol)).length; }
   get handlerStatus(): string {
     const total = this.config.Protocols.length;
     if (!total) return 'No protocols configured';
-    if (!this.registeredCount) return 'No handlers registered';
-    if (this.registeredCount === total) return 'All handlers registered';
-    return `${this.registeredCount} of ${total} handlers registered`;
+    const base = !this.registeredCount ? 'No handlers registered'
+      : this.registeredCount === total ? 'All handlers registered'
+      : `${this.registeredCount} of ${total} handlers registered`;
+    const conflicts = this.conflictCount;
+    return conflicts ? `${base} · ${conflicts} conflict${conflicts > 1 ? 's' : ''}` : base;
   }
-  get handlerTone(): 'ok' | 'warn' | 'muted' { return this.registeredCount === 0 ? 'muted' : this.registeredCount === this.config.Protocols.length ? 'ok' : 'warn'; }
+  get handlerTone(): 'ok' | 'warn' | 'muted' {
+    if (this.conflictCount) return 'warn';
+    return this.registeredCount === 0 ? 'muted' : this.registeredCount === this.config.Protocols.length ? 'ok' : 'warn';
+  }
   get elevationText(): string { return this.platform === 'Windows' ? 'Requires administrator' : 'Requires sudo'; }
   get versionLine(): string { return (this.info.split('\n')[0] || 'SCALUS 3.0.0').trim(); }
 
@@ -131,12 +143,37 @@ export class App implements OnInit {
     return app.Parser.ParserId === family || app.Protocol === family;
   }
   isBuiltIn(protocol: string): boolean { return BUILT_IN_PROTOCOLS.has(protocol); }
-  isRegistered(protocol: string): boolean { return this.registrations.has(protocol); }
+  registrationState(protocol: string): 'registered' | 'conflict' | 'unregistered' { return this.registrations.get(protocol)?.State ?? 'unregistered'; }
+  isRegistered(protocol: string): boolean { return this.registrationState(protocol) === 'registered'; }
+  isConflict(protocol: string): boolean { return this.registrationState(protocol) === 'conflict'; }
+  conflictInfo(protocol: string): RegistrationStatus | undefined {
+    const status = this.registrations.get(protocol);
+    return status?.State === 'conflict' ? status : undefined;
+  }
+  conflictTooltip(protocol: string): string {
+    const info = this.conflictInfo(protocol);
+    if (!info) return '';
+    const who = info.Program || 'an unknown application';
+    const detail = info.Path || info.Command || '';
+    return `Currently handled by ${who}${detail ? `\n${detail}` : ''}`;
+  }
+  handlerStatusLine(protocol: ProtocolMapping): string {
+    if (!protocol.AppId) return 'Disabled · no application';
+    switch (this.registrationState(protocol.Protocol)) {
+      case 'registered': return 'On · registered with OS';
+      case 'conflict': return 'Off · conflict';
+      default: return 'Off · not registered';
+    }
+  }
   protocolIcon(protocol: string): string { return protocol === 'rdp' ? 'monitor' : protocol === 'ssh' ? 'terminal' : protocol === 'telnet' ? 'window' : 'link'; }
   protocolLine(mapping: ProtocolMapping): string {
     const app = this.appById(mapping.AppId);
     if (!app) return 'Assign an application to enable its handler';
     if (this.isRegistered(mapping.Protocol)) return `${app.Name} is the registered OS handler`;
+    if (this.isConflict(mapping.Protocol)) {
+      const who = this.conflictInfo(mapping.Protocol)?.Program || 'Another application';
+      return `${who} currently handles this protocol — turn on to replace it with ${app.Name}`;
+    }
     return `Turn on Register handler to make ${app.Name} the OS handler`;
   }
   execLeaf(exec: string): string { return (exec || '').replace(/^"([^"]+)".*$/, '$1').split(/[\\/]/).pop()?.split(/\s+/)[0] || exec; }
@@ -154,8 +191,24 @@ export class App implements OnInit {
 
   async toggleRegistration(protocol: ProtocolMapping, on: boolean): Promise<void> {
     if (on && !protocol.AppId) return;
-    if (on) { await this.bridge.register(protocol.Protocol, this.scope); this.registrations.add(protocol.Protocol); }
-    else { await this.bridge.unregister(protocol.Protocol); this.registrations.delete(protocol.Protocol); }
+    if (on) {
+      if (this.isConflict(protocol.Protocol)) {
+        const info = this.conflictInfo(protocol.Protocol);
+        const who = info?.Program || info?.Path || 'Another application';
+        const ok = await this.askConfirm({
+          title: `Replace the handler for ${protocol.Protocol}://?`,
+          message: `${who} is currently registered to handle ${protocol.Protocol}:// links. Registering SCALUS replaces it as the ${this.scopeLabel} handler.`,
+          confirmLabel: 'Replace & register',
+          variant: 'danger'
+        });
+        if (!ok) return;
+      }
+      await this.bridge.register(protocol.Protocol, this.scope);
+      this.registrations.set(protocol.Protocol, { Protocol: protocol.Protocol, State: 'registered' });
+    } else {
+      await this.bridge.unregister(protocol.Protocol);
+      this.registrations.set(protocol.Protocol, { Protocol: protocol.Protocol, State: 'unregistered' });
+    }
     this.flash(on ? `${protocol.Protocol}:// registered.` : `${protocol.Protocol}:// unregistered.`);
   }
 
@@ -374,7 +427,10 @@ export class App implements OnInit {
     await this.saveCurrentConfig(`Duplicated as ${copy.Name}.`);
   }
   async removeApplication(app: ApplicationConfig): Promise<void> {
-    this.config.Protocols.filter(p => p.AppId === app.Id).forEach(p => { p.AppId = null; if (this.isRegistered(p.Protocol)) this.registrations.delete(p.Protocol); });
+    for (const p of this.config.Protocols.filter(p => p.AppId === app.Id)) {
+      if (this.isRegistered(p.Protocol)) await this.toggleRegistration(p, false);
+      p.AppId = null;
+    }
     this.config.Applications = this.config.Applications.filter(a => a.Id !== app.Id);
     await this.saveCurrentConfig('Application removed.');
   }
@@ -412,7 +468,7 @@ export class App implements OnInit {
     })) return;
     this.config = parsed;
     await this.saveCurrentConfig('Configuration replaced.');
-    this.registrations = new Set(await this.bridge.getRegistrations());
+    await this.reloadStatuses();
   }
 
   private async saveCurrentConfig(success: string): Promise<void> {
@@ -445,7 +501,8 @@ export class App implements OnInit {
       terminal: 'M216 40H40a16 16 0 0 0-16 16v144a16 16 0 0 0 16 16h176a16 16 0 0 0 16-16V56a16 16 0 0 0-16-16ZM104 158.4l-40 30a8 8 0 0 1-9.6-12.8L86.67 152 54.4 127.9a8 8 0 1 1 9.6-12.8l40 30a8 8 0 0 1 0 12.8ZM192 168h-56a8 8 0 0 1 0-16h56a8 8 0 0 1 0 16Z',
       window: 'M216 40H40a16 16 0 0 0-16 16v144a16 16 0 0 0 16 16h176a16 16 0 0 0 16-16V56a16 16 0 0 0-16-16Zm0 160H40V56h176Z',
       link: 'M137.54 186.36a8 8 0 0 1 0 11.31l-9.94 9.94a56 56 0 0 1-79.22-79.22l24.12-24.12a56 56 0 0 1 76.81-2.28 8 8 0 1 1-10.64 12 40 40 0 0 0-54.85 1.63L59.7 139.72a40 40 0 0 0 56.58 56.58l9.94-9.94a8 8 0 0 1 11.32 0Zm70.08-138a56.08 56.08 0 0 0-79.22 0l-9.94 9.94a8 8 0 0 0 11.32 11.32l9.94-9.94a40 40 0 0 1 56.58 56.58l-24.12 24.12a40 40 0 0 1-54.85 1.63 8 8 0 1 0-10.64 12 56 56 0 0 0 76.81-2.28l24.12-24.12a56.08 56.08 0 0 0 0-79.22Z',
-      square: 'M200 40H56a16 16 0 0 0-16 16v144a16 16 0 0 0 16 16h144a16 16 0 0 0 16-16V56a16 16 0 0 0-16-16Z'
+      square: 'M200 40H56a16 16 0 0 0-16 16v144a16 16 0 0 0 16 16h144a16 16 0 0 0 16-16V56a16 16 0 0 0-16-16Z',
+      warning: 'M236.8 188.09 149.35 36.22a24.76 24.76 0 0 0-42.7 0L19.2 188.09a23.51 23.51 0 0 0 0 23.72A24.35 24.35 0 0 0 40.55 224h174.9a24.35 24.35 0 0 0 21.35-12.19 23.51 23.51 0 0 0 0-23.72ZM120 104a8 8 0 0 1 16 0v40a8 8 0 0 1-16 0Zm8 88a12 12 0 1 1 12-12 12 12 0 0 1-12 12Z'
     };
     return paths[name] || paths['link'];
   }

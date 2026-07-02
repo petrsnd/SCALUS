@@ -76,6 +76,23 @@ namespace OneIdentity.Scalus
             return false;
         }
 
+        // Returns the executable token (the first argument) of a registered command line, or
+        // null when the command is empty. Used to describe a conflicting foreign handler.
+        public static string GetExecutable(string command)
+        {
+            if (string.IsNullOrEmpty(command))
+            {
+                return null;
+            }
+
+            foreach (var token in SplitCommandLine(command))
+            {
+                return token;
+            }
+
+            return null;
+        }
+
         public static IEnumerable<string> SplitCommandLine(string command)
         {
             var current = new StringBuilder();

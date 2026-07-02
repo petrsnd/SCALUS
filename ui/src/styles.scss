@@ -84,6 +84,10 @@ svg { width: 18px; height: 18px; fill: currentColor; flex: none; }
 .handler-label .t { font-size: 12.5px; font-weight: 600; }
 .handler-label .s { font-size: 11px; color: var(--oi-content-tertiary); }
 .handler-label .s.on { color: var(--oi-content-success); }
+.handler-label .s.conflict { color: var(--oi-content-caution); display: inline-flex; align-items: center; gap: 4px; }
+.handler-label .warn-tri { display: inline-flex; width: 14px; height: 14px; color: var(--oi-content-caution); cursor: help; border-radius: var(--oi-radius); }
+.handler-label .warn-tri svg { width: 14px; height: 14px; fill: currentColor; }
+.handler-label .warn-tri:focus-visible { outline: 2px solid var(--oi-content-caution); outline-offset: 2px; }
 .row-remove { position: absolute; top: 10px; right: 12px; opacity: .45; cursor: pointer; width: 26px; height: 26px; border: none; border-radius: var(--oi-radius); background: transparent; color: var(--oi-content-tertiary); font-size: 20px; line-height: 1; transition: opacity .12s, background .12s, color .12s; }
 .proto-row:hover .row-remove { opacity: 1; }
 .row-remove:hover { background: var(--oi-bg-error); color: var(--oi-content-error); }

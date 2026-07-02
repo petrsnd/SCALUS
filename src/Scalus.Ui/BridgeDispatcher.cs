@@ -68,6 +68,7 @@ namespace OneIdentity.Scalus.Ui
                     "saveConfig" => SaveConfig(args[0].Deserialize<ScalusConfig>(ScalusJson.Disk)),
                     "validate" => Validate(args[0].Deserialize<ScalusConfig>(ScalusJson.Disk)),
                     "getRegistrations" => GetRegistrations(),
+                    "getRegistrationStatus" => GetRegistrationStatus(),
                     "register" => Register(args[0]?.GetValue<string>(), args[1]?.GetValue<string>()),
                     "unregister" => Unregister(args[0]?.GetValue<string>()),
                     "getTokens" => GetTokens(),
@@ -114,6 +115,17 @@ namespace OneIdentity.Scalus.Ui
                 .Distinct(StringComparer.OrdinalIgnoreCase);
 
             return schemes.Where(s => this.registration.IsRegistered(s)).ToList();
+        }
+
+        private List<RegistrationStatus> GetRegistrationStatus()
+        {
+            var config = GetConfig();
+            var schemes = BuiltInProtocols
+                .Concat(config.Protocols?.Select(p => p.Protocol) ?? Enumerable.Empty<string>())
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .Distinct(StringComparer.OrdinalIgnoreCase);
+
+            return schemes.Select(s => this.registration.GetStatus(s)).ToList();
         }
 
         private object Register(string protocol, string scope)

@@ -1,11 +1,15 @@
 import { Injectable } from '@angular/core';
 import { cloneConfig, FIELD_DESCRIPTIONS, normalizeConfig, SEED_CONFIG, TOKENS } from './seed-data';
-import { Platform, RegistrationScope, ScalusBridge, ScalusConfig } from './scalus-bridge';
+import { Platform, RegistrationScope, RegistrationStatus, ScalusBridge, ScalusConfig } from './scalus-bridge';
 
 @Injectable()
 export class MockBridge implements ScalusBridge {
   private config = cloneConfig(SEED_CONFIG);
-  private registrations = new Set(['rdp', 'ssh']);
+  private registrations = new Set(['rdp']);
+  // Demo seed: something other than this SCALUS owns ssh:// so the conflict state is visible.
+  private conflicts = new Map<string, { Program: string; Path: string; Command: string }>([
+    ['ssh', { Program: 'PuTTY', Path: 'C:\\Program Files\\PuTTY\\putty.exe', Command: '"C:\\Program Files\\PuTTY\\putty.exe" -ssh %1' }],
+  ]);
 
   async getConfig(): Promise<ScalusConfig> { return cloneConfig(this.config); }
 
@@ -34,7 +38,19 @@ export class MockBridge implements ScalusBridge {
   }
 
   async getRegistrations(): Promise<string[]> { return Array.from(this.registrations).sort(); }
-  async register(protocol: string, _scope: RegistrationScope): Promise<void> { this.registrations.add(protocol); }
+
+  async getRegistrationStatus(): Promise<RegistrationStatus[]> {
+    const schemes = new Set<string>(['rdp', 'ssh']);
+    for (const p of this.config.Protocols) { if (p.Protocol) schemes.add(p.Protocol); }
+    return Array.from(schemes).sort().map((protocol): RegistrationStatus => {
+      if (this.registrations.has(protocol)) return { Protocol: protocol, State: 'registered' };
+      const c = this.conflicts.get(protocol);
+      if (c) return { Protocol: protocol, State: 'conflict', Program: c.Program, Path: c.Path, Command: c.Command };
+      return { Protocol: protocol, State: 'unregistered' };
+    });
+  }
+
+  async register(protocol: string, _scope: RegistrationScope): Promise<void> { this.registrations.add(protocol); this.conflicts.delete(protocol); }
   async unregister(protocol: string): Promise<void> { this.registrations.delete(protocol); }
   async getTokens(): Promise<Record<string, string>> { return { ...TOKENS }; }
   async getApplicationDescriptions(): Promise<Record<string, string>> { return { ...FIELD_DESCRIPTIONS }; }
