@@ -36,7 +36,6 @@ namespace OneIdentity.Scalus.UrlParser
     using System.Text.RegularExpressions;
     using System.Web;
     using Autofac.Core;
-    using Microsoft.AspNetCore.Http;
     using Microsoft.Win32;
     using OneIdentity.Scalus.Dto;
     using OneIdentity.Scalus.Platform;

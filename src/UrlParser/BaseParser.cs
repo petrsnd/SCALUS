@@ -196,7 +196,7 @@ namespace OneIdentity.Scalus.UrlParser
             return newline;
         }
 
-        public string GetFullPath(string path)
+        public static string GetFullPath(string path)
         {
             if (Path.IsPathFullyQualified(path))
             {

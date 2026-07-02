@@ -27,7 +27,6 @@ namespace OneIdentity.Scalus
     using System.Reflection;
     using System.Runtime.InteropServices;
     using System.Threading;
-    using System.Windows;
     using Autofac;
     using CommandLine;
     using OneIdentity.Scalus.Platform;
