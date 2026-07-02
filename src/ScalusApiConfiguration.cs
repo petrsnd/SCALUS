@@ -63,6 +63,27 @@ namespace OneIdentity.Scalus
             return ValidationErrors;
         }
 
+        // Migrates any legacy template fields on disk into inline TemplateContent and re-saves, so the
+        // change is visible in the file for CLI-only users who never open the configuration UI. No-op
+        // when the config is already migrated.
+        public bool MigrateOnDisk()
+        {
+            if (!File.Exists(configFile))
+            {
+                return false;
+            }
+
+            var (_, config) = Validate(File.ReadAllText(configFile));
+            if (config == null || !MigrateLegacyTemplates(config))
+            {
+                return false;
+            }
+
+            Serilog.Log.Information("Migrating legacy templates into the configuration file");
+            SaveConfiguration(config);
+            return ValidationErrors.Count == 0;
+        }
+
         private bool ValidateAndSave(ScalusConfig configuration, bool save = true)
         {
             var serializerSettings = new JsonSerializerSettings

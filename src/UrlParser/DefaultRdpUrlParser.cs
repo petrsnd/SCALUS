@@ -99,6 +99,17 @@ namespace OneIdentity.Scalus.UrlParser
             return;
         }
 
+        // Returns the built-in default RDP template as LF-canonical text. Used to inline the template
+        // into the configuration (both for one-time migration of legacy UseDefaultTemplate entries and
+        // for prefilling the UI when creating a new RDP application).
+        public static string GetDefaultTemplateText()
+        {
+            var raw = GetResource("Default.rdp") ?? string.Empty;
+            return raw.Replace("\r\n", "\n", StringComparison.Ordinal)
+                .Replace("\r", "\n", StringComparison.Ordinal)
+                .TrimEnd('\n');
+        }
+
         public override void PreExecute(IOsServices services)
         {
             base.PreExecute(services);

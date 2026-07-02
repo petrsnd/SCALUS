@@ -27,6 +27,7 @@ namespace OneIdentity.Scalus.UrlParser
     using System.IO;
     using System.Linq;
     using System.Reactive.Disposables;
+    using System.Text;
     using System.Text.RegularExpressions;
     using System.Threading.Tasks;
     using System.Web;
@@ -312,7 +313,19 @@ namespace OneIdentity.Scalus.UrlParser
             Dictionary[Token.AppData] = ConfigurationManager.ProdAppPath;
             Dictionary[Token.TempPath] = Path.GetTempPath();
             IEnumerable<string> fileLines = null;
-            if (Config.UseDefaultTemplate)
+            if (Config.HasTemplate)
+            {
+                Log.Information("Using inline template content");
+                if (!string.IsNullOrEmpty(Config.TemplateExtension))
+                {
+                    FileExtension = Config.TemplateExtension;
+                }
+
+                // Template content is stored LF-canonical; split into logical lines here. The target
+                // line ending and encoding are applied when the generated file is written.
+                fileLines = Config.TemplateContent.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n');
+            }
+            else if (Config.UseDefaultTemplate)
             {
                 Log.Information("Using default template");
                 fileLines = GetDefaultTemplate();
@@ -448,7 +461,10 @@ namespace OneIdentity.Scalus.UrlParser
                     Directory.CreateDirectory(dir);
                 }
 
-                File.WriteAllText(tempFile, string.Join(Environment.NewLine, newlines));
+                var terminator = ResolveLineEnding(Config.LineEnding, ext);
+                var encoding = ResolveEncoding(Config.Encoding, ext);
+                var content = string.Join(terminator, newlines);
+                File.WriteAllText(tempFile, content, encoding);
                 Dictionary[Token.GeneratedFile] = tempFile;
                 fileProcessorArgs = new List<string>();
                 fileProcessorExe = string.Empty;
@@ -480,5 +496,42 @@ namespace OneIdentity.Scalus.UrlParser
                 Log.Error($"Failed to process temp file: {e.Message}");
             }
         }
+
+        private static string ResolveLineEnding(TemplateLineEnding lineEnding, string ext)
+        {
+            switch (lineEnding)
+            {
+                case TemplateLineEnding.Lf:
+                    return "\n";
+                case TemplateLineEnding.CrLf:
+                    return "\r\n";
+                case TemplateLineEnding.Platform:
+                    return Environment.NewLine;
+                default:
+                    // Default: .rdp is written CRLF (mstsc-native); everything else uses LF.
+                    return IsRdp(ext) ? "\r\n" : "\n";
+            }
+        }
+
+        private static Encoding ResolveEncoding(TemplateEncoding encoding, string ext)
+        {
+            switch (encoding)
+            {
+                case TemplateEncoding.Utf8:
+                    return new UTF8Encoding(false);
+                case TemplateEncoding.Utf8Bom:
+                    return new UTF8Encoding(true);
+                case TemplateEncoding.Utf16LeBom:
+                    return new UnicodeEncoding(false, true);
+                case TemplateEncoding.Ansi:
+                    return Encoding.Latin1;
+                default:
+                    // Default: .rdp is written UTF-16 LE + BOM (mstsc-native); everything else UTF-8 (no BOM).
+                    return IsRdp(ext) ? new UnicodeEncoding(false, true) : new UTF8Encoding(false);
+            }
+        }
+
+        private static bool IsRdp(string ext) =>
+            !string.IsNullOrEmpty(ext) && ext.Equals(".rdp", StringComparison.OrdinalIgnoreCase);
     }
 }

@@ -26,6 +26,7 @@ namespace OneIdentity.Scalus.Dto
     using System.Linq;
     using System.Text.RegularExpressions;
     using Newtonsoft.Json;
+    using Newtonsoft.Json.Converters;
 
     public class ParserConfig
     {
@@ -33,8 +34,10 @@ namespace OneIdentity.Scalus.Dto
         {
             { nameof(ParserId), $"The predefined parser that will be used to parse the URL. Valid values are {string.Join(',', ProtocolHandlerFactory.GetSupportedParsers())}. The default 'url' parser can be used to parse any standard URL" },
             { nameof(Options), $"Identifies how scalus handles the running application. Valid values are {string.Join(',', Enum.GetValues<ParserConfigDefinitions.ProcessingOptions>())}. The '{ParserConfigDefinitions.ProcessingOptions.wait}' option waits for default 10 secs, but can be configured, e.g. 'wait:<n>' (wait for n seconds)" },
-            { nameof(UseDefaultTemplate), "Supported for the rdp parser only. A default template is generated in the format used by Microsoft Remote Desktop. This is copied to a temporary file that can be identified using the '%GeneratedFile%' token." },
-            { nameof(UseTemplateFile), "The path to a template file to use for the application. The template will be copied to a temporary file, replacing any tokens in the template. The temporary file can be identified using the '%GeneratedFile%' token. Supported by all parsers. This path can contain any of the supported tokens." },
+            { nameof(TemplateContent), "The full text of the template to generate for this application. Stored inline in the configuration with LF line endings; the actual line ending and encoding are applied when the file is written (see LineEnding and Encoding). Tokens in the template are replaced at launch. The generated file can be referenced using the '%GeneratedFile%' token. Leave empty for applications that only build a command line." },
+            { nameof(TemplateExtension), "The file extension used for the generated file (e.g. '.rdp', '.remmina'). If empty, the parser's built-in default extension is used." },
+            { nameof(LineEnding), $"The line ending written to the generated file. Valid values are {string.Join(',', Enum.GetValues<ParserConfigDefinitions.TemplateLineEnding>())}. 'Default' resolves from the file extension (.rdp uses CrLf, others use Lf)." },
+            { nameof(Encoding), $"The text encoding used to write the generated file. Valid values are {string.Join(',', Enum.GetValues<ParserConfigDefinitions.TemplateEncoding>())}. 'Default' resolves from the file extension (.rdp uses Utf16LeBom, others use Utf8)." },
             { nameof(PostProcessingExec), "The path to an executable file that will be run to process the %GeneratedFile% before launching the application. This path can contain any of the supported tokens" },
             { nameof(PostProcessingArgs), "The arguments to pass to the 'PostProcessingExec' executable. These arguments can contain any of the supported tokens" },
         };
@@ -44,13 +47,36 @@ namespace OneIdentity.Scalus.Dto
 
         public List<string> Options { get; set; }
 
+        // The template text is stored inline in the configuration (LF-canonical). When present, a
+        // generated file is materialized at launch and can be referenced via the '%GeneratedFile%' token.
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string TemplateContent { get; set; }
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string TemplateExtension { get; set; }
+
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+        [JsonConverter(typeof(StringEnumConverter))]
+        public ParserConfigDefinitions.TemplateLineEnding LineEnding { get; set; }
+
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+        [JsonConverter(typeof(StringEnumConverter))]
+        public ParserConfigDefinitions.TemplateEncoding Encoding { get; set; }
+
+        // Deprecated: retained for one-time migration into TemplateContent only. Not shown in the UI and
+        // omitted from serialization once cleared. Do not use for new configurations.
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
         public bool UseDefaultTemplate { get; set; }
 
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string UseTemplateFile { get; set; }
 
         public string PostProcessingExec { get; set; }
 
         public List<string> PostProcessingArgs { get; set; }
+
+        [JsonIgnore]
+        public bool HasTemplate => !string.IsNullOrEmpty(TemplateContent);
 
         public void Validate(List<string> errors)
         {
@@ -90,9 +116,10 @@ namespace OneIdentity.Scalus.Dto
 
             if (!string.IsNullOrEmpty(PostProcessingExec))
             {
-                if (!UseDefaultTemplate && string.IsNullOrEmpty(UseTemplateFile))
+                var producesFile = HasTemplate || UseDefaultTemplate || !string.IsNullOrEmpty(UseTemplateFile);
+                if (!producesFile)
                 {
-                    errors.Add($"{nameof(PostProcessingExec)} can only be used with {nameof(UseDefaultTemplate)} or {nameof(UseTemplateFile)}");
+                    errors.Add($"{nameof(PostProcessingExec)} can only be used when a generated file is produced (set {nameof(TemplateContent)})");
                 }
             }
         }

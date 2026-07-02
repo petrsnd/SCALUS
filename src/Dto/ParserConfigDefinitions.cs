@@ -65,6 +65,29 @@ namespace OneIdentity.Scalus.Dto
             wait = 2,
         }
 
+        // Line ending applied to the generated file when a template is materialized.
+        // 'Default' is resolved from the generated file extension at write time
+        // (.rdp => CrLf, everything else => Lf). Templates are stored LF-canonical in the config.
+        public enum TemplateLineEnding
+        {
+            Default = 0,
+            Lf = 1,
+            CrLf = 2,
+            Platform = 3,
+        }
+
+        // Text encoding used to write the generated file.
+        // 'Default' is resolved from the generated file extension at write time
+        // (.rdp => Utf16LeBom, which is mstsc-native; everything else => Utf8).
+        public enum TemplateEncoding
+        {
+            Default = 0,
+            Utf8 = 1,
+            Utf8Bom = 2,
+            Utf16LeBom = 3,
+            Ansi = 4,
+        }
+
         public static Dictionary<Token, string> TokenDescription { get; } = new Dictionary<Token, string>
         {
             {

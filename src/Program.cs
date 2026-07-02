@@ -134,6 +134,15 @@ namespace OneIdentity.Scalus
             if (File.Exists(ConfigurationManager.ScalusJson))
             {
                 Serilog.Log.Logger.Information($"ok");
+                try
+                {
+                    new ScalusApiConfiguration().MigrateOnDisk();
+                }
+                catch (Exception e)
+                {
+                    Serilog.Log.Logger.Warning($"Template migration check failed: {e.Message}");
+                }
+
                 return;
             }
 
