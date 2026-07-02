@@ -96,7 +96,8 @@ export class App implements OnInit {
     const family = this.protocolFamily(protocol.Protocol);
     return this.config.Applications
       .filter(app => this.appMatchesFamily(app, family))
-      .map(app => ({ label: `${app.Name} Â· ${app.Parser.ParserId.toUpperCase()}`, value: app.Id }));
+      .filter(app => app.Platforms?.includes(this.platform))
+      .map(app => ({ label: `${app.Name} · ${app.Parser.ParserId.toUpperCase()}`, value: app.Id }));
   }
   protocolFamily(protocol: string): string { return BUILT_IN_PROTOCOLS.has(protocol) ? protocol : 'any'; }
   appMatchesFamily(app: ApplicationConfig, family: string): boolean {
