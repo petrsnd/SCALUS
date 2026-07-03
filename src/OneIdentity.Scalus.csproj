@@ -5,10 +5,6 @@
   how SCALUS is built.
   -->
   <PropertyGroup>
-    <Edition>community</Edition>
-  </PropertyGroup>
-  
-  <PropertyGroup>
     <OutputType>Library</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -32,10 +28,6 @@
        would silently stop suppressing it and break the publish. -->
   <PropertyGroup>
     <NoWarn>$(NoWarn);1701;1702;CA1416</NoWarn>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Edition)'=='community'">
-    <DefineConstants>$(DefineConstants);COMMUNITY_EDITION</DefineConstants>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

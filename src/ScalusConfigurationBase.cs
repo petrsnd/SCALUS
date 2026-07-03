@@ -58,19 +58,13 @@ namespace OneIdentity.Scalus
             }
         }
 
-        public ScalusServerConfig GetConfiguration()
+        public ScalusConfig GetConfiguration()
         {
-            var serverConfig = new ScalusServerConfig
+            return new ScalusConfig
             {
                 Applications = Config.Applications,
                 Protocols = Config.Protocols,
-                Edition = Edition.Supported,
             };
-
-#if COMMUNITY_EDITION
-            serverConfig.Edition = Edition.Community;
-#endif
-            return serverConfig;
         }
 
         public (bool, ScalusConfig) Validate(string json, bool strict = false)

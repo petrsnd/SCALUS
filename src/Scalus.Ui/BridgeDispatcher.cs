@@ -90,7 +90,7 @@ namespace OneIdentity.Scalus.Ui
             }
         }
 
-        private ScalusServerConfig GetConfig() =>
+        private ScalusConfig GetConfig() =>
             this.services.GetRequiredService<IScalusApiConfiguration>().GetConfiguration();
 
         private object SaveConfig(ScalusConfig config)
@@ -158,7 +158,6 @@ namespace OneIdentity.Scalus.Ui
             var lines = new List<string>
             {
                 $"Platform: {GetPlatform()}",
-                $"Edition: {config.Edition}",
                 $"Configuration file: {ConfigurationManager.ScalusJson}",
                 $"Applications defined: {config.Applications?.Count ?? 0}",
                 $"Protocols configured: {config.Protocols?.Count ?? 0}",

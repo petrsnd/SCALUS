@@ -45,12 +45,6 @@ namespace OneIdentity.Scalus
         /// </summary>
         public static int Run(string[] args)
         {
-            bool community = false;
-#if COMMUNITY_EDITION
-            community = true;
-#endif
-
-            Console.WriteLine(community ? "Community Edition" : "Safeguard Edition");
             ConfigureLogging();
             CheckConfig();
             try

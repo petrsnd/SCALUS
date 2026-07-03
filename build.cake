@@ -13,7 +13,6 @@
 
 var target          = Argument<string>("target", "Default");
 var configuration   = Argument<string>("Configuration", "Release");
-var edition         = Argument<string>("Edition", "community");
 var Version         = Argument<string>("Version", "1.0.0");
 var runtime         = Argument<string>("Runtime", "win-x64");
 var GitRevision     = Argument<string>("GitRevision", "0000000000000000000000000000000000000000");
@@ -120,18 +119,9 @@ Task("MsiInstaller")
         var scalusExeFile = publishdir + "/scalus.exe";
         var bannerBmp = tmpdir + "/banner.bmp";
         var dialogBmp = tmpdir + "/dialog.bmp";
-        if (edition == "community")
-        {
-            CopyFile("./src/scalus-community.ico", iconFile);
-            CopyFile("./src/Banner-CommunityScalus.bmp", bannerBmp);
-            CopyFile("./src/Dialog-CommunityScalus.bmp", dialogBmp);
-        }
-        else
-        {
-            CopyFile("./src/scalus-safeguard.ico", iconFile);
-            CopyFile("./src/Banner-SafeguardScalus.bmp", bannerBmp);
-            CopyFile("./src/Dialog-SafeguardScalus.bmp", dialogBmp);
-        }
+        CopyFile("./src/scalus.ico", iconFile);
+        CopyFile("./src/Banner-Scalus.bmp", bannerBmp);
+        CopyFile("./src/Dialog-Scalus.bmp", dialogBmp);
 
         var wxsFiles = GetFiles(tmpdir + "/*.wxs");
         var arch = Architecture.X86;
@@ -193,7 +183,6 @@ Task("Build")
                 Configuration = configuration,
                 OutputDirectory = builddir,
                 MSBuildSettings = new DotNetMSBuildSettings()
-                    .WithProperty("Edition", edition)
             });
     });
 
@@ -238,7 +227,6 @@ Task("Publish")
                 Runtime = runtime,
                 PublishSingleFile = true,
                 MSBuildSettings = new DotNetMSBuildSettings()
-                    .WithProperty("Edition", edition)
                     .WithProperty("NativeWindowing", isWindows ? "true" : "false")
             });
     });

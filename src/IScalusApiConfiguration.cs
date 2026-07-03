@@ -29,7 +29,7 @@ namespace OneIdentity.Scalus
     {
         List<string> ValidationErrors { get; }
 
-        ScalusServerConfig GetConfiguration();
+        ScalusConfig GetConfiguration();
 
         List<string> SaveConfiguration(ScalusConfig configuration);
 

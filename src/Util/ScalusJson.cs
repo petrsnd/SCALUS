@@ -36,7 +36,6 @@ namespace OneIdentity.Scalus.Util
         PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
         WriteIndented = true)]
     [JsonSerializable(typeof(ScalusConfig))]
-    [JsonSerializable(typeof(ScalusServerConfig))]
     [JsonSerializable(typeof(VerifyResult))]
     internal partial class ScalusJsonContext : JsonSerializerContext
     {
@@ -53,10 +52,9 @@ namespace OneIdentity.Scalus.Util
         // Same as Disk but rejects unknown members, used by the strict validation path.
         public static readonly JsonSerializerOptions DiskStrict = Build(strict: true);
 
-        // Serialize using the value's runtime type so a ScalusServerConfig (which adds Edition) is
-        // written whole, matching the previous Newtonsoft behaviour. Both ScalusConfig and
-        // ScalusServerConfig are registered in the source-gen context, so resolving the JsonTypeInfo
-        // from the options stays reflection-free (AOT-safe).
+        // Serialize using the value's runtime type so any ScalusConfig subtype is written whole,
+        // matching the previous Newtonsoft behaviour. ScalusConfig is registered in the source-gen
+        // context, so resolving the JsonTypeInfo from the options stays reflection-free (AOT-safe).
         public static string Serialize(ScalusConfig configuration) =>
             JsonSerializer.Serialize(configuration, Disk.GetTypeInfo(configuration.GetType()));
 

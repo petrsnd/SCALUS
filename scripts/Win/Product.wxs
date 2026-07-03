@@ -39,12 +39,6 @@
                 <File Id="WebFiles6" Source="$(var.sourcedir)\Ui\Web\runtime.js" />
                 <File Id="WebFiles7" Source="$(var.sourcedir)\Ui\Web\styles.css" />
               </Component>
-              <Directory Id="ASSETSDIR" Name="assets">
-                <Component Id="AssetsFiles" Guid="916a22b0-ffa5-42f2-b1db-6e284c315691">
-                  <File Id="AssetsFiles1" Source="$(var.sourcedir)\Ui\Web\assets\CommunityScalusLogo.Masthead.svg" />
-                  <File Id="AssetsFiles2" Source="$(var.sourcedir)\Ui\Web\assets\SafeguardScalusLogo.Masthead.svg" />
-                </Component>
-              </Directory>
             </Directory>
           </Directory>
           <Directory Id="ExampleDir" Name="Examples">
@@ -92,7 +86,6 @@
       <ComponentRef Id="ExampleFiles"/>
       <ComponentRef Id="ApplicationShortcuts"/>
       <ComponentRef Id="WebFiles"/>
-      <ComponentRef Id="AssetsFiles"/>
     </Feature>
     <InstallExecuteSequence>
       <Custom Action="UninstallScalus" After="InstallInitialize">(NOT UPGRADINGPRODUCTCODE) AND (REMOVE="ALL") </Custom>

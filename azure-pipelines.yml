@@ -2,16 +2,7 @@ trigger:
 - master
 - release*
 
-parameters:
-  - name: edition
-    displayName: 'Build Edition'
-    type: string
-    default: 'community'
-    values:
-    - community
-    - supported
-
-name: $(Date:yyyyMMdd).$(Rev:r)_${{ parameters.edition }}
+name: $(Date:yyyyMMdd).$(Rev:r)
 
 variables:
   version: '1.1.0.$(Revision)'
@@ -23,7 +14,7 @@ variables:
 
 jobs:
 - job: BuildAndTest
-  displayName: 'Build & Test - ${{ parameters.edition }}'
+  displayName: 'Build & Test'
   pool:
     vmImage: 'windows-latest'
   steps:
@@ -37,7 +28,7 @@ jobs:
   - task: VSBuild@1
     inputs:
       solution: '$(solution)'
-      msbuildArgs: '/p:Edition="${{ parameters.edition }}" /p:DeployOnBuild=true /p:WebPublishMethod=Package /p:PackageAsSingleFile=true /p:SkipInvalidConfigurations=true /p:DesktopBuildPackageLocation="$(build.artifactStagingDirectory)\WebApp.zip" /p:DeployIisAppPath="Default Web Site"'
+      msbuildArgs: '/p:DeployOnBuild=true /p:WebPublishMethod=Package /p:PackageAsSingleFile=true /p:SkipInvalidConfigurations=true /p:DesktopBuildPackageLocation="$(build.artifactStagingDirectory)\WebApp.zip" /p:DeployIisAppPath="Default Web Site"'
       platform: '$(buildPlatform)'
       configuration: '$(buildConfiguration)'
       
@@ -126,7 +117,7 @@ jobs:
       target: 'Default'
       verbosity: 'Verbose'
       version: '2.2.0'
-      arguments: '--runtime=win10-x64 --Edition=${{ parameters.edition }} --Version=$(version) --SignFiles=$(isRelease) --SignToolPath="$(signToolPath)"'
+      arguments: '--runtime=win10-x64 --Version=$(version) --SignFiles=$(isRelease) --SignToolPath="$(signToolPath)"'
 
   - task: PublishPipelineArtifact@1
     inputs:
@@ -149,7 +140,7 @@ jobs:
       target: 'Default'
       verbosity: 'Verbose'
       version: '2.2.0'
-      arguments: '--runtime=linux-x64 --Edition=${{ parameters.edition }} --Version=$(version)'
+      arguments: '--runtime=linux-x64 --Version=$(version)'
 
   - task: PublishPipelineArtifact@1
     inputs:
@@ -217,7 +208,7 @@ jobs:
       target: 'Default'
       verbosity: 'Verbose'
       version: '2.2.0'
-      arguments: '--runtime=osx-x64 --Edition=${{ parameters.edition }} --Version=$(version)'
+      arguments: '--runtime=osx-x64 --Version=$(version)'
 
   - task: Bash@3
     inputs:

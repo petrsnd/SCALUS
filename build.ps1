@@ -18,8 +18,6 @@ The build script to execute.
 The build script target to run.
 .PARAMETER Configuration
 The build configuration to use.
-.PARAMETER Edition
-The build edition to use.
 .PARAMETER Verbosity
 Specifies the amount of information to be displayed.
 .PARAMETER ShowDescription
@@ -40,8 +38,6 @@ Param(
     [string]$Target,
     [ValidateSet("Debug", "Release")]
     [string]$Configuration = "Release",
-    [ValidateSet("community", "supported")]
-    [string]$Edition = "community",
     [string]$Version,
     [ValidateSet("Quiet", "Minimal", "Normal", "Verbose", "Diagnostic")]
     [string]$Verbosity,
@@ -99,7 +95,6 @@ $scpt="${PSScriptRoot}/${Script}"
 $cakeArguments = @("$scpt");
 if ($Target) { $cakeArguments += "--target=$Target" }
 if ($Configuration) { $cakeArguments += "--configuration=$Configuration" }
-if ($Edition) { $cakeArguments += "--edition=$Edition" }
 if ($Version) { $cakeArguments += "--version=$Version" }
 if ($Verbosity) { $cakeArguments += "--verbosity=$Verbosity" }
 if ($ShowDescription) { $cakeArguments += "--showdescription" }

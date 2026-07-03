@@ -40,17 +40,13 @@ SCALUS consists of 3 major components:
 
 The following build parameters can be set to customize the build output:
 
-* /p:Edition=&lt;community | safeguard&gt;
-
-    Determines which edition to build. The Safeguard edition is supported by OneIdentity. Only binaries built and signed by OneIdentity are supported.
-
 * /p:NativeWindowing=&lt;true | false&gt;
 
     Determines whether or not to use native Windowing features. This is currently only supported for Windows platforms. With NativeWindowing enabled SCALUS shows a splash screen on startup and does not display a console Window when invoked to handle a URL.
 
 Example:
 ```
-dotnet build /p:Edition=community /p:NativeWindowing=true
+dotnet build /p:NativeWindowing=true
 ```
 
 ### Configuration
