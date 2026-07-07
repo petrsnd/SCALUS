@@ -252,8 +252,6 @@ Task("OsxInstall")
         CopyFile("./scripts/readme.txt", exdir + "/readme.txt");
         ReplaceTextInFiles(exdir + "/readme.txt", "SCALUSVERSION", Version);
 
-        CopyFile(publishdir + "/appsettings.json", exdir + "/appsettings.json");
-
         var tmpdir = outputdir + "/tmp";
         var scalusappdir = tmpdir + "/scalus.app";
         var targetdir = scalusappdir + "/Contents/MacOS";

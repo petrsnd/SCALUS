@@ -51,20 +51,27 @@ dotnet build /p:NativeWindowing=true
 
 ### Configuration
 
-`appsettings.json` can be used to customize the runtime SCALUS behavior. Set MinLevel to `Debug` to get more detailed log file output. Set `Console` to true to log to the console window. Configuration files are stored in the user's profile folder as determined by the OS. Use the `scalus info` command to see full paths to log and configuration files.
+SCALUS stores its working configuration and preferences in a per-user `SCALUS.json` file in the
+user's profile folder (the exact location is OS-specific). Use the `scalus info` command to see the
+full paths to the configuration and log files.
+
+Logging is on by default at the `Debug` level and logs are written to a per-user, writable log
+directory (so logging works even when SCALUS is installed under a read-only location such as
+Program Files). The log level and console output are controlled from the **Settings** area of the
+configuration UI, which persists them in the `settings` block of `SCALUS.json`:
 
 ```
 {
-  "Logging": {
-    "FileName": "scalus.log",
-    "MinLevel": "Information",
-    "Console": true
-  },
-  "Configuration": {
-    "FileName":  "scalus.json"
+  "settings": {
+    "logLevel": "Debug",
+    "console": false
   }
 }
 ```
+
+During development you can optionally drop an `appsettings.json` next to the binary to override these
+(`Logging:MinLevel`, `Logging:Console`, `Logging:FileName`, `Configuration:FileName`). This file is a
+development-only convenience and is not shipped with released builds.
 
 ### Usage
 

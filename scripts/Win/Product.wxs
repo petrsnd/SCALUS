@@ -23,7 +23,6 @@
       <Directory Id="$(var.Program_Files)">
         <Directory Id="INSTALLDIR" Name="SCALUS">
           <Component Id="ApplicationFiles" Guid="7f90994e-447c-4415-a1a1-1134e1acbd0e">
-            <File Id="AppFile1" Source="$(var.sourcedir)\appsettings.json" />
             <File Id="AppFile2" Source="$(var.sourcedir)\scalus.exe" />
             <File Id="AppFile3" Source="$(var.sourcedir)\web.config" />
             <File Id="AppFile4" Source="$(var.tmpdir)\readme.txt" />
