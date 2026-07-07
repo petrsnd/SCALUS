@@ -12,6 +12,7 @@ namespace OneIdentity.Scalus.Ui
 {
     using System;
     using System.IO;
+    using OneIdentity.Scalus.Util;
     using Photino.NET;
     using Serilog;
 
@@ -30,9 +31,9 @@ namespace OneIdentity.Scalus.Ui
             }
 
             Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Information()
+                .MinimumLevel.Is(ConfigurationManager.MinLogLevel ?? Serilog.Events.LogEventLevel.Debug)
                 .WriteTo.File(
-                    Path.Combine(Path.GetTempPath(), "scalus-ui.log"),
+                    Path.Combine(ConfigurationManager.LogDir, "scalus-ui.log"),
                     rollingInterval: RollingInterval.Day)
                 .CreateLogger();
 

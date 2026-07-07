@@ -60,10 +60,16 @@ namespace OneIdentity.Scalus
 
         public ScalusConfig GetConfiguration()
         {
+            // Return a shallow copy that preserves ALL top-level fields. Historically this stripped
+            // everything except Applications/Protocols, which silently dropped PreferredTerminal (and
+            // now Settings) on read — and because the UI then saves back the object it read, the next
+            // save wiped the persisted values. Copy every field so the UI round-trips faithfully.
             return new ScalusConfig
             {
                 Applications = Config.Applications,
                 Protocols = Config.Protocols,
+                PreferredTerminal = Config.PreferredTerminal,
+                Settings = Config.Settings,
             };
         }
 

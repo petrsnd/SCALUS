@@ -33,6 +33,7 @@ namespace OneIdentity.Scalus.Dto
             { nameof(Protocols), "The list of protocols configured for SCALUS" },
             { nameof(Applications), "The list of applications available to use" },
             { nameof(PreferredTerminal), "The terminal used to host terminal-based launches (applications with Parser.RunInTerminal). An empty value or 'auto' detects the user's default terminal for the current platform." },
+            { nameof(Settings), "User preferences (logging level, console output) shared by the launcher and the configuration UI." },
         };
 
         public List<ProtocolMapping> Protocols { get; set; }
@@ -45,6 +46,12 @@ namespace OneIdentity.Scalus.Dto
         // applications whose parser sets RunInTerminal.
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         public string PreferredTerminal { get; set; }
+
+        // User preferences (logging level, console output) that persist in this per-user config file
+        // and are read by both the launcher and the configuration UI. Null when the user has never
+        // customized them, in which case the code defaults apply.
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        public ScalusSettings Settings { get; set; }
 
         public static Dictionary<string, string> DtoPropertyDescription => dtoPropertyDescription.Append(ProtocolMapping.DtoPropertyDescription).Append(ApplicationConfig.DtoPropertyDescription);
 
