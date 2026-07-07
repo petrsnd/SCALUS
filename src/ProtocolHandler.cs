@@ -88,22 +88,32 @@ namespace OneIdentity.Scalus
             return str.ToString();
         }
 
-        public void Run(bool preview = false)
+        public LaunchResult Run(bool preview = false)
         {
+            var appId = ApplicationConfig?.Id;
+            var spawned = false;
+            var cmd = string.Empty;
             try
             {
                 var dictionary = Parser.Parse(Uri);
                 Parser.PreExecute(OsServices);
                 var args = Parser.ReplaceTokens(ApplicationConfig.Args);
 
-                var cmd = Parser.ReplaceTokens(ApplicationConfig.Exec.Trim());
+                cmd = Parser.ReplaceTokens(ApplicationConfig.Exec.Trim());
                 Serilog.Log.Debug($"Starting external application: '{cmd}' with args: '{SensitiveData.Redact(string.Join(',', args))}'");
                 if (!File.Exists(cmd))
                 {
-                    Serilog.Log.Error($"Selected application does not exist:{cmd}");
-                    OsServices.OpenText($"Selected application does not exist:{cmd}");
+                    var msg = $"Selected application does not exist:{cmd}";
+                    Serilog.Log.Error(msg);
+                    OsServices.OpenText(msg);
 
-                    return;
+                    return new LaunchResult
+                    {
+                        Outcome = LaunchOutcome.ConfigError,
+                        ApplicationId = appId,
+                        Command = cmd,
+                        Error = msg,
+                    };
                 }
 
                 // When the application is a terminal-based client (e.g. SSH), host it in the user's
@@ -123,24 +133,48 @@ namespace OneIdentity.Scalus
                 {
                     Serilog.Log.Information($"Preview mode - returning");
                     Console.WriteLine(PreviewOutput(dictionary, execCmd, execArgs));
-                    return;
+                    return new LaunchResult
+                    {
+                        Outcome = LaunchOutcome.Preview,
+                        ApplicationId = appId,
+                        Command = execCmd,
+                    };
                 }
 
                 var process = OsServices.Execute(execCmd, execArgs);
                 if (process == null)
                 {
-                    Serilog.Log.Error("Failed to create process for cmd:{cmd}");
-                    throw new ProtocolException($"Failed to create process for cmd:{execCmd}");
+                    var msg = $"Failed to create process for cmd:{execCmd}";
+                    Serilog.Log.Error(msg);
+                    throw new ProtocolException(msg);
                 }
 
+                spawned = true;
                 Serilog.Log.Debug("Post execute starting.");
 
                 Parser.PostExecute(process);
                 Serilog.Log.Debug("Post execute complete.");
+
+                return new LaunchResult
+                {
+                    Outcome = LaunchOutcome.Spawned,
+                    ApplicationId = appId,
+                    Command = execCmd,
+                    ExitCode = process.HasExited ? process.ExitCode : null,
+                };
             }
             catch (Exception e)
             {
-                OsServices.OpenText($"Launch failed: {e.Message}");
+                var redacted = SensitiveData.Redact(e.Message);
+                Serilog.Log.Error(e, $"Launch failed: {redacted}");
+                OsServices.OpenText($"Launch failed: {redacted}");
+                return new LaunchResult
+                {
+                    Outcome = spawned ? LaunchOutcome.PostExecuteError : LaunchOutcome.SpawnFailed,
+                    ApplicationId = appId,
+                    Command = cmd,
+                    Error = redacted,
+                };
             }
         }
 

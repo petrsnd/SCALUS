@@ -71,7 +71,7 @@ namespace OneIdentity.Scalus.Platform
                 startupInfo.ArgumentList.Add(arg.Trim());
             }
 
-            Log.Logger.Information($"Running process:{command} with args:{string.Join(' ', args)}");
+            Log.Logger.Information($"Running process:{command} with args:{SensitiveData.Redact(string.Join(' ', args))}");
             var process = Process.Start(startupInfo);
             Log.Logger.Information($"Started process, id:{process?.Id}, exited:{process?.HasExited}");
             return process;
@@ -87,7 +87,7 @@ namespace OneIdentity.Scalus.Platform
                 throw new PlatformException("missing command");
             }
 
-            Log.Logger.Information($"Running:{command}, args:{string.Join(',', args)}");
+            Log.Logger.Information($"Running:{command}, args:{SensitiveData.Redact(string.Join(',', args))}");
             var startupInfo = new ProcessStartInfo(command)
             {
                 CreateNoWindow = true,

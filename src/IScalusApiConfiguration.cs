@@ -47,6 +47,6 @@ namespace OneIdentity.Scalus
 
     internal interface IProtocolHandler : IDisposable
     {
-        void Run(bool preview = false);
+        LaunchResult Run(bool preview = false);
     }
 }

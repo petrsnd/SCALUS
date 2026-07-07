@@ -49,6 +49,7 @@ namespace OneIdentity.Scalus.Util
         private const string JsonFile = ProdName + ".json";
         private const string LauncherLogBaseName = "launcher-.log";
         private const string UiLogBaseName = "ui-.log";
+        private const string LaunchRecordsDirName = "launches";
         private const string Examples = "examples";
 
         private static string examplePath;
@@ -56,6 +57,7 @@ namespace OneIdentity.Scalus.Util
         private static string logDir;
         private static string launcherLogFile;
         private static string uiLogFile;
+        private static string launchRecordsDir;
         private static string scalusJson;
         private static string scalusJsonDefault;
 
@@ -217,6 +219,23 @@ namespace OneIdentity.Scalus.Util
 
                 uiLogFile = Path.Combine(LogDir, UiLogBaseName);
                 return uiLogFile;
+            }
+        }
+
+        // Per-user directory holding one JSON file per launch attempt. Lives under LogDir (state) so
+        // it inherits the same per-user, writable location and XDG treatment on Linux. Each launch
+        // writes a uniquely named file, so concurrent one-shot launchers never contend for a handle.
+        public static string LaunchRecordsDir
+        {
+            get
+            {
+                if (!string.IsNullOrEmpty(launchRecordsDir))
+                {
+                    return launchRecordsDir;
+                }
+
+                launchRecordsDir = EnsureWritableDir(Path.Combine(LogDir, LaunchRecordsDirName));
+                return launchRecordsDir;
             }
         }
 
