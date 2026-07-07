@@ -33,12 +33,14 @@ namespace OneIdentity.Scalus
     {
         private bool disposedValue;
 
-        public ProtocolHandler(string uri, IUrlParser urlParser, ApplicationConfig applicationConfig, IOsServices osServices)
+        public ProtocolHandler(string uri, IUrlParser urlParser, ApplicationConfig applicationConfig, IOsServices osServices, ITerminalResolver terminalResolver = null, string preferredTerminal = null)
         {
             Uri = uri;
             Parser = urlParser;
             OsServices = osServices;
             ApplicationConfig = applicationConfig;
+            TerminalResolver = terminalResolver;
+            PreferredTerminal = preferredTerminal;
         }
 
         private IUrlParser Parser { get; }
@@ -48,6 +50,10 @@ namespace OneIdentity.Scalus
         private IOsServices OsServices { get; }
 
         private ApplicationConfig ApplicationConfig { get; }
+
+        private ITerminalResolver TerminalResolver { get; }
+
+        private string PreferredTerminal { get; }
 
         public static string PreviewOutput(IDictionary<ParserConfigDefinitions.Token, string> dictionary, string cmd, List<string> args)
         {
@@ -100,18 +106,31 @@ namespace OneIdentity.Scalus
                     return;
                 }
 
+                // When the application is a terminal-based client (e.g. SSH), host it in the user's
+                // preferred terminal. The existence check above still validates the inner program;
+                // wrapping only changes which process is actually spawned.
+                var execCmd = cmd;
+                var execArgs = args;
+                if (ApplicationConfig.Parser?.RunInTerminal == true && TerminalResolver != null)
+                {
+                    var wrapped = TerminalResolver.Wrap(cmd, args, PreferredTerminal);
+                    execCmd = wrapped.Exec;
+                    execArgs = wrapped.Args as List<string> ?? new List<string>(wrapped.Args);
+                    Serilog.Log.Debug($"Hosting terminal launch in: '{execCmd}' with args: '{SensitiveData.Redact(string.Join(',', execArgs))}'");
+                }
+
                 if (preview)
                 {
                     Serilog.Log.Information($"Preview mode - returning");
-                    Console.WriteLine(PreviewOutput(dictionary, cmd, args));
+                    Console.WriteLine(PreviewOutput(dictionary, execCmd, execArgs));
                     return;
                 }
 
-                var process = OsServices.Execute(cmd, args);
+                var process = OsServices.Execute(execCmd, execArgs);
                 if (process == null)
                 {
                     Serilog.Log.Error("Failed to create process for cmd:{cmd}");
-                    throw new ProtocolException($"Failed to create process for cmd:{cmd}");
+                    throw new ProtocolException($"Failed to create process for cmd:{execCmd}");
                 }
 
                 Serilog.Log.Debug("Post execute starting.");

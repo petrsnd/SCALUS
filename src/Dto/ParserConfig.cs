@@ -39,6 +39,7 @@ namespace OneIdentity.Scalus.Dto
             { nameof(Encoding), $"The text encoding used to write the generated file. Valid values are {string.Join(',', Enum.GetValues<ParserConfigDefinitions.TemplateEncoding>())}. 'Default' resolves from the file extension (.rdp uses Utf16LeBom, others use Utf8)." },
             { nameof(PostProcessingExec), "The path to an executable file that will be run to process the %GeneratedFile% before launching the application. This path can contain any of the supported tokens" },
             { nameof(PostProcessingArgs), "The arguments to pass to the 'PostProcessingExec' executable. These arguments can contain any of the supported tokens" },
+            { nameof(RunInTerminal), "When true, the configured Exec/Args describe a command that should run inside an interactive terminal window; SCALUS launches it in the user's preferred terminal (see ScalusConfig.PreferredTerminal) instead of directly. Intended for SSH/telnet-style clients." },
         };
 
         [JsonRequired]
@@ -71,6 +72,12 @@ namespace OneIdentity.Scalus.Dto
         public string PostProcessingExec { get; set; }
 
         public List<string> PostProcessingArgs { get; set; }
+
+        // When true, Exec/Args describe a command to run inside an interactive terminal; the launcher
+        // hosts it in the user's preferred terminal (ScalusConfig.PreferredTerminal) rather than
+        // spawning it directly. Off by default so existing (RDP/GUI) apps are unaffected.
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public bool RunInTerminal { get; set; }
 
         [JsonIgnore]
         public bool HasTemplate => !string.IsNullOrEmpty(TemplateContent);

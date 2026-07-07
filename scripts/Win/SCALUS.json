@@ -132,7 +132,8 @@
       "Protocol": "ssh",
       "Parser": {
         "ParserId": "ssh",
-        "Options": []
+        "Options": [],
+        "RunInTerminal": true
       },
       "Exec": "C:\\Windows\\System32\\OpenSSH\\ssh.exe",
       "Args": [

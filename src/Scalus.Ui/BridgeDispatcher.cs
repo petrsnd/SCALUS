@@ -20,6 +20,7 @@ namespace OneIdentity.Scalus.Ui
     using System.Text.Json.Nodes;
     using Microsoft.Extensions.DependencyInjection;
     using OneIdentity.Scalus.Dto;
+    using OneIdentity.Scalus.Platform;
     using OneIdentity.Scalus.Util;
     using Photino.NET;
 
@@ -74,6 +75,7 @@ namespace OneIdentity.Scalus.Ui
                     "getTokens" => GetTokens(),
                     "getApplicationDescriptions" => GetApplicationDescriptions(),
                     "getParsers" => ProtocolHandlerFactory.GetSupportedParsers(),
+                    "getTerminals" => GetTerminals(),
                     "getInfo" => GetInfo(),
                     "exportToFile" => ExportToFile(args[0]?.GetValue<string>(), args[1]?.GetValue<string>()),
                     "importFromFile" => ImportFromFile(),
@@ -150,6 +152,12 @@ namespace OneIdentity.Scalus.Ui
 
         private Dictionary<string, string> GetApplicationDescriptions() =>
             ScalusConfig.DtoPropertyDescription;
+
+        private List<object> GetTerminals() =>
+            this.services.GetRequiredService<ITerminalResolver>()
+                .GetAvailableTerminals()
+                .Select(t => (object)new { t.Id, t.Name, t.Available })
+                .ToList();
 
         private string GetInfo()
         {

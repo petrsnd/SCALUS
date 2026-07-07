@@ -32,11 +32,19 @@ namespace OneIdentity.Scalus.Dto
         {
             { nameof(Protocols), "The list of protocols configured for SCALUS" },
             { nameof(Applications), "The list of applications available to use" },
+            { nameof(PreferredTerminal), "The terminal used to host terminal-based launches (applications with Parser.RunInTerminal). An empty value or 'auto' detects the user's default terminal for the current platform." },
         };
 
         public List<ProtocolMapping> Protocols { get; set; }
 
         public List<ApplicationConfig> Applications { get; set; }
+
+        // Global preference for which terminal hosts terminal-based launches (e.g. SSH). Null/empty
+        // or "auto" means detect the platform default (Windows Terminal vs conhost, the
+        // x-terminal-emulator alternative on Linux, Terminal.app vs iTerm on macOS). Only applies to
+        // applications whose parser sets RunInTerminal.
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        public string PreferredTerminal { get; set; }
 
         public static Dictionary<string, string> DtoPropertyDescription => dtoPropertyDescription.Append(ProtocolMapping.DtoPropertyDescription).Append(ApplicationConfig.DtoPropertyDescription);
 

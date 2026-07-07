@@ -9,11 +9,11 @@ import { UiModalComponent } from './shared/ui/modal.component';
 import { UiSegmentedControlComponent } from './shared/ui/segmented-control.component';
 import { UiSelectComponent } from './shared/ui/select.component';
 import { UiToggleComponent } from './shared/ui/toggle.component';
-import { ApplicationConfig, Platform, ProtocolMapping, RegistrationScope, RegistrationStatus, SCALUS_BRIDGE, ScalusBridge, ScalusConfig, TemplateEncoding, TemplateLineEnding } from './core/bridge/scalus-bridge';
+import { ApplicationConfig, Platform, ProtocolMapping, RegistrationScope, RegistrationStatus, SCALUS_BRIDGE, ScalusBridge, ScalusConfig, TemplateEncoding, TemplateLineEnding, TerminalOption } from './core/bridge/scalus-bridge';
 import { cloneConfig, normalizeApplication, normalizeConfig } from './core/bridge/seed-data';
 import { DEFAULT_RDP_TEMPLATE } from './core/bridge/default-template';
 
-type Tab = 'protocols' | 'applications' | 'io' | 'about';
+type Tab = 'protocols' | 'applications' | 'settings' | 'io' | 'about';
 type EditorMode = 'new' | 'edit';
 interface ConfirmState {
   open: boolean;
@@ -48,6 +48,7 @@ export class App implements OnInit {
   scope: RegistrationScope = 'user';
   platform: Platform = 'Windows';
   parsers: string[] = [];
+  terminals: TerminalOption[] = [];
   readonly lineEndings: TemplateLineEnding[] = ['Default', 'Lf', 'CrLf', 'Platform'];
   readonly encodings: TemplateEncoding[] = ['Default', 'Utf8', 'Utf8Bom', 'Utf16LeBom', 'Ansi'];
   readonly eolLabels: Record<TemplateLineEnding, string> = {
@@ -80,6 +81,7 @@ export class App implements OnInit {
   nav: { id: Tab; label: string; icon: string }[] = [
     { id: 'protocols', label: 'Protocols', icon: 'eye' },
     { id: 'applications', label: 'Applications', icon: 'grid' },
+    { id: 'settings', label: 'Settings', icon: 'settings' },
     { id: 'io', label: 'Import / Export', icon: 'download' },
     { id: 'about', label: 'About', icon: 'info' }
   ];
@@ -91,6 +93,7 @@ export class App implements OnInit {
   async ngOnInit(): Promise<void> {
     await this.reload();
     this.parsers = await this.bridge.getParsers();
+    this.terminals = await this.bridge.getTerminals();
     this.tokens = await this.bridge.getTokens();
     this.platform = await this.bridge.getPlatform();
     this.info = await this.bridge.getInfo();
@@ -127,6 +130,30 @@ export class App implements OnInit {
   }
   get elevationText(): string { return this.platform === 'Windows' ? 'Requires administrator' : 'Requires sudo'; }
   get versionLine(): string { return (this.info.split('\n')[0] || 'SCALUS 3.0.0').trim(); }
+
+  get preferredTerminal(): string { return this.config.PreferredTerminal || 'auto'; }
+  async setPreferredTerminal(value: string | null): Promise<void> {
+    this.config.PreferredTerminal = value && value !== 'auto' ? value : undefined;
+    await this.saveCurrentConfig('Preferred terminal updated.');
+  }
+  terminalOptions(): { label: string; value: string }[] {
+    return this.terminals.map(t => ({
+      label: t.Available ? t.Name : `${t.Name} (not detected)`,
+      value: t.Id
+    }));
+  }
+  get preferredTerminalName(): string {
+    const match = this.terminals.find(t => t.Id === this.preferredTerminal);
+    return match?.Name ?? 'Automatic';
+  }
+  get sshAppsUsingTerminal(): ApplicationConfig[] {
+    return this.config.Applications.filter(a => a.Parser?.RunInTerminal);
+  }
+  get termAppNames(): string {
+    const names = this.sshAppsUsingTerminal.map(a => a.Name);
+    if (names.length <= 2) return names.join(' and ');
+    return `${names.slice(0, 2).join(', ')} and ${names.length - 2} more`;
+  }
 
   appById(id?: string | null): ApplicationConfig | undefined { return this.config.Applications.find(app => app.Id === id); }
   appOptionsFor(protocol: ProtocolMapping): { label: string; value: string }[] {
@@ -313,6 +340,12 @@ export class App implements OnInit {
       delete parser.LineEnding;
       delete parser.Encoding;
     }
+    this.markDirty();
+  }
+  toggleRunInTerminal(on: boolean): void {
+    if (!this.editor) return;
+    if (on) this.editor.Parser.RunInTerminal = true;
+    else delete this.editor.Parser.RunInTerminal;
     this.markDirty();
   }
   templateContentText(): string { return this.editor?.Parser.TemplateContent ?? ''; }
@@ -502,6 +535,7 @@ export class App implements OnInit {
       window: 'M216 40H40a16 16 0 0 0-16 16v144a16 16 0 0 0 16 16h176a16 16 0 0 0 16-16V56a16 16 0 0 0-16-16Zm0 160H40V56h176Z',
       link: 'M137.54 186.36a8 8 0 0 1 0 11.31l-9.94 9.94a56 56 0 0 1-79.22-79.22l24.12-24.12a56 56 0 0 1 76.81-2.28 8 8 0 1 1-10.64 12 40 40 0 0 0-54.85 1.63L59.7 139.72a40 40 0 0 0 56.58 56.58l9.94-9.94a8 8 0 0 1 11.32 0Zm70.08-138a56.08 56.08 0 0 0-79.22 0l-9.94 9.94a8 8 0 0 0 11.32 11.32l9.94-9.94a40 40 0 0 1 56.58 56.58l-24.12 24.12a40 40 0 0 1-54.85 1.63 8 8 0 1 0-10.64 12 56 56 0 0 0 76.81-2.28l24.12-24.12a56.08 56.08 0 0 0 0-79.22Z',
       square: 'M200 40H56a16 16 0 0 0-16 16v144a16 16 0 0 0 16 16h144a16 16 0 0 0 16-16V56a16 16 0 0 0-16-16Z',
+      settings: 'M128 80a48 48 0 1 0 48 48 48.05 48.05 0 0 0-48-48Zm0 80a32 32 0 1 1 32-32 32 32 0 0 1-32 32Zm88-29.84q.06-2.16 0-4.32l14.92-18.64a8 8 0 0 0 1.48-7.06 107.21 107.21 0 0 0-10.88-26.25 8 8 0 0 0-6-3.93l-23.72-2.64q-1.48-1.56-3-3L181 34.48a8 8 0 0 0-3.94-6 107.71 107.71 0 0 0-26.25-10.87 8 8 0 0 0-7.06 1.49L125.16 24h-4.32L102.2 9.11a8 8 0 0 0-7.06-1.48 107.6 107.6 0 0 0-26.25 10.88 8 8 0 0 0-3.93 6l-2.64 23.76q-1.56 1.49-3 3L34.48 75a8 8 0 0 0-6 3.94 107.71 107.71 0 0 0-10.87 26.25 8 8 0 0 0 1.49 7.06L24 130.84v4.32L9.11 153.8a8 8 0 0 0-1.48 7.06 107.21 107.21 0 0 0 10.88 26.25 8 8 0 0 0 6 3.93l23.72 2.64q1.49 1.56 3 3L75 221.52a8 8 0 0 0 3.94 6 107.71 107.71 0 0 0 26.25 10.87 8 8 0 0 0 7.06-1.49L130.84 232h4.32l18.64 14.92a8 8 0 0 0 7.06 1.48 107.21 107.21 0 0 0 26.25-10.88 8 8 0 0 0 3.93-6l2.64-23.72q1.56-1.48 3-3L221.52 181a8 8 0 0 0 6-3.94 107.71 107.71 0 0 0 10.87-26.25 8 8 0 0 0-1.49-7.06Zm-16.1-6.5a73.93 73.93 0 0 1 0 8.68 8 8 0 0 0 1.74 5.48l14.19 17.73a91.57 91.57 0 0 1-6.23 15l-22.6 2.56a8 8 0 0 0-5.1 2.64 74.11 74.11 0 0 1-6.14 6.14 8 8 0 0 0-2.64 5.1l-2.51 22.58a91.32 91.32 0 0 1-15 6.23l-17.74-14.19a8 8 0 0 0-5-1.75h-.48a73.93 73.93 0 0 1-8.68 0 8 8 0 0 0-5.48 1.74l-17.78 14.2a91.57 91.57 0 0 1-15-6.23L82.89 187a8 8 0 0 0-2.64-5.1 74.11 74.11 0 0 1-6.14-6.14 8 8 0 0 0-5.1-2.64l-22.58-2.51a91.32 91.32 0 0 1-6.23-15l14.19-17.74a8 8 0 0 0 1.74-5.48 73.93 73.93 0 0 1 0-8.68 8 8 0 0 0-1.74-5.48L40.19 100.9a91.57 91.57 0 0 1 6.23-15L69 83.11a8 8 0 0 0 5.1-2.64 74.11 74.11 0 0 1 6.14-6.14 8 8 0 0 0 2.64-5.1l2.51-22.58a91.32 91.32 0 0 1 15-6.23l17.74 14.19a8 8 0 0 0 5.48 1.74 73.93 73.93 0 0 1 8.68 0 8 8 0 0 0 5.48-1.74l17.74-14.19a91.57 91.57 0 0 1 15 6.23L187 69a8 8 0 0 0 2.64 5.1 74.11 74.11 0 0 1 6.14 6.14 8 8 0 0 0 5.1 2.64l22.58 2.51a91.32 91.32 0 0 1 6.23 15l-14.19 17.74a8 8 0 0 0-1.74 5.48Z',
       warning: 'M236.8 188.09 149.35 36.22a24.76 24.76 0 0 0-42.7 0L19.2 188.09a23.51 23.51 0 0 0 0 23.72A24.35 24.35 0 0 0 40.55 224h174.9a24.35 24.35 0 0 0 21.35-12.19 23.51 23.51 0 0 0 0-23.72ZM120 104a8 8 0 0 1 16 0v40a8 8 0 0 1-16 0Zm8 88a12 12 0 1 1 12-12 12 12 0 0 1-12 12Z'
     };
     return paths[name] || paths['link'];

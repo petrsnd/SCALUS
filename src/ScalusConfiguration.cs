@@ -70,7 +70,7 @@ namespace OneIdentity.Scalus
                 return null;
             }
 
-            return ProtocolHandlerFactory.Create(uri, protocolConfig);
+            return ProtocolHandlerFactory.Create(uri, protocolConfig, Config?.PreferredTerminal);
         }
 
         public ScalusConfig GetConfiguration(string path = null)

@@ -96,21 +96,19 @@
     },
     {
       "Id": "gnome-terminal-ssh",
-      "Name": "Gnome Terminal SSH",
-      "Description": "Run Open Gnome Terminal on Linux to connect to SSH. An SSH key can be provided by adding the '-i, keyfile' args",
+      "Name": "SSH in preferred terminal",
+      "Description": "Connect using the OpenSSH client, hosted in your preferred terminal emulator (auto-detected, e.g. GNOME Terminal or Konsole). An SSH key can be provided by adding the '-i, keyfile' args.",
       "Platforms": [
         "Linux"
       ],
       "Protocol": "ssh",
       "Parser": {
         "ParserId": "ssh",
-        "Options": []
+        "Options": [],
+        "RunInTerminal": true
       },
-      "Exec": "/usr/bin/gnome-terminal",
+      "Exec": "/usr/bin/ssh",
       "Args": [
-        "-x",
-        "ssh",
-        "-t",
         "-l",
         "%User%",
         "%Host%"

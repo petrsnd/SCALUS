@@ -42,27 +42,30 @@ namespace OneIdentity.Scalus
                 ["url"] = config => new UrlParser.UrlParser(config),
             };
 
-        public ProtocolHandlerFactory(IOsServices osServices)
+        public ProtocolHandlerFactory(IOsServices osServices, ITerminalResolver terminalResolver)
         {
             OsServices = osServices;
+            TerminalResolver = terminalResolver;
         }
 
         private IOsServices OsServices { get; }
 
+        private ITerminalResolver TerminalResolver { get; }
+
         public static List<string> GetSupportedParsers() => new (Parsers.Keys);
 
-        public IProtocolHandler Create(string uri, ApplicationConfig config)
+        public IProtocolHandler Create(string uri, ApplicationConfig config, string preferredTerminal = null)
         {
             var parserId = config.Parser.ParserId;
             if (!string.IsNullOrEmpty(parserId) && Parsers.TryGetValue(parserId, out var factory))
             {
                 Serilog.Log.Information($"Found parser:{parserId}");
-                return new ProtocolHandler(uri, factory(config.Parser), config, OsServices);
+                return new ProtocolHandler(uri, factory(config.Parser), config, OsServices, TerminalResolver, preferredTerminal);
             }
 
             // default to url handler
             Serilog.Log.Information($"No specific parser found for:{parserId}, defaulting to urlParser");
-            return new ProtocolHandler(uri, new UrlParser.UrlParser(config.Parser), config, OsServices);
+            return new ProtocolHandler(uri, new UrlParser.UrlParser(config.Parser), config, OsServices, TerminalResolver, preferredTerminal);
         }
     }
 }

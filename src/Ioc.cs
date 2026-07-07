@@ -41,6 +41,7 @@ namespace OneIdentity.Scalus
             services.AddSingleton<IScalusConfiguration, ScalusConfiguration>();
             services.AddTransient<IScalusApiConfiguration, ScalusApiConfiguration>();
             services.AddSingleton<IProtocolHandlerFactory, ProtocolHandlerFactory>();
+            services.AddSingleton<ITerminalResolver, TerminalResolver>();
 
             // Perform platform-specific registrations here
             services.RegisterPlatformSpecificComponents();

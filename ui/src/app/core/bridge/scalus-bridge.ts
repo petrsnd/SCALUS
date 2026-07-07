@@ -14,6 +14,8 @@ export interface ParserConfig {
   Encoding?: TemplateEncoding;
   PostProcessingExec?: string;
   PostProcessingArgs?: string[];
+  /** Host this launch in the user's preferred terminal (SSH/telnet clients). */
+  RunInTerminal?: boolean;
 }
 
 export interface ApplicationConfig {
@@ -35,6 +37,15 @@ export interface ProtocolMapping {
 export interface ScalusConfig {
   Protocols: ProtocolMapping[];
   Applications: ApplicationConfig[];
+  /** Global preferred terminal id for terminal-hosted launches (SSH). Omitted/`auto` = detect. */
+  PreferredTerminal?: string | null;
+}
+
+/** A terminal choice offered for the global "Preferred terminal" setting. */
+export interface TerminalOption {
+  Id: string;
+  Name: string;
+  Available: boolean;
 }
 
 export type RegistrationScope = 'user' | 'all';
@@ -63,6 +74,7 @@ export interface ScalusBridge {
   getTokens(): Promise<Record<string, string>>;
   getApplicationDescriptions(): Promise<Record<string, string>>;
   getParsers(): Promise<string[]>;
+  getTerminals(): Promise<TerminalOption[]>;
   getInfo(): Promise<string>;
   exportToFile(defaultName: string, contents: string): Promise<boolean>;
   importFromFile(): Promise<string | null>;

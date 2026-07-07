@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { cloneConfig, FIELD_DESCRIPTIONS, normalizeConfig, SEED_CONFIG, TOKENS } from './seed-data';
-import { Platform, RegistrationScope, RegistrationStatus, ScalusBridge, ScalusConfig } from './scalus-bridge';
+import { Platform, RegistrationScope, RegistrationStatus, ScalusBridge, ScalusConfig, TerminalOption } from './scalus-bridge';
 
 @Injectable()
 export class MockBridge implements ScalusBridge {
@@ -55,6 +55,13 @@ export class MockBridge implements ScalusBridge {
   async getTokens(): Promise<Record<string, string>> { return { ...TOKENS }; }
   async getApplicationDescriptions(): Promise<Record<string, string>> { return { ...FIELD_DESCRIPTIONS }; }
   async getParsers(): Promise<string[]> { return ['rdp', 'ssh', 'telnet', 'url']; }
+  async getTerminals(): Promise<TerminalOption[]> {
+    return [
+      { Id: 'auto', Name: 'Automatic (detect default)', Available: true },
+      { Id: 'windows-terminal', Name: 'Windows Terminal', Available: true },
+      { Id: 'conhost', Name: 'Windows Console Host (legacy)', Available: true },
+    ];
+  }
   async getInfo(): Promise<string> { return 'SCALUS 3.0.0\nRuntime: .NET 10 / Photino host\nUI bridge: MockBridge\nConfig: in-memory browser seed'; }
   async getPlatform(): Promise<Platform> { return 'Windows'; }
 

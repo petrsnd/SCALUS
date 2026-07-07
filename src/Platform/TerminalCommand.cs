@@ -1,5 +1,5 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="IProtocolHandlerFactory.cs" company="One Identity Inc.">
+// --------------------------------------------------------------------------------------------------------------------
+// <copyright file="TerminalCommand.cs" company="One Identity Inc.">
 //   This software is licensed under the Apache 2.0 open source license.
 //   https://github.com/OneIdentity/SCALUS/blob/master/LICENSE
 //
@@ -19,12 +19,24 @@
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace OneIdentity.Scalus
+namespace OneIdentity.Scalus.Platform
 {
-    using OneIdentity.Scalus.Dto;
+    using System.Collections.Generic;
 
-    internal interface IProtocolHandlerFactory
+    /// <summary>
+    /// The concrete command SCALUS should spawn to run an interactive program: either the program
+    /// itself (no terminal wrapping) or a terminal emulator configured to host it.
+    /// </summary>
+    public sealed class TerminalCommand
     {
-        public IProtocolHandler Create(string uri, ApplicationConfig config, string preferredTerminal = null);
+        public TerminalCommand(string exec, IReadOnlyList<string> args)
+        {
+            Exec = exec;
+            Args = args;
+        }
+
+        public string Exec { get; }
+
+        public IReadOnlyList<string> Args { get; }
     }
 }

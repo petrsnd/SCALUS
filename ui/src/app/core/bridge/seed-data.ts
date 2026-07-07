@@ -231,7 +231,8 @@ export function normalizeApplication(raw: any): ApplicationConfig | null {
       LineEnding: parserGet('LineEnding') ?? undefined,
       Encoding: parserGet('Encoding') ?? undefined,
       PostProcessingExec: parserGet('PostProcessingExec') ?? undefined,
-      PostProcessingArgs: parserGet('PostProcessingArgs') ?? undefined
+      PostProcessingArgs: parserGet('PostProcessingArgs') ?? undefined,
+      RunInTerminal: parserGet('RunInTerminal') ?? undefined
     },
     Exec: String(get('Exec') ?? ''),
     Args: get('Args') ?? []
@@ -245,6 +246,7 @@ export function normalizeConfig(raw: any): ScalusConfig | null {
   if (!Array.isArray(protocols) || !Array.isArray(applications)) return null;
   return {
     Protocols: protocols.map((p: any) => ({ Protocol: p.Protocol ?? p.protocol, AppId: p.AppId ?? p.appId ?? p.APpId ?? null })),
-    Applications: applications.map(normalizeApplication).filter(Boolean) as ApplicationConfig[]
+    Applications: applications.map(normalizeApplication).filter(Boolean) as ApplicationConfig[],
+    PreferredTerminal: raw.PreferredTerminal ?? raw.preferredTerminal ?? undefined
   };
 }
