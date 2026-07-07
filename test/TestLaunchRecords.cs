@@ -97,17 +97,6 @@ namespace OneIdentity.Scalus.Test
             }
         }
 
-        [Theory]
-        [InlineData("ssh://vaultaddress=v@token=SECRET90CHARS@user@target@sps:22", "SECRET90CHARS")]
-        [InlineData("rdp full address:s:sps username:s:gw\\account~a%token~SECRETTOK%user%host", "SECRETTOK")]
-        public void Redact_MasksOneTimeToken(string raw, string secret)
-        {
-            var redacted = SensitiveData.Redact(raw);
-
-            Assert.DoesNotContain(secret, redacted);
-            Assert.Contains("***", redacted);
-        }
-
         [Fact]
         public void OutcomeKeyword_IsStable()
         {

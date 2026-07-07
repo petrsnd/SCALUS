@@ -50,12 +50,19 @@ namespace OneIdentity.Scalus
 
         public int? ExitCode { get; set; }
 
-        // Already redacted before being set.
+        // Failure message (raw).
         public string Error { get; set; }
 
         public string ApplicationId { get; set; }
 
         public string Command { get; set; }
+
+        // Full, already-joined argument list for the spawned command (raw — no redaction).
+        public string Args { get; set; }
+
+        // Path of the generated file the parser materialized (e.g. the .rdp file), when any. For a real
+        // launch this is the persisted path inside the launches directory; null when no file is generated.
+        public string GeneratedFile { get; set; }
 
         public bool Success => Outcome is LaunchOutcome.Spawned or LaunchOutcome.Preview;
 

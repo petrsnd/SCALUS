@@ -38,6 +38,8 @@ namespace OneIdentity.Scalus.UrlParser
         string ReplaceTokens(string arg);
 
         void PreExecute(IOsServices services);
+
+        void SetGeneratedFileTarget(string directory, string baseName);
     }
 
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = false)]

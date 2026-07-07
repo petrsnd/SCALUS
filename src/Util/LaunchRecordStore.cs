@@ -38,14 +38,18 @@ namespace OneIdentity.Scalus.Util
 
         private const string FileExtension = ".json";
 
-        // Writes one record file. Never throws: a logging failure must not break the actual launch.
-        public static string Write(LaunchRecord record)
+        // Writes one record file, named {baseName}.json so it sits alongside the launch's generated
+        // file ({baseName}{ext}) written by the parser into the same directory. Never throws: a
+        // logging failure must not break the actual launch.
+        public static string Write(LaunchRecord record, string baseName = null)
         {
             try
             {
                 var dir = ConfigurationManager.LaunchRecordsDir;
-                var fileName = $"{record.TimestampUtc:yyyyMMddTHHmmssfffZ}-{Sanitize(record.LaunchId)}{FileExtension}";
-                var path = Path.Combine(dir, fileName);
+                baseName = string.IsNullOrEmpty(baseName)
+                    ? $"{record.TimestampUtc:yyyyMMddTHHmmssfffZ}-{Sanitize(record.LaunchId)}"
+                    : baseName;
+                var path = Path.Combine(dir, baseName + FileExtension);
                 File.WriteAllText(path, ScalusJson.Serialize(record));
                 Prune(dir);
                 return path;
@@ -88,16 +92,23 @@ namespace OneIdentity.Scalus.Util
         {
             try
             {
+                // Each retained launch is a group of files sharing a base name: the {base}.json record
+                // plus any {base}{ext} generated file the parser persisted. Prune whole groups so a
+                // record and its generated file are always removed together.
                 var stale = EnumerateNewestFirst(dir).Skip(RetainedRecordLimit).ToList();
                 foreach (var file in stale)
                 {
-                    try
+                    var baseName = Path.GetFileNameWithoutExtension(file);
+                    foreach (var groupFile in Directory.EnumerateFiles(dir, baseName + ".*"))
                     {
-                        File.Delete(file);
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Debug(ex, "Failed to prune launch record {File}", file);
+                        try
+                        {
+                            File.Delete(groupFile);
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Debug(ex, "Failed to prune launch record {File}", groupFile);
+                        }
                     }
                 }
             }

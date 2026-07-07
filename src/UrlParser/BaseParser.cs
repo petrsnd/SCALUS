@@ -1,4 +1,4 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
+// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="BaseParser.cs" company="One Identity Inc.">
 //   This software is licensed under the Apache 2.0 open source license.
 //   https://github.com/OneIdentity/SCALUS/blob/master/LICENSE
@@ -42,6 +42,8 @@ namespace OneIdentity.Scalus.UrlParser
         private string fileProcessorExe;
         private List<string> fileProcessorArgs;
         private bool disposedValue;
+        private string generatedFileDirectory;
+        private string generatedFileBaseName;
 
         public BaseParser(ParserConfig config)
         {
@@ -63,6 +65,16 @@ namespace OneIdentity.Scalus.UrlParser
             GC.SuppressFinalize(this);
         }
 
+        // Opt in to persisting the generated file: instead of a temp file that is deleted on dispose,
+        // write it into the given directory with the given base name (extension is appended) and keep
+        // it. Used for real launches so the exact file handed to the client survives in the launch
+        // record. Left unset for preview / verify / tests, which keep the scratch-and-delete behavior.
+        public void SetGeneratedFileTarget(string directory, string baseName)
+        {
+            generatedFileDirectory = directory;
+            generatedFileBaseName = baseName;
+        }
+
         public virtual void PreExecute(IOsServices services)
         {
             if (string.IsNullOrEmpty(fileProcessorExe))
@@ -70,7 +82,7 @@ namespace OneIdentity.Scalus.UrlParser
                 return;
             }
 
-            Log.Debug($"Starting file preprocessor: '{fileProcessorExe}' with args: '{SensitiveData.Redact(string.Join(' ', fileProcessorArgs))}'");
+            Log.Debug($"Starting file preprocessor: '{fileProcessorExe}' with args: '{string.Join(' ', fileProcessorArgs)}'");
 
             if (!File.Exists(fileProcessorExe))
             {
@@ -383,7 +395,7 @@ namespace OneIdentity.Scalus.UrlParser
             }
             catch
             {
-                Log.Warning($"The string does not appear to be a valid URL: {SensitiveData.Redact(url?.OriginalString)} ");
+                Log.Warning($"The string does not appear to be a valid URL: {url?.OriginalString} ");
             }
         }
 
@@ -410,45 +422,58 @@ namespace OneIdentity.Scalus.UrlParser
             try
             {
                 string tempFile;
-                var isSafeguard = Dictionary.ContainsKey(Token.Vault) && !string.IsNullOrEmpty(Dictionary[Token.Vault]);
-                if (isSafeguard)
+                if (!string.IsNullOrEmpty(generatedFileDirectory))
                 {
-                    var guid = Guid.NewGuid().ToString();
-                    var host = Dictionary[Token.TargetHost];
-                    host = Regex.Replace(host, "[.]", "~");
-                    var user = Dictionary[Token.TargetUser];
-                    user = user.Replace('\\', '~');
-                    tempFile = Path.Combine(Path.GetTempPath(),
-                        $"SG-{host}_{user}_{guid}{ext}");
+                    // Real launch: write the file directly into the persistent per-user launches
+                    // directory, named to correlate with the launch record, and DO NOT register it for
+                    // deletion — this is the exact artifact handed to the client, kept for debugging.
+                    Directory.CreateDirectory(generatedFileDirectory);
+                    tempFile = Path.Combine(generatedFileDirectory, generatedFileBaseName + ext);
                 }
                 else
                 {
-                    var host = Dictionary.TryGetValue(Token.Host, out var hostValue) && !string.IsNullOrEmpty(hostValue)
-                        ? hostValue
-                        : string.Empty;
-                    var user = Dictionary.TryGetValue(Token.User, out var userValue) && !string.IsNullOrEmpty(userValue)
-                        ? userValue
-                        : string.Empty;
-                    if (!string.IsNullOrEmpty(host) || !string.IsNullOrEmpty(user))
+                    // Scratch file (preview / verify / tests): a temp file that is deleted on dispose.
+                    var isSafeguard = Dictionary.ContainsKey(Token.Vault) && !string.IsNullOrEmpty(Dictionary[Token.Vault]);
+                    if (isSafeguard)
                     {
                         var guid = Guid.NewGuid().ToString();
+                        var host = Dictionary[Token.TargetHost];
                         host = Regex.Replace(host, "[.]", "~");
+                        var user = Dictionary[Token.TargetUser];
                         user = user.Replace('\\', '~');
-
-                        tempFile = Path.Combine(
-                            Path.GetTempPath(),
-                            $"Scalus-{host}_{user}_{guid}{ext}");
+                        tempFile = Path.Combine(Path.GetTempPath(),
+                            $"SG-{host}_{user}_{guid}{ext}");
                     }
                     else
                     {
-                        tempFile = Path.GetTempFileName();
-                        string renamed = Path.ChangeExtension(tempFile, ext);
-                        File.Move(tempFile, renamed);
-                        tempFile = renamed;
+                        var host = Dictionary.TryGetValue(Token.Host, out var hostValue) && !string.IsNullOrEmpty(hostValue)
+                            ? hostValue
+                            : string.Empty;
+                        var user = Dictionary.TryGetValue(Token.User, out var userValue) && !string.IsNullOrEmpty(userValue)
+                            ? userValue
+                            : string.Empty;
+                        if (!string.IsNullOrEmpty(host) || !string.IsNullOrEmpty(user))
+                        {
+                            var guid = Guid.NewGuid().ToString();
+                            host = Regex.Replace(host, "[.]", "~");
+                            user = user.Replace('\\', '~');
+
+                            tempFile = Path.Combine(
+                                Path.GetTempPath(),
+                                $"Scalus-{host}_{user}_{guid}{ext}");
+                        }
+                        else
+                        {
+                            tempFile = Path.GetTempFileName();
+                            string renamed = Path.ChangeExtension(tempFile, ext);
+                            File.Move(tempFile, renamed);
+                            tempFile = renamed;
+                        }
                     }
+
+                    Disposables.Add(Disposable.Create(() => File.Delete(tempFile)));
                 }
 
-                Disposables.Add(Disposable.Create(() => File.Delete(tempFile)));
                 var newlines = new List<string>();
                 foreach (var line in lines)
                 {

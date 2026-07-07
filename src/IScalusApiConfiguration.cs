@@ -47,6 +47,8 @@ namespace OneIdentity.Scalus
 
     internal interface IProtocolHandler : IDisposable
     {
-        LaunchResult Run(bool preview = false);
+        // When it's a real launch (not preview) and generatedFileDirectory is supplied, the parser
+        // persists its generated file there as {generatedFileBaseName}{ext} instead of a temp file.
+        LaunchResult Run(bool preview = false, string generatedFileDirectory = null, string generatedFileBaseName = null);
     }
 }

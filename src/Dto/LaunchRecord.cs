@@ -26,8 +26,9 @@ namespace OneIdentity.Scalus.Dto
 
     // A structured record written once per launch attempt (success OR failure) by the one-shot
     // launcher. Each launch writes its own file (no cross-process append contention), and the
-    // configuration UI aggregates them for the Recent launches view. Everything here is safe to
-    // persist: the URL is redacted and the token-bearing argument list is deliberately omitted.
+    // configuration UI aggregates them for the Recent launches view. Records are raw (no redaction):
+    // they live in the per-user launches directory and the only secret they can carry is the
+    // Safeguard one-time token, which is single-use and already burned by the time a launch runs.
     public class LaunchRecord
     {
         // Correlation id shared with the launcher log lines emitted during this launch.
@@ -42,16 +43,27 @@ namespace OneIdentity.Scalus.Dto
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string Protocol { get; set; }
 
-        // Redacted request URL (one-time token masked).
+        // Raw request URL.
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string Url { get; set; }
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string ApplicationId { get; set; }
 
-        // Resolved executable path (no arguments — args may carry the token).
+        // Resolved executable path (the process actually spawned).
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string Command { get; set; }
+
+        // Full argument list for the spawned command. This is the single most useful field when
+        // diagnosing a launch, so it is retained verbatim.
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string Args { get; set; }
+
+        // File name (in this same launches directory) of the exact file the parser generated for this
+        // launch — e.g. the .rdp file or ssh config handed to the client. This is the literal artifact
+        // used by the launch, kept beside the record for debugging. Null when the app generates no file.
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string GeneratedFile { get; set; }
 
         // Stable outcome keyword: spawned | preview | config-error | spawn-failed |
         // post-execute-error | error.
@@ -63,7 +75,7 @@ namespace OneIdentity.Scalus.Dto
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public int? ExitCode { get; set; }
 
-        // Redacted failure detail; null on success.
+        // Failure detail; null on success.
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string Error { get; set; }
 

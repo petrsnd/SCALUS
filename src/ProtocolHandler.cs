@@ -88,32 +88,37 @@ namespace OneIdentity.Scalus
             return str.ToString();
         }
 
-        public LaunchResult Run(bool preview = false)
+        public LaunchResult Run(bool preview = false, string generatedFileDirectory = null, string generatedFileBaseName = null)
         {
-            var appId = ApplicationConfig?.Id;
+            var result = new LaunchResult { ApplicationId = ApplicationConfig?.Id };
             var spawned = false;
-            var cmd = string.Empty;
             try
             {
+                // For a real launch, tell the parser to persist its generated file (e.g. the .rdp file)
+                // into the launches directory alongside the record instead of a self-deleting temp file.
+                if (!preview && !string.IsNullOrEmpty(generatedFileDirectory))
+                {
+                    Parser.SetGeneratedFileTarget(generatedFileDirectory, generatedFileBaseName);
+                }
+
                 var dictionary = Parser.Parse(Uri);
                 Parser.PreExecute(OsServices);
                 var args = Parser.ReplaceTokens(ApplicationConfig.Args);
 
-                cmd = Parser.ReplaceTokens(ApplicationConfig.Exec.Trim());
-                Serilog.Log.Debug($"Starting external application: '{cmd}' with args: '{SensitiveData.Redact(string.Join(',', args))}'");
+                var cmd = Parser.ReplaceTokens(ApplicationConfig.Exec.Trim());
+                result.Command = cmd;
+                result.Args = string.Join(' ', args);
+                CaptureGeneratedFile(dictionary, result);
+                Serilog.Log.Debug($"Starting external application: '{cmd}' with args: '{result.Args}'");
                 if (!File.Exists(cmd))
                 {
                     var msg = $"Selected application does not exist:{cmd}";
                     Serilog.Log.Error(msg);
                     OsServices.OpenText(msg);
 
-                    return new LaunchResult
-                    {
-                        Outcome = LaunchOutcome.ConfigError,
-                        ApplicationId = appId,
-                        Command = cmd,
-                        Error = msg,
-                    };
+                    result.Outcome = LaunchOutcome.ConfigError;
+                    result.Error = msg;
+                    return result;
                 }
 
                 // When the application is a terminal-based client (e.g. SSH), host it in the user's
@@ -126,19 +131,17 @@ namespace OneIdentity.Scalus
                     var wrapped = TerminalResolver.Wrap(cmd, args, PreferredTerminal);
                     execCmd = wrapped.Exec;
                     execArgs = wrapped.Args as List<string> ?? new List<string>(wrapped.Args);
-                    Serilog.Log.Debug($"Hosting terminal launch in: '{execCmd}' with args: '{SensitiveData.Redact(string.Join(',', execArgs))}'");
+                    result.Command = execCmd;
+                    result.Args = string.Join(' ', execArgs);
+                    Serilog.Log.Debug($"Hosting terminal launch in: '{execCmd}' with args: '{result.Args}'");
                 }
 
                 if (preview)
                 {
                     Serilog.Log.Information($"Preview mode - returning");
                     Console.WriteLine(PreviewOutput(dictionary, execCmd, execArgs));
-                    return new LaunchResult
-                    {
-                        Outcome = LaunchOutcome.Preview,
-                        ApplicationId = appId,
-                        Command = execCmd,
-                    };
+                    result.Outcome = LaunchOutcome.Preview;
+                    return result;
                 }
 
                 var process = OsServices.Execute(execCmd, execArgs);
@@ -155,26 +158,17 @@ namespace OneIdentity.Scalus
                 Parser.PostExecute(process);
                 Serilog.Log.Debug("Post execute complete.");
 
-                return new LaunchResult
-                {
-                    Outcome = LaunchOutcome.Spawned,
-                    ApplicationId = appId,
-                    Command = execCmd,
-                    ExitCode = process.HasExited ? process.ExitCode : null,
-                };
+                result.Outcome = LaunchOutcome.Spawned;
+                result.ExitCode = process.HasExited ? process.ExitCode : null;
+                return result;
             }
             catch (Exception e)
             {
-                var redacted = SensitiveData.Redact(e.Message);
-                Serilog.Log.Error(e, $"Launch failed: {redacted}");
-                OsServices.OpenText($"Launch failed: {redacted}");
-                return new LaunchResult
-                {
-                    Outcome = spawned ? LaunchOutcome.PostExecuteError : LaunchOutcome.SpawnFailed,
-                    ApplicationId = appId,
-                    Command = cmd,
-                    Error = redacted,
-                };
+                Serilog.Log.Error(e, $"Launch failed: {e.Message}");
+                OsServices.OpenText($"Launch failed: {e.Message}");
+                result.Outcome = spawned ? LaunchOutcome.PostExecuteError : LaunchOutcome.SpawnFailed;
+                result.Error = e.Message;
+                return result;
             }
         }
 
@@ -195,6 +189,18 @@ namespace OneIdentity.Scalus
                 }
 
                 disposedValue = true;
+            }
+        }
+
+        // Records the path of the parser-materialized file (e.g. the .rdp file or ssh config) onto the
+        // launch result. For a real launch this is the persisted file inside the launches directory;
+        // this is where launch problems usually hide, so it is captured even when a launch later fails.
+        private static void CaptureGeneratedFile(IDictionary<ParserConfigDefinitions.Token, string> dictionary, LaunchResult result)
+        {
+            if (dictionary.TryGetValue(ParserConfigDefinitions.Token.GeneratedFile, out var fname)
+                && !string.IsNullOrEmpty(fname))
+            {
+                result.GeneratedFile = fname;
             }
         }
     }

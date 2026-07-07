@@ -1,4 +1,4 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
+// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="UrlParser.cs" company="One Identity Inc.">
 //   This software is licensed under the Apache 2.0 open source license.
 //   https://github.com/OneIdentity/SCALUS/blob/master/LICENSE
@@ -59,7 +59,7 @@ namespace OneIdentity.Scalus.UrlParser
             }
             else
             {
-                Serilog.Log.Warning($"The string does not appear to be a valid URL: {SensitiveData.Redact(url)}");
+                Serilog.Log.Warning($"The string does not appear to be a valid URL: {url}");
             }
 
             ParseConfig();
