@@ -107,11 +107,19 @@ namespace OneIdentity.Scalus.Test
         }
 
         [Fact]
-        public void LogFileLivesInLogDir()
+        public void LogFilesLiveInLogDir()
         {
             Assert.Equal(
                 Path.GetFullPath(ConfigurationManager.LogDir),
-                Path.GetFullPath(Path.GetDirectoryName(ConfigurationManager.LogFile)));
+                Path.GetFullPath(Path.GetDirectoryName(ConfigurationManager.LauncherLogFile)));
+            Assert.Equal(
+                Path.GetFullPath(ConfigurationManager.LogDir),
+                Path.GetFullPath(Path.GetDirectoryName(ConfigurationManager.UiLogFile)));
+
+            // The two processes must not share a single log file (cross-process handle contention).
+            Assert.NotEqual(
+                Path.GetFullPath(ConfigurationManager.LauncherLogFile),
+                Path.GetFullPath(ConfigurationManager.UiLogFile));
         }
 
         [Fact]

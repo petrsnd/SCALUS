@@ -32,9 +32,13 @@ namespace OneIdentity.Scalus.Ui
 
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Is(ConfigurationManager.MinLogLevel ?? Serilog.Events.LogEventLevel.Debug)
+                .Enrich.FromLogContext()
                 .WriteTo.File(
-                    Path.Combine(ConfigurationManager.LogDir, "scalus-ui.log"),
-                    rollingInterval: RollingInterval.Day)
+                    ConfigurationManager.UiLogFile,
+                    outputTemplate: ConfigurationManager.LogOutputTemplate,
+                    rollingInterval: RollingInterval.Day,
+                    retainedFileCountLimit: ConfigurationManager.LogRetainedFileCountLimit,
+                    shared: true)
                 .CreateLogger();
 
             try

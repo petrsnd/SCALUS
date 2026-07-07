@@ -115,7 +115,7 @@ namespace OneIdentity.Scalus.Info
             }
 
             UserInteraction.Message($"   - Configuration file   : {ConfigurationManager.ScalusJson}");
-            UserInteraction.Message($"   - Logfile              : {ConfigurationManager.LogFile}");
+            UserInteraction.Message($"   - Log directory        : {ConfigurationManager.LogDir}");
             UserInteraction.Message(string.Empty);
             UserInteraction.Message($"   For detailed information about the scalus configuration file, run info -d");
             UserInteraction.Message($"   For detailed information about the tokens that can be used in scalus.json, run info -t");

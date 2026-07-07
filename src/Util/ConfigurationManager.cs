@@ -33,18 +33,29 @@ namespace OneIdentity.Scalus.Util
     {
         public const string ProdName = "SCALUS";
 
+        // Shared Serilog output template (both processes) so the launcher and UI logs interleave
+        // cleanly when merged in the viewer. {LaunchId} is empty for non-launch lines and carries a
+        // pre-formatted per-launch correlation tag once a launch pushes it onto the LogContext.
+        public const string LogOutputTemplate =
+            "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {LaunchId}{Message:lj}{NewLine}{Exception}";
+
+        // Daily rolling with ~14 files retained ≈ two weeks of history per process.
+        public const int LogRetainedFileCountLimit = 14;
+
         private const string LogFileSetting = "Logging:fileName";
         private const string ConfigFileSetting = "Configuration:fileName";
         private const string MinLogLevelSetting = "Logging:MinLevel";
         private const string LogToConsoleSetting = "Logging:Console";
         private const string JsonFile = ProdName + ".json";
-        private const string LogFileName = ProdName + ".log";
+        private const string LauncherLogBaseName = "launcher-.log";
+        private const string UiLogBaseName = "ui-.log";
         private const string Examples = "examples";
 
         private static string examplePath;
         private static string prodAppPath;
         private static string logDir;
-        private static string logFile;
+        private static string launcherLogFile;
+        private static string uiLogFile;
         private static string scalusJson;
         private static string scalusJsonDefault;
 
@@ -169,25 +180,43 @@ namespace OneIdentity.Scalus.Util
             }
         }
 
-        public static string LogFile
+        // Base path for the CLI launcher's rolling log (Serilog appends the date, e.g.
+        // launcher-20260707.log). A dev-only appsettings.json may override the file name.
+        public static string LauncherLogFile
         {
             get
             {
-                if (!string.IsNullOrEmpty(logFile))
+                if (!string.IsNullOrEmpty(launcherLogFile))
                 {
-                    return logFile;
+                    return launcherLogFile;
                 }
 
                 // An optional dev-only appsettings.json may override the log file name; a relative
                 // name resolves against the per-user LogDir (never the read-only binary dir).
                 if (!string.IsNullOrEmpty(appSetting?[LogFileSetting]))
                 {
-                    logFile = FullPath(appSetting[LogFileSetting], LogDir);
-                    return logFile;
+                    launcherLogFile = FullPath(appSetting[LogFileSetting], LogDir);
+                    return launcherLogFile;
                 }
 
-                logFile = Path.Combine(LogDir, LogFileName);
-                return logFile;
+                launcherLogFile = Path.Combine(LogDir, LauncherLogBaseName);
+                return launcherLogFile;
+            }
+        }
+
+        // Base path for the configuration UI's rolling log (e.g. ui-20260707.log). Kept as a separate
+        // file so the two processes never contend for one handle; the viewer merges them by timestamp.
+        public static string UiLogFile
+        {
+            get
+            {
+                if (!string.IsNullOrEmpty(uiLogFile))
+                {
+                    return uiLogFile;
+                }
+
+                uiLogFile = Path.Combine(LogDir, UiLogBaseName);
+                return uiLogFile;
             }
         }
 

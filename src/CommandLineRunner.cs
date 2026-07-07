@@ -164,9 +164,14 @@ namespace OneIdentity.Scalus
 
         private static void ConfigureLogging()
         {
-            var logFilePath = ConfigurationManager.LogFile;
-            var config = new LoggerConfiguration();
-            config.WriteTo.File(logFilePath, shared: true);
+            var config = new LoggerConfiguration()
+                .Enrich.FromLogContext()
+                .WriteTo.File(
+                    ConfigurationManager.LauncherLogFile,
+                    outputTemplate: ConfigurationManager.LogOutputTemplate,
+                    rollingInterval: RollingInterval.Day,
+                    retainedFileCountLimit: ConfigurationManager.LogRetainedFileCountLimit,
+                    shared: true);
             if (ConfigurationManager.MinLogLevel != null)
             {
                 config.MinimumLevel.ControlledBy(new Serilog.Core.LoggingLevelSwitch(ConfigurationManager.MinLogLevel.Value));
@@ -174,7 +179,7 @@ namespace OneIdentity.Scalus
 
             if (ConfigurationManager.LogToConsole)
             {
-                config.WriteTo.Console();
+                config.WriteTo.Console(outputTemplate: ConfigurationManager.LogOutputTemplate);
             }
 
             Log.Logger = config.CreateLogger();
