@@ -51,5 +51,43 @@ namespace OneIdentity.Scalus.Test
             Assert.False(WindowsCommandLine.InvokesBinary(string.Empty, DevBinary));
             Assert.False(WindowsCommandLine.InvokesBinary(null, DevBinary));
         }
+
+        // The family-aware detection used by the registrars: a command is "ours" when it
+        // launches scalus or scalus-ui out of our own install directory (GetBinaryDir() ==
+        // AppContext.BaseDirectory at runtime and test time).
+        private static string InstallDirBinary(string fileName) =>
+            System.IO.Path.Combine(System.AppContext.BaseDirectory, fileName);
+
+        [Fact]
+        public void InvokesThisBinary_MatchesCanonicalCliInInstallDir()
+        {
+            var command = $"\"{InstallDirBinary("scalus.exe")}\" launch -u \"%1\"";
+            Assert.True(WindowsCommandLine.InvokesThisBinary(command));
+        }
+
+        [Fact]
+        public void InvokesThisBinary_MatchesGuiInInstallDir()
+        {
+            // Existing installs / the dev tree may still be registered to scalus-ui; that
+            // is the same product in the same directory and must still count as ours.
+            var command = $"\"{InstallDirBinary("scalus-ui.exe")}\" launch -u \"%1\"";
+            Assert.True(WindowsCommandLine.InvokesThisBinary(command));
+        }
+
+        [Fact]
+        public void InvokesThisBinary_RejectsScalusInADifferentDirectory()
+        {
+            // A stale copy under a different directory mentions the scalus name but is a
+            // foreign handler we must take the association away from.
+            var command = $"\"{StaleBinary}\" launch -u \"%1\"";
+            Assert.False(WindowsCommandLine.InvokesThisBinary(command));
+        }
+
+        [Fact]
+        public void InvokesThisBinary_RejectsForeignHandler()
+        {
+            var command = "\"C:\\Program Files\\PuTTY\\putty.exe\" -telnet \"%1\"";
+            Assert.False(WindowsCommandLine.InvokesThisBinary(command));
+        }
     }
 }

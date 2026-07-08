@@ -84,10 +84,40 @@ namespace OneIdentity.Scalus
             return AppContext.BaseDirectory;
         }
 
+        // The canonical binary that OS protocol registrations should launch. This is
+        // always the lightweight CLI launcher (scalus[.exe]) — never whichever binary
+        // happened to call Register. Registering the GUI (scalus-ui) as the handler would
+        // make every rdp:///ssh:// click spawn the whole configuration app, and it would
+        // make the registered command depend on who wrote it (so the CLI and the UI would
+        // disagree about whether a protocol is "ours"). We resolve the sibling launcher in
+        // our own install directory and fall back to the running binary only when it isn't
+        // co-located (the dev tree, where the two projects build to separate bin dirs, or
+        // the CLI invoking this on itself).
+        public static string GetLauncherBinaryPath()
+        {
+            try
+            {
+                var launcherName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                    ? "scalus.exe"
+                    : "scalus";
+                var candidate = Path.Combine(GetBinaryDir(), launcherName);
+                if (File.Exists(candidate))
+                {
+                    return Path.GetFullPath(candidate);
+                }
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Debug($"Could not resolve canonical launcher binary: {ex.Message}");
+            }
+
+            return GetBinaryPath();
+        }
+
         [System.Runtime.Versioning.SupportedOSPlatform("windows")]
         public static string GetLaunchCommand(string urlString = "<URL VARIABLE HERE>")
         {
-            var binPath = GetBinaryPath().Trim();
+            var binPath = GetLauncherBinaryPath().Trim();
             if (binPath.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) || binPath.EndsWith(".so", StringComparison.OrdinalIgnoreCase))
             {
                 binPath = $"\"{DotNetPath()}\" {binPath}";

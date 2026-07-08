@@ -27,25 +27,71 @@ namespace OneIdentity.Scalus
     using System.Text;
 
     // Helpers for reasoning about a registered handler command line. A registration is
-    // only "ours" when one of its tokens resolves to the currently running binary; a
-    // command left behind by a previous install (for example an older copy under
-    // Program Files) mentions the scalus name but launches a different executable, so it
-    // must not be treated as an active registration.
+    // only "ours" when one of its tokens resolves to a SCALUS launcher (scalus or
+    // scalus-ui) living in our own install directory. Either binary is accepted because
+    // the CLI (scalus) is now the canonical registered handler but existing installs and
+    // the dev tree may still be registered to the GUI (scalus-ui); both are the same
+    // product in the same directory. A command left behind by a previous install (an
+    // older copy under a *different* directory) mentions the scalus name but launches a
+    // different executable, so it must not be treated as an active registration.
     internal static class WindowsCommandLine
     {
         public static bool InvokesThisBinary(string command)
         {
-            string ourBinary;
+            if (string.IsNullOrEmpty(command))
+            {
+                return false;
+            }
+
+            string installDir;
             try
             {
-                ourBinary = Path.GetFullPath(Constants.GetBinaryPath());
+                installDir = NormalizeDirectory(Constants.GetBinaryDir());
             }
             catch (Exception)
             {
                 return false;
             }
 
-            return InvokesBinary(command, ourBinary);
+            if (string.IsNullOrEmpty(installDir))
+            {
+                return false;
+            }
+
+            foreach (var token in SplitCommandLine(command))
+            {
+                string full;
+                try
+                {
+                    full = Path.GetFullPath(token);
+                }
+                catch (Exception)
+                {
+                    continue;
+                }
+
+                if (!IsScalusLauncherName(Path.GetFileNameWithoutExtension(full)))
+                {
+                    continue;
+                }
+
+                string dir;
+                try
+                {
+                    dir = NormalizeDirectory(Path.GetDirectoryName(full));
+                }
+                catch (Exception)
+                {
+                    continue;
+                }
+
+                if (string.Equals(dir, installDir, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         public static bool InvokesBinary(string command, string binaryPath)
@@ -122,6 +168,21 @@ namespace OneIdentity.Scalus
             {
                 yield return current.ToString();
             }
+        }
+
+        private static bool IsScalusLauncherName(string name) =>
+            string.Equals(name, "scalus", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(name, "scalus-ui", StringComparison.OrdinalIgnoreCase);
+
+        private static string NormalizeDirectory(string path)
+        {
+            if (string.IsNullOrEmpty(path))
+            {
+                return path;
+            }
+
+            return Path.GetFullPath(path)
+                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         }
     }
 }
