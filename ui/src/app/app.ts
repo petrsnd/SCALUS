@@ -222,7 +222,7 @@ export class App implements OnInit {
     if (!record.GeneratedFile) { return; }
     this.loadingLaunchFile = true;
     try {
-      this.selectedLaunchFile = await this.bridge.getLaunchFile(record.GeneratedFile);
+      this.selectedLaunchFile = this.normalizeEol(await this.bridge.getLaunchFile(record.GeneratedFile));
     } catch {
       this.selectedLaunchFile = null;
     } finally {
@@ -651,6 +651,65 @@ export class App implements OnInit {
   }
   private flash(message: string): void { this.message = message; window.setTimeout(() => { if (this.message === message) this.message = ''; }, 2600); }
 
+  copiedKey: string | null = null;
+  private copiedTimer: ReturnType<typeof setTimeout> | null = null;
+
+  // Collapse any line-ending flavor to a single '\n'. Windows rdpsign writes '\r\r\n'
+  // between lines; treating '\r+\n' and lone '\r' as one break keeps genuine blank
+  // lines intact while preventing double-spaced display and paste.
+  private normalizeEol(value: string | null | undefined): string | null {
+    if (value == null) { return value ?? null; }
+    return String(value).replace(/\r+\n|\r/g, '\n');
+  }
+
+  async copyField(value: string | null | undefined, key: string): Promise<void> {
+    if (value == null || value === '') { return; }
+    const text = this.normalizeEol(value) ?? '';
+    let ok = false;
+    try {
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        await navigator.clipboard.writeText(text);
+        ok = true;
+      }
+    } catch { ok = false; }
+    if (!ok) { ok = this.legacyCopy(text); }
+    if (ok) {
+      this.copiedKey = key;
+      if (this.copiedTimer) { clearTimeout(this.copiedTimer); }
+      this.copiedTimer = setTimeout(() => { this.copiedKey = null; this.copiedTimer = null; }, 1300);
+    } else {
+      this.flash('Copy failed — select the text and copy manually.');
+    }
+  }
+
+  private legacyCopy(text: string): boolean {
+    try {
+      // Provide a selection so execCommand('copy') dispatches a copy event, then
+      // override the clipboard payload with the exact text. Copying a textarea's
+      // value directly would re-expand '\n' to the platform EOL ('\r\n' on Windows),
+      // which pastes as double-spaced lines; setData writes the string verbatim.
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.top = '-1000px';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      const onCopy = (e: ClipboardEvent): void => {
+        if (e.clipboardData) {
+          e.clipboardData.setData('text/plain', text);
+          e.preventDefault();
+        }
+      };
+      document.addEventListener('copy', onCopy);
+      const done = document.execCommand('copy');
+      document.removeEventListener('copy', onCopy);
+      document.body.removeChild(ta);
+      return done;
+    } catch { return false; }
+  }
+
   iconPath(name: string): string {
     const paths: Record<string, string> = {
       eye: 'M247.31 124.76c-.35-.79-8.82-19.58-27.65-38.41C194.57 61.26 162.88 48 128 48S61.43 61.26 36.34 86.35C17.51 105.18 9 124 8.69 124.76a8 8 0 0 0 0 6.5c.35.79 8.82 19.57 27.65 38.4C61.43 194.74 93.12 208 128 208s66.57-13.26 91.66-38.34c18.83-18.83 27.3-37.61 27.65-38.4a8 8 0 0 0 0-6.5ZM128 168a40 40 0 1 1 40-40 40 40 0 0 1-40 40Z',
@@ -664,8 +723,10 @@ export class App implements OnInit {
       square: 'M200 40H56a16 16 0 0 0-16 16v144a16 16 0 0 0 16 16h144a16 16 0 0 0 16-16V56a16 16 0 0 0-16-16Z',
       settings: 'M128 80a48 48 0 1 0 48 48 48.05 48.05 0 0 0-48-48Zm0 80a32 32 0 1 1 32-32 32 32 0 0 1-32 32Zm88-29.84q.06-2.16 0-4.32l14.92-18.64a8 8 0 0 0 1.48-7.06 107.21 107.21 0 0 0-10.88-26.25 8 8 0 0 0-6-3.93l-23.72-2.64q-1.48-1.56-3-3L181 34.48a8 8 0 0 0-3.94-6 107.71 107.71 0 0 0-26.25-10.87 8 8 0 0 0-7.06 1.49L125.16 24h-4.32L102.2 9.11a8 8 0 0 0-7.06-1.48 107.6 107.6 0 0 0-26.25 10.88 8 8 0 0 0-3.93 6l-2.64 23.76q-1.56 1.49-3 3L34.48 75a8 8 0 0 0-6 3.94 107.71 107.71 0 0 0-10.87 26.25 8 8 0 0 0 1.49 7.06L24 130.84v4.32L9.11 153.8a8 8 0 0 0-1.48 7.06 107.21 107.21 0 0 0 10.88 26.25 8 8 0 0 0 6 3.93l23.72 2.64q1.49 1.56 3 3L75 221.52a8 8 0 0 0 3.94 6 107.71 107.71 0 0 0 26.25 10.87 8 8 0 0 0 7.06-1.49L130.84 232h4.32l18.64 14.92a8 8 0 0 0 7.06 1.48 107.21 107.21 0 0 0 26.25-10.88 8 8 0 0 0 3.93-6l2.64-23.72q1.56-1.48 3-3L221.52 181a8 8 0 0 0 6-3.94 107.71 107.71 0 0 0 10.87-26.25 8 8 0 0 0-1.49-7.06Zm-16.1-6.5a73.93 73.93 0 0 1 0 8.68 8 8 0 0 0 1.74 5.48l14.19 17.73a91.57 91.57 0 0 1-6.23 15l-22.6 2.56a8 8 0 0 0-5.1 2.64 74.11 74.11 0 0 1-6.14 6.14 8 8 0 0 0-2.64 5.1l-2.51 22.58a91.32 91.32 0 0 1-15 6.23l-17.74-14.19a8 8 0 0 0-5-1.75h-.48a73.93 73.93 0 0 1-8.68 0 8 8 0 0 0-5.48 1.74l-17.78 14.2a91.57 91.57 0 0 1-15-6.23L82.89 187a8 8 0 0 0-2.64-5.1 74.11 74.11 0 0 1-6.14-6.14 8 8 0 0 0-5.1-2.64l-22.58-2.51a91.32 91.32 0 0 1-6.23-15l14.19-17.74a8 8 0 0 0 1.74-5.48 73.93 73.93 0 0 1 0-8.68 8 8 0 0 0-1.74-5.48L40.19 100.9a91.57 91.57 0 0 1 6.23-15L69 83.11a8 8 0 0 0 5.1-2.64 74.11 74.11 0 0 1 6.14-6.14 8 8 0 0 0 2.64-5.1l2.51-22.58a91.32 91.32 0 0 1 15-6.23l17.74 14.19a8 8 0 0 0 5.48 1.74 73.93 73.93 0 0 1 8.68 0 8 8 0 0 0 5.48-1.74l17.74-14.19a91.57 91.57 0 0 1 15 6.23L187 69a8 8 0 0 0 2.64 5.1 74.11 74.11 0 0 1 6.14 6.14 8 8 0 0 0 5.1 2.64l22.58 2.51a91.32 91.32 0 0 1 6.23 15l-14.19 17.74a8 8 0 0 0-1.74 5.48Z',
       warning: 'M236.8 188.09 149.35 36.22a24.76 24.76 0 0 0-42.7 0L19.2 188.09a23.51 23.51 0 0 0 0 23.72A24.35 24.35 0 0 0 40.55 224h174.9a24.35 24.35 0 0 0 21.35-12.19 23.51 23.51 0 0 0 0-23.72ZM120 104a8 8 0 0 1 16 0v40a8 8 0 0 1-16 0Zm8 88a12 12 0 1 1 12-12 12 12 0 0 1-12 12Z',
-      list: 'M80 64a8 8 0 0 1 8-8h128a8 8 0 0 1 0 16H88a8 8 0 0 1-8-8Zm136 56H88a8 8 0 0 0 0 16h128a8 8 0 0 1 0-16Zm0 64H88a8 8 0 0 0 0 16h128a8 8 0 0 0 0-16ZM44 52a12 12 0 1 0 12 12 12 12 0 0 0-12-12Zm0 64a12 12 0 1 0 12 12 12 12 0 0 0-12-12Zm0 64a12 12 0 1 0 12 12 12 12 0 0 0-12-12Z'
-    };
-    return paths[name] || paths['link'];
+      list: 'M80 64a8 8 0 0 1 8-8h128a8 8 0 0 1 0 16H88a8 8 0 0 1-8-8Zm136 56H88a8 8 0 0 0 0 16h128a8 8 0 0 1 0-16Zm0 64H88a8 8 0 0 0 0 16h128a8 8 0 0 0 0-16ZM44 52a12 12 0 1 0 12 12 12 12 0 0 0-12-12Zm0 64a12 12 0 1 0 12 12 12 12 0 0 0-12-12Zm0 64a12 12 0 1 0 12 12 12 12       0 0 0-12-12Z',
+            copy: 'M216 32H88a8 8 0 0 0-8 8v40H40a8 8 0 0 0-8 8v128a8 8 0 0 0 8 8h128a8 8 0 0 0 8-8v-40h40a8 8 0 0 0 8-8V40a8 8 0 0 0-8-8Zm-56 176H48V96h112Zm48-48h-32V88a8 8 0 0 0-8-8H96V48h112Z',
+            check: 'M229.66 77.66l-128 128a8 8 0 0 1-11.32 0l-56-56a8 8 0 0 1 11.32-11.32L96 188.69 218.34 66.34a8 8 0 0 1 11.32 11.32Z'
+          };
+          return paths[name] || paths['link'];
   }
 }

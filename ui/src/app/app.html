@@ -159,18 +159,21 @@
     <div class="drawer-body">
       <div class="launch-status"><ui-badge [tone]="launchOutcomeTone(r)">{{ launchOutcomeLabel(r) }}</ui-badge><span class="exit" *ngIf="r.ExitCode != null">exit code {{ r.ExitCode }}</span></div>
       <dl class="launch-kv">
-        <ng-container *ngIf="r.LaunchId"><dt>Launch ID</dt><dd><code>{{ r.LaunchId }}</code></dd></ng-container>
-        <ng-container *ngIf="r.LauncherBinary"><dt>Launcher</dt><dd>{{ r.LauncherBinary }}</dd></ng-container>
-        <ng-container *ngIf="r.ApplicationId"><dt>Application</dt><dd>{{ r.ApplicationId }}</dd></ng-container>
-        <ng-container *ngIf="r.Url"><dt>Link</dt><dd><code class="wrap">{{ r.Url }}</code></dd></ng-container>
-        <ng-container *ngIf="r.Command"><dt>Command</dt><dd><code class="wrap">{{ r.Command }}</code></dd></ng-container>
-        <ng-container *ngIf="r.Args"><dt>Arguments</dt><dd><code class="wrap">{{ r.Args }}</code></dd></ng-container>
+        <ng-container *ngIf="r.LaunchId"><dt>Launch ID</dt><dd><div class="copyable"><code>{{ r.LaunchId }}</code><button class="copy-btn" [class.copied]="copiedKey==='launchId'" type="button" title="Copy Launch ID" aria-label="Copy Launch ID" (click)="copyField(r.LaunchId, 'launchId')"><svg viewBox="0 0 256 256"><path [attr.d]="iconPath(copiedKey==='launchId' ? 'check' : 'copy')" /></svg></button></div></dd></ng-container>
+        <ng-container *ngIf="r.LauncherBinary"><dt>Launcher</dt><dd><div class="copyable"><span class="val">{{ r.LauncherBinary }}</span><button class="copy-btn" [class.copied]="copiedKey==='launcher'" type="button" title="Copy launcher path" aria-label="Copy launcher path" (click)="copyField(r.LauncherBinary, 'launcher')"><svg viewBox="0 0 256 256"><path [attr.d]="iconPath(copiedKey==='launcher' ? 'check' : 'copy')" /></svg></button></div></dd></ng-container>
+        <ng-container *ngIf="r.ApplicationId"><dt>Application</dt><dd><div class="copyable"><span class="val">{{ r.ApplicationId }}</span><button class="copy-btn" [class.copied]="copiedKey==='application'" type="button" title="Copy application id" aria-label="Copy application id" (click)="copyField(r.ApplicationId, 'application')"><svg viewBox="0 0 256 256"><path [attr.d]="iconPath(copiedKey==='application' ? 'check' : 'copy')" /></svg></button></div></dd></ng-container>
+        <ng-container *ngIf="r.Url"><dt>Link</dt><dd><div class="copyable block"><code class="wrap">{{ r.Url }}</code><button class="copy-btn" [class.copied]="copiedKey==='link'" type="button" title="Copy link" aria-label="Copy link" (click)="copyField(r.Url, 'link')"><svg viewBox="0 0 256 256"><path [attr.d]="iconPath(copiedKey==='link' ? 'check' : 'copy')" /></svg></button></div></dd></ng-container>
+        <ng-container *ngIf="r.Command"><dt>Command</dt><dd><div class="copyable block"><code class="wrap">{{ r.Command }}</code><button class="copy-btn" [class.copied]="copiedKey==='command'" type="button" title="Copy command" aria-label="Copy command" (click)="copyField(r.Command, 'command')"><svg viewBox="0 0 256 256"><path [attr.d]="iconPath(copiedKey==='command' ? 'check' : 'copy')" /></svg></button></div></dd></ng-container>
+        <ng-container *ngIf="r.Args"><dt>Arguments</dt><dd><div class="copyable block"><code class="wrap">{{ r.Args }}</code><button class="copy-btn" [class.copied]="copiedKey==='args'" type="button" title="Copy arguments" aria-label="Copy arguments" (click)="copyField(r.Args, 'args')"><svg viewBox="0 0 256 256"><path [attr.d]="iconPath(copiedKey==='args' ? 'check' : 'copy')" /></svg></button></div></dd></ng-container>
       </dl>
       <div class="error-list" *ngIf="r.Error"><strong>Error</strong><p>{{ r.Error }}</p></div>
       <div class="launch-file" *ngIf="r.GeneratedFile">
-        <div class="launch-file-head"><span class="ttl">Generated file</span><code>{{ r.GeneratedFile }}</code></div>
+        <div class="launch-file-head"><span class="ttl">Generated file</span><code>{{ r.GeneratedFile }}</code><button class="copy-btn" [class.copied]="copiedKey==='genpath'" type="button" title="Copy file path" aria-label="Copy generated file path" (click)="copyField(r.GeneratedFile, 'genpath')"><svg viewBox="0 0 256 256"><path [attr.d]="iconPath(copiedKey==='genpath' ? 'check' : 'copy')" /></svg></button></div>
         <div class="logs-note" *ngIf="loadingLaunchFile">Loading file…</div>
-        <pre *ngIf="!loadingLaunchFile && selectedLaunchFile">{{ selectedLaunchFile }}</pre>
+        <div class="pre-wrap" *ngIf="!loadingLaunchFile && selectedLaunchFile">
+          <button class="copy-btn floating" [class.copied]="copiedKey==='gencontent'" type="button" title="Copy file contents" aria-label="Copy generated file contents" (click)="copyField(selectedLaunchFile, 'gencontent')"><svg viewBox="0 0 256 256"><path [attr.d]="iconPath(copiedKey==='gencontent' ? 'check' : 'copy')" /></svg></button>
+          <pre>{{ selectedLaunchFile }}</pre>
+        </div>
         <div class="logs-note" *ngIf="!loadingLaunchFile && !selectedLaunchFile">This file is no longer on disk (pruned or cleaned up).</div>
       </div>
     </div>
