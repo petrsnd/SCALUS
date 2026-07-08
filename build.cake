@@ -262,7 +262,7 @@ Task("OsxInstall")
         }
         CopyDirectory("scripts/Osx/scalus.app", scalusappdir);
 
-        CopyFile("scripts/Osx/scalus.json", exdir + "/scalus.json");
+        CopyFile("scripts/Osx/SCALUS.json", exdir + "/SCALUS.json");
         CopyFile(publishdir + "/scalus", targetdir + "/scalus");
 
         CopyDirectory(builddir + "/Ui", targetdir + "/Ui");
