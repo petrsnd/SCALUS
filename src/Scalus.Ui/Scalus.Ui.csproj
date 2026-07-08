@@ -21,6 +21,15 @@
     <ProjectReference Include="..\OneIdentity.Scalus.csproj" />
   </ItemGroup>
 
+  <!-- Dev convenience (Debug only): build the CLI launcher first so a fresh scalus.exe can be
+       staged beside scalus-ui.exe (see StageLauncherCli). The all-users elevation broker shells
+       out to a sibling scalus.exe; without this, local edits to the core registrar logic wouldn't
+       reach the elevated helper until the CLI was rebuilt by hand. Production packaging ships a
+       NativeAOT scalus.exe via the installer, so this is intentionally scoped to Debug builds. -->
+  <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+    <ProjectReference Include="..\Cli\Scalus.Cli.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
   <!-- Shipped default configurations used to seed a fresh per-user install. -->
   <ItemGroup>
     <Content Include="..\scalus.ico" Link="scalus.ico" CopyToOutputDirectory="PreserveNewest" />
@@ -60,6 +69,26 @@
     <Copy SourceFiles="@(AngularArtifactsPublish)"
           DestinationFiles="@(AngularArtifactsPublish->'$(PublishDir)wwwroot\%(RecursiveDir)%(Filename)%(Extension)')"
           SkipUnchangedFiles="true" />
+  </Target>
+
+  <!-- Stage the freshly-built CLI launcher beside scalus-ui.exe for local (Debug) runs so the
+       all-users elevation broker invokes current core logic. Every dependency assembly the
+       framework-dependent launcher needs is already in this output (both projects reference the
+       same core), so only the launcher's own four files are copied. Cross-platform: the apphost is
+       scalus.exe on Windows and extensionless scalus elsewhere; whichever exists is staged. -->
+  <Target Name="StageLauncherCli" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug'">
+    <PropertyGroup>
+      <CliOutDir>$(MSBuildProjectDirectory)\..\Cli\bin\$(Configuration)\$(TargetFramework)\</CliOutDir>
+    </PropertyGroup>
+    <ItemGroup>
+      <LauncherFiles Include="$(CliOutDir)scalus.dll;$(CliOutDir)scalus.runtimeconfig.json;$(CliOutDir)scalus.deps.json" />
+      <LauncherFiles Include="$(CliOutDir)scalus.exe" Condition="Exists('$(CliOutDir)scalus.exe')" />
+      <LauncherFiles Include="$(CliOutDir)scalus" Condition="Exists('$(CliOutDir)scalus')" />
+    </ItemGroup>
+    <Copy SourceFiles="@(LauncherFiles)"
+          DestinationFolder="$(OutDir)"
+          SkipUnchangedFiles="true"
+          Condition="Exists('$(CliOutDir)scalus.dll')" />
   </Target>
 
 </Project>
