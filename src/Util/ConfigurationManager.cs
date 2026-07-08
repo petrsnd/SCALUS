@@ -151,14 +151,16 @@ namespace OneIdentity.Scalus.Util
                     return prodAppPath;
                 }
 
-                prodAppPath = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile, Environment.SpecialFolderOption.Create),
-                    $".{ProdName}");
+                // Linux: XDG config dir ($XDG_CONFIG_HOME/scalus, else ~/.config/scalus), lowercase
+                // "scalus". A pre-XDG install kept everything in ~/.SCALUS; copy that config forward
+                // once so we don't orphan the user's SCALUS.json and templates.
+                prodAppPath = ComputeLinuxConfigDir();
                 if (!Directory.Exists(prodAppPath))
                 {
                     Directory.CreateDirectory(prodAppPath);
                 }
 
+                MigrateLegacyLinuxConfig(prodAppPath);
                 return prodAppPath;
             }
         }
@@ -307,6 +309,84 @@ namespace OneIdentity.Scalus.Util
             }
 
             return fqpath;
+        }
+
+        // $XDG_CONFIG_HOME/scalus when the var is set and absolute; otherwise ~/.config/scalus.
+        private static string ComputeLinuxConfigDir()
+        {
+            var configHome = Environment.GetEnvironmentVariable("XDG_CONFIG_HOME");
+            if (string.IsNullOrEmpty(configHome) || !Path.IsPathFullyQualified(configHome))
+            {
+                configHome = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile, Environment.SpecialFolderOption.Create),
+                    ".config");
+            }
+
+            return Path.Combine(configHome, "scalus");
+        }
+
+        // One-time, best-effort copy-forward of a pre-XDG ~/.SCALUS config into the new XDG config dir.
+        // Copies the config file and any support files (templates/examples) but NOT logs or launch
+        // records — those belong under the XDG state dir now. No-ops once the new config exists, if the
+        // old dir is absent, or on any error; migration must never break a launch.
+        private static void MigrateLegacyLinuxConfig(string newConfigDir)
+        {
+            try
+            {
+                if (File.Exists(Path.Combine(newConfigDir, JsonFile)))
+                {
+                    return;
+                }
+
+                var legacy = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile, Environment.SpecialFolderOption.Create),
+                    $".{ProdName}");
+                if (!Directory.Exists(legacy) || !File.Exists(Path.Combine(legacy, JsonFile)))
+                {
+                    return;
+                }
+
+                foreach (var file in Directory.EnumerateFiles(legacy, "*", SearchOption.AllDirectories))
+                {
+                    var rel = Path.GetRelativePath(legacy, file);
+                    var topSegment = rel.Split(Path.DirectorySeparatorChar, 2)[0];
+                    if (IsLegacyLogArtifact(topSegment, file))
+                    {
+                        continue;
+                    }
+
+                    var dest = Path.Combine(newConfigDir, rel);
+                    var destDir = Path.GetDirectoryName(dest);
+                    if (!string.IsNullOrEmpty(destDir) && !Directory.Exists(destDir))
+                    {
+                        Directory.CreateDirectory(destDir);
+                    }
+
+                    if (!File.Exists(dest))
+                    {
+                        File.Copy(file, dest);
+                    }
+                }
+
+                Serilog.Log.Information("Migrated legacy SCALUS config from {Legacy} to {New}", legacy, newConfigDir);
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Warning("Legacy SCALUS config migration skipped: {Message}", ex.Message);
+            }
+        }
+
+        // Logs and per-launch records lived inside the old all-in-one ~/.SCALUS; they must not follow
+        // the config into the XDG config dir (they belong under the XDG state dir).
+        private static bool IsLegacyLogArtifact(string topSegment, string fullPath)
+        {
+            if (string.Equals(topSegment, "logs", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(topSegment, LaunchRecordsDirName, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            return fullPath.EndsWith(".log", StringComparison.OrdinalIgnoreCase);
         }
 
         // Resolve the per-user log directory per platform. Windows: %LOCALAPPDATA%\SCALUS\logs.
