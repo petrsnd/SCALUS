@@ -77,6 +77,9 @@ namespace OneIdentity.Scalus.Ui
                     "getParsers" => ProtocolHandlerFactory.GetSupportedParsers(),
                     "getTerminals" => GetTerminals(),
                     "getInfo" => GetInfo(),
+                    "getLaunchRecords" => GetLaunchRecords(args.Count > 0 && args[0] != null ? args[0].GetValue<int>() : LaunchRecordStore.RetainedRecordLimit),
+                    "getLaunchFile" => GetLaunchFile(args.Count > 0 ? args[0]?.GetValue<string>() : null),
+                    "openLogsFolder" => OpenLogsFolder(),
                     "exportToFile" => ExportToFile(args[0]?.GetValue<string>(), args[1]?.GetValue<string>()),
                     "importFromFile" => ImportFromFile(),
                     "getPlatform" => GetPlatform(),
@@ -172,6 +175,30 @@ namespace OneIdentity.Scalus.Ui
                 $"Registered handlers: {(registered.Count == 0 ? "none" : string.Join(", ", registered))}",
             };
             return string.Join(Environment.NewLine, lines);
+        }
+
+        // Recent launch attempts (success and failure), newest first, for the Logs view.
+        private List<LaunchRecord> GetLaunchRecords(int max) =>
+            LaunchRecordStore.List(max).ToList();
+
+        // Returns the contents of a file that lives beside a launch record (e.g. the generated
+        // .rdp/ssh config). Only the file name is honored so a request can't escape the launches dir.
+        private string GetLaunchFile(string fileName)
+        {
+            if (string.IsNullOrEmpty(fileName))
+            {
+                return null;
+            }
+
+            var path = Path.Combine(ConfigurationManager.LaunchRecordsDir, Path.GetFileName(fileName));
+            return File.Exists(path) ? File.ReadAllText(path) : null;
+        }
+
+        // Opens the per-user logs folder in the OS file manager so the user can grab the files.
+        private bool OpenLogsFolder()
+        {
+            this.services.GetRequiredService<IOsServices>().OpenDefault(ConfigurationManager.LogDir);
+            return true;
         }
 
         private bool ExportToFile(string defaultName, string contents)

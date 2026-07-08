@@ -86,9 +86,32 @@ export interface ScalusBridge {
   getParsers(): Promise<string[]>;
   getTerminals(): Promise<TerminalOption[]>;
   getInfo(): Promise<string>;
+  getLaunchRecords(max?: number): Promise<LaunchRecord[]>;
+  getLaunchFile(fileName: string): Promise<string | null>;
+  openLogsFolder(): Promise<boolean>;
   exportToFile(defaultName: string, contents: string): Promise<boolean>;
   importFromFile(): Promise<string | null>;
   getPlatform(): Promise<Platform>;
 }
 
 export const SCALUS_BRIDGE = new InjectionToken<ScalusBridge>('SCALUS_BRIDGE');
+
+/** A single launch attempt (success or failure) recorded by the launcher. Mirrors Dto/LaunchRecord.cs. */
+export interface LaunchRecord {
+  LaunchId: string;
+  TimestampUtc: string;
+  LauncherBinary?: string | null;
+  Protocol?: string | null;
+  Url?: string | null;
+  ApplicationId?: string | null;
+  Command?: string | null;
+  Args?: string | null;
+  /** File name (beside the record) of the exact file the parser generated for this launch. */
+  GeneratedFile?: string | null;
+  /** spawned | preview | config-error | spawn-failed | post-execute-error | error. */
+  Outcome: string;
+  Success: boolean;
+  ExitCode?: number | null;
+  Error?: string | null;
+  DurationMs: number;
+}

@@ -86,6 +86,38 @@
       </div>
     </section>
 
+    <section class="screen" [class.active]="tab === 'logs'">
+      <header class="topbar">
+        <div><div class="crumb">Diagnostics</div><h2>Logs</h2></div>
+        <div class="topbar-actions">
+          <ui-button variant="ghost" (click)="loadLaunchRecords()">Refresh</ui-button>
+          <ui-button variant="ghost" (click)="openLogsFolder()">Open logs folder</ui-button>
+          <ui-button variant="primary" (click)="exportForIssue()">Export for issue…</ui-button>
+        </div>
+      </header>
+      <div class="content">
+        <p class="lead">Every session launch — successful or failed — is recorded here with the exact command and generated file, so a bad launch can be diagnosed or attached to an issue. Choose how much detail is captured on the <strong>Settings</strong> tab.</p>
+        <div class="logs-note" *ngIf="logsLoading">Loading recent launches…</div>
+        <div class="logs-note error" *ngIf="logsError && !logsLoading">{{ logsError }}</div>
+        <div class="logs-empty" *ngIf="!logsLoading && !logsError && launchRecordsLoaded && !launchRecords.length">
+          <div class="logs-empty-icon"><svg viewBox="0 0 256 256"><path [attr.d]="iconPath('list')" /></svg></div>
+          <h3>No launches recorded yet</h3>
+          <p>Open a session link and SCALUS will record what happened — the resolved command, the generated file, and the outcome.</p>
+        </div>
+        <div class="log-list" *ngIf="!logsLoading && launchRecords.length">
+          <button *ngFor="let r of launchRecords" type="button" class="log-row" (click)="selectLaunch(r)">
+            <span class="log-dot" [class.ok]="launchOutcomeTone(r)==='ok'" [class.warn]="launchOutcomeTone(r)==='warn'" [class.muted]="launchOutcomeTone(r)==='muted'"></span>
+            <span class="log-main">
+              <span class="log-title">{{ launchTitle(r) }}</span>
+              <span class="log-sub">{{ r.Command || r.Url || '—' }}</span>
+            </span>
+            <ui-badge [tone]="launchOutcomeTone(r)">{{ launchOutcomeLabel(r) }}</ui-badge>
+            <span class="log-time">{{ launchTime(r) }}</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
     <section class="screen" [class.active]="tab === 'io'">
       <header class="topbar"><div><div class="crumb">Configuration</div><h2>Import / Export</h2></div></header>
       <div class="content"><p class="lead">Move configuration between machines or share a single launcher with a colleague. Exports never contain credentials — the Safeguard proxy owns those.</p>
@@ -115,6 +147,33 @@
       <div class="error-list" *ngIf="editorErrors.length"><strong>Fix before saving:</strong><ul><li *ngFor="let error of editorErrors">{{ error }}</li></ul></div>
     </div>
     <div class="drawer-foot"><ui-button variant="danger" *ngIf="editorMode === 'edit'" (click)="removeApplication(e); editorOpen = false">Delete</ui-button><span></span><div class="foot-actions"><ui-button variant="ghost" (click)="closeEditor()">Cancel</ui-button><ui-button variant="primary" (click)="saveEditor()" [disabled]="(!editorDirty && editorMode === 'edit') || !!idError()">Save changes</ui-button></div></div>
+  </ng-container>
+</ui-drawer>
+
+<ui-drawer [open]="!!selectedLaunch" (close)="closeLaunch()">
+  <ng-container *ngIf="selectedLaunch as r">
+    <div class="drawer-head">
+      <div><h3>{{ launchTitle(r) }}</h3><div class="sub">{{ launchTime(r) }} · {{ r.DurationMs }} ms</div></div>
+      <button class="btn-icon" type="button" (click)="closeLaunch()" aria-label="Close">×</button>
+    </div>
+    <div class="drawer-body">
+      <div class="launch-status"><ui-badge [tone]="launchOutcomeTone(r)">{{ launchOutcomeLabel(r) }}</ui-badge><span class="exit" *ngIf="r.ExitCode != null">exit code {{ r.ExitCode }}</span></div>
+      <dl class="launch-kv">
+        <ng-container *ngIf="r.LaunchId"><dt>Launch ID</dt><dd><code>{{ r.LaunchId }}</code></dd></ng-container>
+        <ng-container *ngIf="r.LauncherBinary"><dt>Launcher</dt><dd>{{ r.LauncherBinary }}</dd></ng-container>
+        <ng-container *ngIf="r.ApplicationId"><dt>Application</dt><dd>{{ r.ApplicationId }}</dd></ng-container>
+        <ng-container *ngIf="r.Url"><dt>Link</dt><dd><code class="wrap">{{ r.Url }}</code></dd></ng-container>
+        <ng-container *ngIf="r.Command"><dt>Command</dt><dd><code class="wrap">{{ r.Command }}</code></dd></ng-container>
+        <ng-container *ngIf="r.Args"><dt>Arguments</dt><dd><code class="wrap">{{ r.Args }}</code></dd></ng-container>
+      </dl>
+      <div class="error-list" *ngIf="r.Error"><strong>Error</strong><p>{{ r.Error }}</p></div>
+      <div class="launch-file" *ngIf="r.GeneratedFile">
+        <div class="launch-file-head"><span class="ttl">Generated file</span><code>{{ r.GeneratedFile }}</code></div>
+        <div class="logs-note" *ngIf="loadingLaunchFile">Loading file…</div>
+        <pre *ngIf="!loadingLaunchFile && selectedLaunchFile">{{ selectedLaunchFile }}</pre>
+        <div class="logs-note" *ngIf="!loadingLaunchFile && !selectedLaunchFile">This file is no longer on disk (pruned or cleaned up).</div>
+      </div>
+    </div>
   </ng-container>
 </ui-drawer>
 

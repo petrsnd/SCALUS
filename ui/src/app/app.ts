@@ -9,11 +9,11 @@ import { UiModalComponent } from './shared/ui/modal.component';
 import { UiSegmentedControlComponent } from './shared/ui/segmented-control.component';
 import { UiSelectComponent } from './shared/ui/select.component';
 import { UiToggleComponent } from './shared/ui/toggle.component';
-import { ApplicationConfig, Platform, ProtocolMapping, RegistrationScope, RegistrationStatus, SCALUS_BRIDGE, ScalusBridge, ScalusConfig, TemplateEncoding, TemplateLineEnding, TerminalOption } from './core/bridge/scalus-bridge';
+import { ApplicationConfig, LaunchRecord, Platform, ProtocolMapping, RegistrationScope, RegistrationStatus, SCALUS_BRIDGE, ScalusBridge, ScalusConfig, TemplateEncoding, TemplateLineEnding, TerminalOption } from './core/bridge/scalus-bridge';
 import { cloneConfig, normalizeApplication, normalizeConfig } from './core/bridge/seed-data';
 import { DEFAULT_RDP_TEMPLATE } from './core/bridge/default-template';
 
-type Tab = 'protocols' | 'applications' | 'settings' | 'io' | 'about';
+type Tab = 'protocols' | 'applications' | 'settings' | 'logs' | 'io' | 'about';
 type EditorMode = 'new' | 'edit';
 interface ConfirmState {
   open: boolean;
@@ -82,6 +82,7 @@ export class App implements OnInit {
     { id: 'protocols', label: 'Protocols', icon: 'eye' },
     { id: 'applications', label: 'Applications', icon: 'grid' },
     { id: 'settings', label: 'Settings', icon: 'settings' },
+    { id: 'logs', label: 'Logs', icon: 'list' },
     { id: 'io', label: 'Import / Export', icon: 'download' },
     { id: 'about', label: 'About', icon: 'info' }
   ];
@@ -109,7 +110,10 @@ export class App implements OnInit {
     this.registrations = new Map(list.map(s => [s.Protocol, s]));
   }
 
-  setTab(tab: Tab): void { this.tab = tab; }
+  setTab(tab: Tab): void {
+    this.tab = tab;
+    if (tab === 'logs') { void this.loadLaunchRecords(); }
+  }
   setScope(value: string): void { this.scope = value as RegistrationScope; }
   get scopeLabel(): string { return this.scope === 'all' ? 'all-users' : 'current-user'; }
 
@@ -175,6 +179,95 @@ export class App implements OnInit {
   }
   get logLevelName(): string {
     return this.logLevels.find(l => l.value === this.logLevel)?.value ?? 'Debug';
+  }
+
+  // --- Logs view -----------------------------------------------------------
+  launchRecords: LaunchRecord[] = [];
+  launchRecordsLoaded = false;
+  logsLoading = false;
+  logsError = '';
+  selectedLaunch: LaunchRecord | null = null;
+  selectedLaunchFile: string | null = null;
+  loadingLaunchFile = false;
+
+  async loadLaunchRecords(): Promise<void> {
+    this.logsLoading = true;
+    this.logsError = '';
+    try {
+      this.launchRecords = await this.bridge.getLaunchRecords(200);
+    } catch (err) {
+      this.logsError = err instanceof Error ? err.message : 'Failed to read launch records.';
+      this.launchRecords = [];
+    } finally {
+      this.launchRecordsLoaded = true;
+      this.logsLoading = false;
+    }
+  }
+
+  async selectLaunch(record: LaunchRecord): Promise<void> {
+    this.selectedLaunch = record;
+    this.selectedLaunchFile = null;
+    if (!record.GeneratedFile) { return; }
+    this.loadingLaunchFile = true;
+    try {
+      this.selectedLaunchFile = await this.bridge.getLaunchFile(record.GeneratedFile);
+    } catch {
+      this.selectedLaunchFile = null;
+    } finally {
+      this.loadingLaunchFile = false;
+    }
+  }
+
+  closeLaunch(): void { this.selectedLaunch = null; this.selectedLaunchFile = null; }
+
+  async openLogsFolder(): Promise<void> {
+    try { await this.bridge.openLogsFolder(); }
+    catch { this.flash('Could not open the logs folder.'); }
+  }
+
+  async exportForIssue(): Promise<void> {
+    if (!this.launchRecords.length) { this.flash('No launch records to export.'); return; }
+    const lines: string[] = ['# SCALUS launch records', '', `Exported: ${new Date().toISOString()}`, ''];
+    for (const r of this.launchRecords) {
+      lines.push(`## ${r.Protocol ?? '?'} · ${r.Outcome} · ${r.TimestampUtc}`);
+      lines.push(`- launchId: ${r.LaunchId}`);
+      if (r.LauncherBinary) { lines.push(`- launcher: ${r.LauncherBinary}`); }
+      if (r.Url) { lines.push(`- url: ${r.Url}`); }
+      if (r.ApplicationId) { lines.push(`- application: ${r.ApplicationId}`); }
+      if (r.Command) { lines.push(`- command: ${r.Command}`); }
+      if (r.Args) { lines.push(`- args: ${r.Args}`); }
+      if (r.GeneratedFile) { lines.push(`- generatedFile: ${r.GeneratedFile}`); }
+      if (r.ExitCode != null) { lines.push(`- exitCode: ${r.ExitCode}`); }
+      lines.push(`- duration: ${r.DurationMs} ms`);
+      if (r.Error) { lines.push(`- error: ${r.Error}`); }
+      lines.push('');
+    }
+    try {
+      const ok = await this.bridge.exportToFile('scalus-launches.md', lines.join('\n'));
+      if (ok) { this.flash('Exported launch records.'); }
+    } catch { this.flash('Export failed.'); }
+  }
+
+  launchTitle(r: LaunchRecord): string {
+    return `${(r.Protocol ?? 'launch').toUpperCase()}${r.ApplicationId ? ' · ' + r.ApplicationId : ''}`;
+  }
+  launchOutcomeTone(r: LaunchRecord): 'ok' | 'warn' | 'muted' {
+    if (r.Outcome === 'preview') { return 'muted'; }
+    return r.Success ? 'ok' : 'warn';
+  }
+  launchOutcomeLabel(r: LaunchRecord): string {
+    switch (r.Outcome) {
+      case 'spawned': return 'Launched';
+      case 'preview': return 'Preview';
+      case 'spawn-failed': return 'Spawn failed';
+      case 'config-error': return 'Config error';
+      case 'post-execute-error': return 'Post-process error';
+      default: return r.Success ? 'OK' : 'Failed';
+    }
+  }
+  launchTime(r: LaunchRecord): string {
+    const d = new Date(r.TimestampUtc);
+    return isNaN(d.getTime()) ? r.TimestampUtc : d.toLocaleString();
   }
 
   appById(id?: string | null): ApplicationConfig | undefined { return this.config.Applications.find(app => app.Id === id); }

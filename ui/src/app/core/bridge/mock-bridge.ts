@@ -1,6 +1,51 @@
 import { Injectable } from '@angular/core';
 import { cloneConfig, FIELD_DESCRIPTIONS, normalizeConfig, SEED_CONFIG, TOKENS } from './seed-data';
-import { Platform, RegistrationScope, RegistrationStatus, ScalusBridge, ScalusConfig, TerminalOption } from './scalus-bridge';
+import { LaunchRecord, Platform, RegistrationScope, RegistrationStatus, ScalusBridge, ScalusConfig, TerminalOption } from './scalus-bridge';
+
+// A demo timeline so the Logs view is populated in mock/browser mode.
+const NOW = Date.now();
+const MOCK_LAUNCH_FILES: Record<string, string> = {
+  '20260708T140233517Z-a1b2c3d4.rdp':
+    'full address:s:sps.example.com:3389\r\n' +
+    'username:s:vaultaddress~vault.example.com%token~9f3c1a...%svc-admin%web01.corp.local\r\n' +
+    'authentication level:i:0\r\n' +
+    'screen mode id:i:2\r\n',
+};
+const MOCK_LAUNCH_RECORDS: LaunchRecord[] = [
+  {
+    LaunchId: 'a1b2c3d4', TimestampUtc: new Date(NOW - 42_000).toISOString(),
+    LauncherBinary: 'scalus', Protocol: 'rdp', ApplicationId: 'rdp-mstsc',
+    Url: 'rdp://full%20address=sps.example.com:3389&username=...',
+    Command: 'C:\\Windows\\System32\\mstsc.exe',
+    Args: 'C:\\Users\\you\\AppData\\Local\\SCALUS\\logs\\launches\\20260708T140233517Z-a1b2c3d4.rdp',
+    GeneratedFile: '20260708T140233517Z-a1b2c3d4.rdp',
+    Outcome: 'spawned', Success: true, ExitCode: null, DurationMs: 128,
+  },
+  {
+    LaunchId: 'b2c3d4e5', TimestampUtc: new Date(NOW - 5 * 60_000).toISOString(),
+    LauncherBinary: 'scalus', Protocol: 'ssh', ApplicationId: 'ssh-openssh',
+    Url: 'ssh://vaultaddress=vault.example.com@token=...@svc-admin@web01@sps.example.com:22',
+    Command: 'C:\\Windows\\System32\\OpenSSH\\ssh.exe',
+    Args: '-l vaultaddress=vault.example.com@token=...@svc-admin@web01 sps.example.com -p 22',
+    Outcome: 'spawned', Success: true, ExitCode: null, DurationMs: 74,
+  },
+  {
+    LaunchId: 'c3d4e5f6', TimestampUtc: new Date(NOW - 22 * 60_000).toISOString(),
+    LauncherBinary: 'scalus', Protocol: 'rdp', ApplicationId: 'rdp-mstsc',
+    Url: 'rdp://full%20address=sps.example.com:3389&username=...',
+    Command: 'C:\\Windows\\System32\\mstsc.exe',
+    Args: 'C:\\Users\\you\\AppData\\Local\\SCALUS\\logs\\launches\\stale.rdp',
+    Outcome: 'spawn-failed', Success: false, ExitCode: null, DurationMs: 12,
+    Error: "The system cannot find the file specified: 'mstsc.exe'.",
+  },
+  {
+    LaunchId: 'd4e5f6a7', TimestampUtc: new Date(NOW - 3 * 3_600_000).toISOString(),
+    LauncherBinary: 'scalus', Protocol: 'telnet',
+    Url: 'telnet://sps.example.com:23',
+    Outcome: 'config-error', Success: false, DurationMs: 3,
+    Error: "No application is assigned to protocol 'telnet'.",
+  },
+];
 
 @Injectable()
 export class MockBridge implements ScalusBridge {
@@ -63,6 +108,9 @@ export class MockBridge implements ScalusBridge {
     ];
   }
   async getInfo(): Promise<string> { return 'SCALUS 3.0.0\nRuntime: .NET 10 / Photino host\nUI bridge: MockBridge\nConfig: in-memory browser seed'; }
+  async getLaunchRecords(max = 200): Promise<LaunchRecord[]> { return MOCK_LAUNCH_RECORDS.slice(0, max).map(r => ({ ...r })); }
+  async getLaunchFile(fileName: string): Promise<string | null> { return MOCK_LAUNCH_FILES[fileName] ?? null; }
+  async openLogsFolder(): Promise<boolean> { return true; }
   async getPlatform(): Promise<Platform> { return 'Windows'; }
 
   async exportToFile(defaultName: string, contents: string): Promise<boolean> {
