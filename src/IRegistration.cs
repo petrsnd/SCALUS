@@ -30,8 +30,8 @@ namespace OneIdentity.Scalus
 
         bool UnRegister(IEnumerable<string> protocols, bool rootMode = false, bool useSudo = false);
 
-        bool IsRegistered(string protocol, bool useSudo = false);
+        bool IsRegistered(string protocol, bool rootMode = false, bool useSudo = false);
 
-        RegistrationStatus GetStatus(string protocol, bool useSudo = false);
+        RegistrationStatus GetStatus(string protocol, bool rootMode = false, bool useSudo = false);
     }
 }

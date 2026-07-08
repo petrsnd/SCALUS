@@ -43,7 +43,7 @@ namespace OneIdentity.Scalus
 
         private IOsServices OsServices { get; }
 
-        public bool IsRegistered(string protocol, bool useSudo = false)
+        public bool IsRegistered(string protocol, bool rootMode = false, bool useSudo = false)
         {
             if (!ProtocolMapping.ValidateProtocol(protocol, out string err))
             {
@@ -55,6 +55,9 @@ namespace OneIdentity.Scalus
             var registered = true;
             foreach (var registrar in Registrars)
             {
+                // Detection must read the currently-selected scope's layer (HKCU vs HKLM,
+                // user vs system). RootMode is otherwise only set during mutation.
+                registrar.RootMode = rootMode;
                 if (useSudo)
                 {
                     registrar.UseSudo = true;
@@ -66,7 +69,7 @@ namespace OneIdentity.Scalus
             return registered;
         }
 
-        public RegistrationStatus GetStatus(string protocol, bool useSudo = false)
+        public RegistrationStatus GetStatus(string protocol, bool rootMode = false, bool useSudo = false)
         {
             var status = new RegistrationStatus
             {
@@ -84,6 +87,9 @@ namespace OneIdentity.Scalus
             string conflictCommand = null;
             foreach (var registrar in Registrars)
             {
+                // Report status for the currently-selected scope only (owner's requirement:
+                // "registrations only report on the mode selected").
+                registrar.RootMode = rootMode;
                 if (useSudo)
                 {
                     registrar.UseSudo = true;

@@ -98,7 +98,10 @@ namespace OneIdentity.Scalus
                 return false;
             }
 
-            if (OperatingSystem.IsWindows())
+            // ApplicationAssociationToasts lives only under HKCU (it is a per-user notion). For an
+            // all-users (RootMode) registration there is no HKLM equivalent, so skip it — the machine
+            // registration must not reach into an individual user's toast state.
+            if (OperatingSystem.IsWindows() && !RootMode)
             {
                 if (!RegistryUtils.SetValue(GetAppAssociationToastsPath(), $"{Clsid}_{protocol}", 0, Microsoft.Win32.RegistryValueKind.DWord))
                 {
@@ -122,7 +125,11 @@ namespace OneIdentity.Scalus
                 return true;
             }
 
-            RegistryUtils.DeleteValue(GetAppAssociationToastsPath(), $"{Clsid}_{protocol}");
+            if (!RootMode)
+            {
+                RegistryUtils.DeleteValue(GetAppAssociationToastsPath(), $"{Clsid}_{protocol}");
+            }
+
             RegistryUtils.DeleteValue(GetRegisteredApplicationsPath(), AppName);
 
             foreach (var path in new[] { GetAppPath(), GetClassRegistrationPath() })
@@ -148,7 +155,7 @@ namespace OneIdentity.Scalus
             return res;
         }
 
-        private static bool RegisterClassId(string registrationCommand)
+        private bool RegisterClassId(string registrationCommand)
         {
             // Always (re)write the launch command so a stale command left by a previous
             // install is corrected. Returning early when the ProgId key already exists
@@ -159,12 +166,12 @@ namespace OneIdentity.Scalus
                    RegistryUtils.SetValue(path + "\\shell\\open\\command", string.Empty, registrationCommand);
         }
 
-        private static string GetClsidCommand()
+        private string GetClsidCommand()
         {
             return RegistryUtils.GetStringValue(GetClassRegistrationPath() + "\\shell\\open\\command", string.Empty);
         }
 
-        private static bool RegisterCapabilities(string protocol)
+        private bool RegisterCapabilities(string protocol)
         {
             var path = GetAppPath();
             return RegistryUtils.SetValue(path + CapabilitiesFragment, "ApplicationDescription", AppName)
@@ -172,23 +179,33 @@ namespace OneIdentity.Scalus
                 && RegistryUtils.SetValue(path + CapabilitiesUrlAssociationsFragment, protocol, Clsid);
         }
 
-        private static string GetClassRegistrationPath()
+        // All-users (RootMode) registration targets the machine hive (HKLM); the default
+        // per-user registration targets HKCU. RegistryUtils routes either prefix to the
+        // correct hive, so switching this root is all that is needed to retarget writes,
+        // deletes and reads consistently.
+        private string GetHiveRoot()
         {
-            return $"HKEY_CURRENT_USER\\SOFTWARE\\Classes\\{Clsid}";
+            return RootMode ? "HKEY_LOCAL_MACHINE" : "HKEY_CURRENT_USER";
         }
 
-        private static string GetAppPath()
+        private string GetClassRegistrationPath()
         {
-            return $"HKEY_CURRENT_USER\\SOFTWARE\\{AppId}";
+            return $"{GetHiveRoot()}\\SOFTWARE\\Classes\\{Clsid}";
         }
 
-        private static string GetRegisteredApplicationsPath()
+        private string GetAppPath()
         {
-            return @"HKEY_CURRENT_USER\SOFTWARE\RegisteredApplications";
+            return $"{GetHiveRoot()}\\SOFTWARE\\{AppId}";
+        }
+
+        private string GetRegisteredApplicationsPath()
+        {
+            return $"{GetHiveRoot()}\\SOFTWARE\\RegisteredApplications";
         }
 
         private static string GetAppAssociationToastsPath()
         {
+            // ApplicationAssociationToasts exists only under HKCU; there is no machine-wide form.
             return @"HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\ApplicationAssociationToasts";
         }
     }

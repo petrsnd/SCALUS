@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { cloneConfig, FIELD_DESCRIPTIONS, normalizeConfig, SEED_CONFIG, TOKENS } from './seed-data';
-import { LaunchRecord, Platform, RegistrationScope, RegistrationStatus, ScalusBridge, ScalusConfig, StartupAction, TerminalOption } from './scalus-bridge';
+import { Capabilities, LaunchRecord, Platform, RegistrationScope, RegistrationStatus, RegistrationWriteResult, ScalusBridge, ScalusConfig, StartupAction, TerminalOption } from './scalus-bridge';
 
 // A demo timeline so the Logs view is populated in mock/browser mode.
 const NOW = Date.now();
@@ -50,7 +50,12 @@ const MOCK_LAUNCH_RECORDS: LaunchRecord[] = [
 @Injectable()
 export class MockBridge implements ScalusBridge {
   private config = cloneConfig(SEED_CONFIG);
-  private registrations = new Set(['rdp']);
+  // Registrations are tracked per scope so the mock reflects that switching scope reports a
+  // different machine vs per-user state (as the real host does).
+  private registrations: Record<RegistrationScope, Set<string>> = {
+    user: new Set(['rdp']),
+    all: new Set<string>(),
+  };
   // Demo seed: something other than this SCALUS owns ssh:// so the conflict state is visible.
   private conflicts = new Map<string, { Program: string; Path: string; Command: string }>([
     ['ssh', { Program: 'PuTTY', Path: 'C:\\Program Files\\PuTTY\\putty.exe', Command: '"C:\\Program Files\\PuTTY\\putty.exe" -ssh %1' }],
@@ -82,21 +87,37 @@ export class MockBridge implements ScalusBridge {
     return Array.from(new Set(errors));
   }
 
-  async getRegistrations(): Promise<string[]> { return Array.from(this.registrations).sort(); }
+  async getRegistrations(): Promise<string[]> { return Array.from(this.registrations.user).sort(); }
 
-  async getRegistrationStatus(): Promise<RegistrationStatus[]> {
+  async getRegistrationStatus(scope: RegistrationScope): Promise<RegistrationStatus[]> {
+    const registered = this.registrations[scope] ?? new Set<string>();
     const schemes = new Set<string>(['rdp', 'ssh']);
     for (const p of this.config.Protocols) { if (p.Protocol) schemes.add(p.Protocol); }
     return Array.from(schemes).sort().map((protocol): RegistrationStatus => {
-      if (this.registrations.has(protocol)) return { Protocol: protocol, State: 'registered' };
-      const c = this.conflicts.get(protocol);
+      if (registered.has(protocol)) return { Protocol: protocol, State: 'registered' };
+      // The demo conflict only exists in the per-user layer.
+      const c = scope === 'user' ? this.conflicts.get(protocol) : undefined;
       if (c) return { Protocol: protocol, State: 'conflict', Program: c.Program, Path: c.Path, Command: c.Command };
       return { Protocol: protocol, State: 'unregistered' };
     });
   }
 
-  async register(protocol: string, _scope: RegistrationScope): Promise<void> { this.registrations.add(protocol); this.conflicts.delete(protocol); }
-  async unregister(protocol: string): Promise<void> { this.registrations.delete(protocol); }
+  async register(protocol: string, scope: RegistrationScope): Promise<RegistrationWriteResult> {
+    this.registrations[scope].add(protocol);
+    if (scope === 'user') { this.conflicts.delete(protocol); }
+    return {};
+  }
+
+  async unregister(protocol: string, scope: RegistrationScope): Promise<RegistrationWriteResult> {
+    this.registrations[scope].delete(protocol);
+    return {};
+  }
+
+  async getCapabilities(): Promise<Capabilities> {
+    const platform = await this.getPlatform();
+    return { platform, canElevateAllUsers: platform !== 'Mac' };
+  }
+
   async getTokens(): Promise<Record<string, string>> { return { ...TOKENS }; }
   async getApplicationDescriptions(): Promise<Record<string, string>> { return { ...FIELD_DESCRIPTIONS }; }
   async getParsers(): Promise<string[]> { return ['rdp', 'ssh', 'telnet', 'url']; }

@@ -87,6 +87,7 @@ export class App implements OnInit {
     { id: 'about', label: 'About', icon: 'info' }
   ];
   scopeOptions = [{ label: 'This user', value: 'user' }, { label: 'All users', value: 'all' }];
+  canElevateAllUsers = true;
   platformOptions: Platform[] = ['Windows', 'Linux', 'Mac'];
 
   constructor(@Inject(SCALUS_BRIDGE) private bridge: ScalusBridge) {}
@@ -98,6 +99,15 @@ export class App implements OnInit {
     this.tokens = await this.bridge.getTokens();
     this.platform = await this.bridge.getPlatform();
     this.info = await this.bridge.getInfo();
+
+    // All-users registration needs elevation, which macOS can't provide for URL schemes — hide the
+    // scope switch there and pin to per-user.
+    const caps = await this.bridge.getCapabilities();
+    this.canElevateAllUsers = caps.canElevateAllUsers;
+    if (!this.canElevateAllUsers) {
+      this.scopeOptions = [{ label: 'This user', value: 'user' }];
+      this.scope = 'user';
+    }
 
     // A "--show-logs=<id>" invocation (from the launch-failure dialog) deep-links straight to
     // the failed record.
@@ -118,7 +128,7 @@ export class App implements OnInit {
   }
 
   async reloadStatuses(): Promise<void> {
-    const list = await this.bridge.getRegistrationStatus();
+    const list = await this.bridge.getRegistrationStatus(this.scope);
     this.registrations = new Map(list.map(s => [s.Protocol, s]));
   }
 
@@ -126,7 +136,12 @@ export class App implements OnInit {
     this.tab = tab;
     if (tab === 'logs') { void this.loadLaunchRecords(); }
   }
-  setScope(value: string): void { this.scope = value as RegistrationScope; }
+
+  async setScope(value: string): Promise<void> {
+    this.scope = value as RegistrationScope;
+    // Status reflects the selected scope's layer (per-user vs machine), so re-read on switch.
+    await this.reloadStatuses();
+  }
   get scopeLabel(): string { return this.scope === 'all' ? 'all-users' : 'current-user'; }
 
   get registeredCount(): number { return this.config.Protocols.filter(p => this.isRegistered(p.Protocol)).length; }
@@ -357,12 +372,16 @@ export class App implements OnInit {
         });
         if (!ok) return;
       }
-      await this.bridge.register(protocol.Protocol, this.scope);
-      this.registrations.set(protocol.Protocol, { Protocol: protocol.Protocol, State: 'registered' });
+      const result = await this.bridge.register(protocol.Protocol, this.scope);
+      if (result?.cancelled) { this.flash('Registration cancelled.'); return; }
     } else {
-      await this.bridge.unregister(protocol.Protocol);
-      this.registrations.set(protocol.Protocol, { Protocol: protocol.Protocol, State: 'unregistered' });
+      const result = await this.bridge.unregister(protocol.Protocol, this.scope);
+      if (result?.cancelled) { this.flash('Unregister cancelled.'); return; }
     }
+
+    // Re-read the real status for the selected scope rather than assuming success — an all-users
+    // write goes through an elevated helper and the resulting machine-layer state is authoritative.
+    await this.reloadStatuses();
     this.flash(on ? `${protocol.Protocol}:// registered.` : `${protocol.Protocol}:// unregistered.`);
   }
 

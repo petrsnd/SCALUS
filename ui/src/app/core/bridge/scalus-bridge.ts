@@ -78,9 +78,10 @@ export interface ScalusBridge {
   saveConfig(config: ScalusConfig): Promise<{ errors: string[] }>;
   validate(config: ScalusConfig): Promise<string[]>;
   getRegistrations(): Promise<string[]>;
-  getRegistrationStatus(): Promise<RegistrationStatus[]>;
-  register(protocol: string, scope: RegistrationScope): Promise<void>;
-  unregister(protocol: string): Promise<void>;
+  getRegistrationStatus(scope: RegistrationScope): Promise<RegistrationStatus[]>;
+  register(protocol: string, scope: RegistrationScope): Promise<RegistrationWriteResult>;
+  unregister(protocol: string, scope: RegistrationScope): Promise<RegistrationWriteResult>;
+  getCapabilities(): Promise<Capabilities>;
   getTokens(): Promise<Record<string, string>>;
   getApplicationDescriptions(): Promise<Record<string, string>>;
   getParsers(): Promise<string[]>;
@@ -93,6 +94,18 @@ export interface ScalusBridge {
   exportToFile(defaultName: string, contents: string): Promise<boolean>;
   importFromFile(): Promise<string | null>;
   getPlatform(): Promise<Platform>;
+}
+
+/** Host capabilities used to shape the UI (e.g. hide All-users where elevation isn't possible). */
+export interface Capabilities {
+  platform: Platform;
+  /** True when the host can elevate to write the machine layer (Windows/Linux); false on macOS. */
+  canElevateAllUsers: boolean;
+}
+
+/** Outcome of a scoped register/unregister. `cancelled` is true when the user dismissed an elevation prompt. */
+export interface RegistrationWriteResult {
+  cancelled?: boolean;
 }
 
 export const SCALUS_BRIDGE = new InjectionToken<ScalusBridge>('SCALUS_BRIDGE');

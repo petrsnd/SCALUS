@@ -12,13 +12,13 @@ describe('MockBridge', () => {
     const bridge = new MockBridge();
     await bridge.register('telnet', 'user');
     expect(await bridge.getRegistrations()).toContain('telnet');
-    await bridge.unregister('telnet');
+    await bridge.unregister('telnet', 'user');
     expect(await bridge.getRegistrations()).not.toContain('telnet');
   });
 
   it('reports registration status including a foreign conflict', async () => {
     const bridge = new MockBridge();
-    const byProtocol = new Map((await bridge.getRegistrationStatus()).map(s => [s.Protocol, s]));
+    const byProtocol = new Map((await bridge.getRegistrationStatus('user')).map(s => [s.Protocol, s]));
     expect(byProtocol.get('rdp')?.State).toBe('registered');
     const ssh = byProtocol.get('ssh');
     expect(ssh?.State).toBe('conflict');
@@ -28,7 +28,7 @@ describe('MockBridge', () => {
   it('replaces a conflicting handler when re-registered', async () => {
     const bridge = new MockBridge();
     await bridge.register('ssh', 'user');
-    const ssh = (await bridge.getRegistrationStatus()).find(s => s.Protocol === 'ssh');
+    const ssh = (await bridge.getRegistrationStatus('user')).find(s => s.Protocol === 'ssh');
     expect(ssh?.State).toBe('registered');
   });
 });

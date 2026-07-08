@@ -105,9 +105,12 @@ namespace OneIdentity.Scalus
             return res;
         }
 
-        private static string GetPathRoot(string protocol)
+        private string GetPathRoot(string protocol)
         {
-            return $"HKEY_CURRENT_USER\\SOFTWARE\\Classes\\{protocol}";
+            // All-users (RootMode) writes the classic class registration to the machine hive;
+            // the default per-user registration uses HKCU (which Windows resolves first).
+            var hive = RootMode ? "HKEY_LOCAL_MACHINE" : "HKEY_CURRENT_USER";
+            return $"{hive}\\SOFTWARE\\Classes\\{protocol}";
         }
     }
 }

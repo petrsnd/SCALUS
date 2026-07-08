@@ -42,6 +42,7 @@ namespace OneIdentity.Scalus.Ui
 
         private readonly IServiceProvider services;
         private readonly IRegistration registration;
+        private readonly IElevator elevator;
         private readonly string startupShowLogs;
         private PhotinoWindow window;
 
@@ -50,6 +51,7 @@ namespace OneIdentity.Scalus.Ui
             this.services = services;
             this.startupShowLogs = startupShowLogs;
             this.registration = services.GetRequiredService<IRegistration>();
+            this.elevator = services.GetRequiredService<IElevator>();
             SeedDefaultConfiguration();
         }
 
@@ -71,9 +73,9 @@ namespace OneIdentity.Scalus.Ui
                     "saveConfig" => SaveConfig(args[0].Deserialize<ScalusConfig>(ScalusJson.Disk)),
                     "validate" => Validate(args[0].Deserialize<ScalusConfig>(ScalusJson.Disk)),
                     "getRegistrations" => GetRegistrations(),
-                    "getRegistrationStatus" => GetRegistrationStatus(),
+                    "getRegistrationStatus" => GetRegistrationStatus(args.Count > 0 ? args[0]?.GetValue<string>() : null),
                     "register" => Register(args[0]?.GetValue<string>(), args[1]?.GetValue<string>()),
-                    "unregister" => Unregister(args[0]?.GetValue<string>()),
+                    "unregister" => Unregister(args[0]?.GetValue<string>(), args.Count > 1 ? args[1]?.GetValue<string>() : null),
                     "getTokens" => GetTokens(),
                     "getApplicationDescriptions" => GetApplicationDescriptions(),
                     "getParsers" => ProtocolHandlerFactory.GetSupportedParsers(),
@@ -86,6 +88,7 @@ namespace OneIdentity.Scalus.Ui
                     "exportToFile" => ExportToFile(args[0]?.GetValue<string>(), args[1]?.GetValue<string>()),
                     "importFromFile" => ImportFromFile(),
                     "getPlatform" => GetPlatform(),
+                    "getCapabilities" => GetCapabilities(),
                     _ => throw new InvalidOperationException($"Unknown method '{method}'."),
                 };
 
@@ -125,21 +128,28 @@ namespace OneIdentity.Scalus.Ui
             return schemes.Where(s => this.registration.IsRegistered(s)).ToList();
         }
 
-        private List<RegistrationStatus> GetRegistrationStatus()
+        private List<RegistrationStatus> GetRegistrationStatus(string scope)
         {
+            var rootMode = IsAllUsers(scope);
             var config = GetConfig();
             var schemes = BuiltInProtocols
                 .Concat(config.Protocols?.Select(p => p.Protocol) ?? Enumerable.Empty<string>())
                 .Where(s => !string.IsNullOrWhiteSpace(s))
                 .Distinct(StringComparer.OrdinalIgnoreCase);
 
-            return schemes.Select(s => this.registration.GetStatus(s)).ToList();
+            // Reads never elevate — detecting the machine layer needs no privileges — so the UI can
+            // show either scope's status live. Only writes (Register/Unregister) elevate.
+            return schemes.Select(s => this.registration.GetStatus(s, rootMode)).ToList();
         }
 
         private object Register(string protocol, string scope)
         {
-            var rootMode = string.Equals(scope, "all", StringComparison.OrdinalIgnoreCase);
-            if (!this.registration.Register(new[] { protocol }, force: true, rootMode: rootMode, useSudo: false))
+            if (IsAllUsers(scope))
+            {
+                return RunElevated("register", protocol);
+            }
+
+            if (!this.registration.Register(new[] { protocol }, force: true, rootMode: false, useSudo: false))
             {
                 throw new InvalidOperationException($"Failed to register '{protocol}'.");
             }
@@ -147,11 +157,50 @@ namespace OneIdentity.Scalus.Ui
             return null;
         }
 
-        private object Unregister(string protocol)
+        private object Unregister(string protocol, string scope)
         {
+            if (IsAllUsers(scope))
+            {
+                return RunElevated("unregister", protocol);
+            }
+
             this.registration.UnRegister(new[] { protocol }, rootMode: false, useSudo: false);
             return null;
         }
+
+        // All-users writes are delegated to an elevated, one-shot scalus process (UAC on Windows,
+        // pkexec on Linux). The UI itself never runs elevated. A cancelled prompt is a benign no-op;
+        // a genuine failure surfaces an error (with the manual sudo command on Linux when applicable).
+        private object RunElevated(string verb, string protocol)
+        {
+            if (!this.elevator.CanElevate)
+            {
+                throw new InvalidOperationException("All-users registration is not supported on this platform.");
+            }
+
+            var result = this.elevator.Run(verb, new[] { protocol });
+            if (result.Success || result.Cancelled)
+            {
+                return new { cancelled = result.Cancelled };
+            }
+
+            var message = result.Error ?? $"Failed to {verb} '{protocol}' for all users.";
+            if (!string.IsNullOrEmpty(result.ManualCommand))
+            {
+                message += $" To do this manually, run: {result.ManualCommand}";
+            }
+
+            throw new InvalidOperationException(message);
+        }
+
+        private object GetCapabilities() => new
+        {
+            platform = GetPlatform(),
+            canElevateAllUsers = this.elevator.CanElevate,
+        };
+
+        private static bool IsAllUsers(string scope) =>
+            string.Equals(scope, "all", StringComparison.OrdinalIgnoreCase);
 
         private Dictionary<string, string> GetTokens() =>
             ParserConfigDefinitions.TokenDescription.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value);

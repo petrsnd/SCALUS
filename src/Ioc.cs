@@ -107,6 +107,7 @@ namespace OneIdentity.Scalus
 
             services.TryAddSingleton<IUserInteraction, UserInteraction>();
             services.TryAddSingleton<IOsServices, OsServicesBase>();
+            services.TryAddSingleton<IElevator, UnsupportedElevator>();
         }
 
         private static void RegisterWindowsComponents(this IServiceCollection services)
@@ -115,18 +116,24 @@ namespace OneIdentity.Scalus
             {
                 services.AddSingleton<IProtocolRegistrar, WindowsBasicProtocolRegistrar>();
                 services.AddSingleton<IProtocolRegistrar, WindowsProtocolRegistrar>();
+                services.AddSingleton<IElevator, WindowsElevator>();
             }
         }
 
         private static void RegisterLinuxComponents(this IServiceCollection services)
         {
             services.AddSingleton<IProtocolRegistrar, UnixProtocolRegistrar>();
+            services.AddSingleton<IElevator, LinuxElevator>();
         }
 
         private static void RegisterOsxComponents(this IServiceCollection services)
         {
             //services.AddSingleton<IProtocolRegistrar, MacOSProtocolRegistrar>();
             services.AddSingleton<IProtocolRegistrar, MacOSUserDefaultRegistrar>();
+
+            // macOS has no supported machine-wide URL-scheme handler (LaunchServices is per-user),
+            // so all-users registration is not offered.
+            services.AddSingleton<IElevator, UnsupportedElevator>();
         }
     }
 }

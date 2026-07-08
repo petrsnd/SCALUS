@@ -38,6 +38,8 @@ namespace OneIdentity.Scalus
         private const string UpdateDesktopDatabase = "/usr/bin/update-desktop-database";
         private const string ScalusDesktop = "scalus.desktop";
         private const string AppRelPath = ".local/share/applications";
+        private const string SystemAppPath = "/usr/share/applications";
+        private const string SystemMimeAppsList = "/etc/xdg/mimeapps.list";
         private const string MimeType = "MimeType";
         private const string SchemeHandler = "x-scheme-handler.";
         private const string Desktop = ".desktop";
@@ -62,6 +64,13 @@ namespace OneIdentity.Scalus
         {
             get
             {
+                // All-users (RootMode) installs the .desktop file into the system-wide
+                // applications directory; the default per-user scope uses ~/.local/share.
+                if (RootMode)
+                {
+                    return SystemAppPath;
+                }
+
                 if (appDataPath == null)
                 {
                     appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), AppRelPath);
@@ -75,6 +84,13 @@ namespace OneIdentity.Scalus
         {
             get
             {
+                // All-users (RootMode) sets the default-handler association in the system
+                // mimeapps.list; the default per-user scope resolves the user's config file.
+                if (RootMode)
+                {
+                    return SystemMimeAppsList;
+                }
+
                 if (preferredConfigPath == null)
                 {
                     preferredConfigPath = GetPreferredConfigPath();
@@ -176,7 +192,9 @@ namespace OneIdentity.Scalus
 
         public string GetRegisteredCommand(string protocol)
         {
-            if (File.Exists(XdgSettings))
+            // In all-users (RootMode) scope the default handler lives in the system mimeapps.list;
+            // the user-scoped xdg-settings probe would report the per-user default instead.
+            if (!RootMode && File.Exists(XdgSettings))
             {
                 var args = new List<string> { "get", "default-url-scheme-handler", protocol };
                 var exitCode = OsServices.Execute(XdgSettings, args, out string stdOut, out string stdErr);
@@ -301,6 +319,15 @@ namespace OneIdentity.Scalus
 
         private void UpdateDefaultHandler(string protocol)
         {
+            // All-users (RootMode) scope writes the default-handler association directly into the
+            // system mimeapps.list. xdg-mime only ever targets the invoking user's config, so it
+            // cannot express a machine-wide default and is bypassed here.
+            if (RootMode)
+            {
+                SetSystemDefaultHandler(protocol);
+                return;
+            }
+
             if (File.Exists(XdgMime))
             {
                 var args = new List<string> { "default", ScalusDesktop, $"{SchemeHandler}{protocol}" };
@@ -314,6 +341,51 @@ namespace OneIdentity.Scalus
             }
 
             Serilog.Log.Warning($"Cmd:{XdgMime} was not found: cannot update default handler");
+        }
+
+        // Writes (or replaces) the x-scheme-handler.<protocol>=scalus.desktop entry under the
+        // [Default Applications] group of the system mimeapps.list. Used for all-users scope where
+        // xdg-mime (user-scoped) cannot set a machine-wide default.
+        private void SetSystemDefaultHandler(string protocol)
+        {
+            var path = PreferredConfigPath;
+            var key = $"{SchemeHandler}{protocol}";
+            var entry = $"{key}={ScalusDesktop}";
+            var lines = File.Exists(path)
+                ? new List<string>(File.ReadAllLines(path))
+                : new List<string>();
+
+            var groupIndex = lines.FindIndex(l => l.Trim().Equals("[Default Applications]", StringComparison.OrdinalIgnoreCase));
+            if (groupIndex < 0)
+            {
+                if (lines.Count > 0)
+                {
+                    lines.Add(string.Empty);
+                }
+
+                lines.Add("[Default Applications]");
+                lines.Add(entry);
+            }
+            else
+            {
+                var existing = lines.FindIndex(groupIndex + 1, l => Regex.IsMatch(l, $"^\\s*{Regex.Escape(key)}\\s*=", RegexOptions.IgnoreCase));
+                if (existing >= 0)
+                {
+                    lines[existing] = entry;
+                }
+                else
+                {
+                    lines.Insert(groupIndex + 1, entry);
+                }
+            }
+
+            var dir = Path.GetDirectoryName(path);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
+
+            File.WriteAllLines(path, lines);
         }
 
         private void UpdateDesktopDb()

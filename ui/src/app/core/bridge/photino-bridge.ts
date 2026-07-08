@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { LaunchRecord, Platform, RegistrationScope, RegistrationStatus, ScalusBridge, ScalusConfig, StartupAction, TerminalOption } from './scalus-bridge';
+import { Capabilities, LaunchRecord, Platform, RegistrationScope, RegistrationStatus, RegistrationWriteResult, ScalusBridge, ScalusConfig, StartupAction, TerminalOption } from './scalus-bridge';
 
 type PhotinoExternal = {
   sendMessage(message: string): void;
@@ -43,9 +43,10 @@ export class PhotinoBridge implements ScalusBridge {
   saveConfig(config: ScalusConfig): Promise<{ errors: string[] }> { return this.call('saveConfig', config); }
   validate(config: ScalusConfig): Promise<string[]> { return this.call('validate', config); }
   getRegistrations(): Promise<string[]> { return this.call('getRegistrations'); }
-  getRegistrationStatus(): Promise<RegistrationStatus[]> { return this.call('getRegistrationStatus'); }
-  register(protocol: string, scope: RegistrationScope): Promise<void> { return this.call('register', protocol, scope); }
-  unregister(protocol: string): Promise<void> { return this.call('unregister', protocol); }
+  getRegistrationStatus(scope: RegistrationScope): Promise<RegistrationStatus[]> { return this.call('getRegistrationStatus', scope); }
+  register(protocol: string, scope: RegistrationScope): Promise<RegistrationWriteResult> { return this.call('register', protocol, scope); }
+  unregister(protocol: string, scope: RegistrationScope): Promise<RegistrationWriteResult> { return this.call('unregister', protocol, scope); }
+  getCapabilities(): Promise<Capabilities> { return this.call('getCapabilities'); }
   getTokens(): Promise<Record<string, string>> { return this.call('getTokens'); }
   getApplicationDescriptions(): Promise<Record<string, string>> { return this.call('getApplicationDescriptions'); }
   getParsers(): Promise<string[]> { return this.call('getParsers'); }
