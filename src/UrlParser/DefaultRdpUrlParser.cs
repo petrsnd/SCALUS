@@ -261,6 +261,28 @@ namespace OneIdentity.Scalus.UrlParser
             return list;
         }
 
+        // The RDP "password 51" field carries a per-user DPAPI-encrypted placeholder password that stops
+        // the client from prompting for a password when connecting through a Safeguard (SPS) gateway. It is
+        // computed at parse time (see ParseArgs) and cannot be expressed in a static template, so ensure it
+        // is emitted for inline/file .rdp templates that don't already carry the field. Only mstsc consumes
+        // this field, so we gate on the .rdp extension (a generic Remmina/xfreerdp template must not get it).
+        // The default-template path (GetDefaultTemplate) already dumps every msArgList1 entry, so the
+        // presence guard prevents a duplicate.
+        protected override IEnumerable<string> GetTemplateOverrides(IEnumerable<string> templateContents)
+        {
+            var lines = templateContents?.ToList() ?? new List<string>();
+
+            if (string.Equals(FileExtension, ".rdp", StringComparison.OrdinalIgnoreCase) &&
+                msArgList1.TryGetValue(RdpPasswordHashKey, out var passwordArg) &&
+                !string.IsNullOrEmpty(passwordArg.Item2) &&
+                !lines.Any(l => l.TrimStart().StartsWith(RdpPasswordHashKey + ":", StringComparison.OrdinalIgnoreCase)))
+            {
+                lines.Add(RdpPasswordHashKey + ":" + passwordArg.Item2);
+            }
+
+            return lines;
+        }
+
         private static string GetScalusThumbprint(IOsServices services)
         {
             var cert = GetScalusSigningCert();

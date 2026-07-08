@@ -373,6 +373,9 @@ namespace OneIdentity.Scalus.UrlParser
 
             if (fileLines != null)
             {
+                // Let the parser inject any dynamically-computed fields that cannot live in a static
+                // template (e.g. the RDP DPAPI password hash). No-op for parsers that don't override it.
+                fileLines = GetTemplateOverrides(fileLines);
                 WriteTempFile(fileLines, FileExtension);
             }
         }

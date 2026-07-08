@@ -95,6 +95,49 @@ namespace OneIdentity.Scalus.Test
         }
 
         [Fact]
+        public void InlineRdpTemplateInjectsPasswordHash()
+        {
+            // Regression: the DPAPI "password 51" hash (added in ParseArgs to suppress the mstsc
+            // password prompt through an SPS gateway) is dynamic and can't live in a static template.
+            // An inline template that omits it must still get the field injected on write.
+            if (!System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
+            {
+                return; // the hash is Windows-only (DPAPI)
+            }
+
+            var config = new ParserConfig
+            {
+                ParserId = "rdp",
+                TemplateContent = "full address:s:%Host%\nusername:s:%User%",
+                TemplateExtension = ".rdp",
+            };
+
+            var text = new UnicodeEncoding(false, true).GetString(GenerateBytes(config));
+            Assert.Contains("password 51:b:", text);
+        }
+
+        [Fact]
+        public void InlineRdpTemplateDoesNotDuplicatePasswordHash()
+        {
+            // If the template already carries a password 51 line, don't append a second one.
+            if (!System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
+            {
+                return;
+            }
+
+            var config = new ParserConfig
+            {
+                ParserId = "rdp",
+                TemplateContent = "full address:s:%Host%\nusername:s:%User%\npassword 51:b:existingvalue",
+                TemplateExtension = ".rdp",
+            };
+
+            var text = new UnicodeEncoding(false, true).GetString(GenerateBytes(config));
+            var occurrences = text.Split("password 51:", System.StringSplitOptions.None).Length - 1;
+            Assert.Equal(1, occurrences);
+        }
+
+        [Fact]
         public void MigrationInlinesTemplateFileContent()
         {
             var template = Path.GetTempFileName();
