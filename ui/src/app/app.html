@@ -52,7 +52,7 @@
         <div class="app-grid">
           <article *ngFor="let app of config.Applications" class="app-card" (click)="editApplication(app)">
             <div class="row1"><div class="aicon"><svg viewBox="0 0 256 256"><path [attr.d]="iconPath(protocolIcon(app.Parser.ParserId))" /></svg></div><div class="app-title"><div class="aname">{{ app.Name }}</div><div class="ameta">{{ app.Parser.ParserId }}:// · {{ app.Platforms.join(', ') }}</div></div><ui-badge [tone]="appStatus(app).tone">{{ appStatus(app).label }}</ui-badge><details class="menu" (click)="$event.stopPropagation()"><summary aria-label="Application actions">⋮</summary><div class="menu-panel"><button (click)="editApplication(app)">Edit…</button><button (click)="exportApplication(app)">Export / share…</button><button (click)="duplicateApplication(app)">Duplicate</button><button class="danger" (click)="removeApplication(app)">Remove</button></div></details></div>
-            <p>{{ app.Description || 'No description yet.' }}</p><div class="cmd">{{ execLeaf(app.Exec) }} {{ (app.Args || []).join(' ') }}</div><div class="tags"><ui-badge tone="muted">{{ app.Parser.ParserId }} parser</ui-badge><ui-badge *ngIf="app.Parser.TemplateContent" tone="muted">generated file</ui-badge></div>
+            <p>{{ app.Description || 'No description yet.' }}</p><div class="cmd">{{ execLeaf(app.Exec) }} {{ (app.Args || []).join(' ') }}</div><div class="tags"><ui-badge tone="muted">{{ app.Parser.ParserId }} parser</ui-badge><ui-badge *ngIf="app.Parser.TemplateContent" tone="muted">generated file</ui-badge><ui-badge *ngIf="app.Parser.RunInTerminal" tone="muted">terminal window</ui-badge></div>
           </article>
         </div>
       </div>
