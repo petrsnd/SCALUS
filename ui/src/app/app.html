@@ -73,6 +73,15 @@
               </div>
             </div>
           </div>
+          <div class="setting-row">
+            <div class="setting-icon"><svg viewBox="0 0 256 256"><path [attr.d]="iconPath('list')" /></svg></div>
+            <div class="setting-body">
+              <h4>Log level</h4>
+              <p class="setting-sub">How much detail SCALUS records for each launch. <strong>Debug</strong> is the default and captures enough to diagnose a failed launch. Raise to <strong>Verbose</strong> only when chasing a stubborn problem; lower to <strong>Warning</strong> or <strong>Error</strong> for quieter logs.</p>
+              <ui-select class="setting-select" [options]="logLevels" [value]="logLevel" (valueChange)="setLogLevel($event)"></ui-select>
+              <div class="setting-note">Takes effect on the next launch. Records are written to the SCALUS logs folder and shown in the <strong>Logs</strong> tab.</div>
+            </div>
+          </div>
         </ui-card>
       </div>
     </section>

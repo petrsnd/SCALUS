@@ -247,6 +247,17 @@ export function normalizeConfig(raw: any): ScalusConfig | null {
   return {
     Protocols: protocols.map((p: any) => ({ Protocol: p.Protocol ?? p.protocol, AppId: p.AppId ?? p.appId ?? p.APpId ?? null })),
     Applications: applications.map(normalizeApplication).filter(Boolean) as ApplicationConfig[],
-    PreferredTerminal: raw.PreferredTerminal ?? raw.preferredTerminal ?? undefined
+    PreferredTerminal: raw.PreferredTerminal ?? raw.preferredTerminal ?? undefined,
+    Settings: normalizeSettings(raw.Settings ?? raw.settings)
   };
+}
+
+function normalizeSettings(raw: any): ScalusConfig['Settings'] {
+  if (!raw) return undefined;
+  const logLevel = raw.LogLevel ?? raw.logLevel;
+  const consoleOut = raw.Console ?? raw.console;
+  const settings: { LogLevel?: string; Console?: boolean } = {};
+  if (logLevel) settings.LogLevel = String(logLevel);
+  if (typeof consoleOut === 'boolean') settings.Console = consoleOut;
+  return Object.keys(settings).length ? settings : undefined;
 }

@@ -39,6 +39,16 @@ export interface ScalusConfig {
   Applications: ApplicationConfig[];
   /** Global preferred terminal id for terminal-hosted launches (SSH). Omitted/`auto` = detect. */
   PreferredTerminal?: string | null;
+  /** User preferences (logging level, console output) persisted in the per-user config. */
+  Settings?: ScalusSettings | null;
+}
+
+/** User-editable preferences that persist in the per-user SCALUS.json and are read by the launcher. */
+export interface ScalusSettings {
+  /** Minimum Serilog level name (Verbose | Debug | Information | Warning | Error). Omitted = Debug. */
+  LogLevel?: string | null;
+  /** Whether the launcher also writes log output to the console. Omitted = off. */
+  Console?: boolean | null;
 }
 
 /** A terminal choice offered for the global "Preferred terminal" setting. */
