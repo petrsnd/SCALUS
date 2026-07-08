@@ -86,7 +86,7 @@ export class App implements OnInit {
     { id: 'io', label: 'Import / Export', icon: 'download' },
     { id: 'about', label: 'About', icon: 'info' }
   ];
-  scopeOptions = [{ label: 'This user', value: 'user' }, { label: 'All users', value: 'all' }];
+  scopeOptions = [{ label: 'This user (preferred)', value: 'user' }, { label: 'All users', value: 'all' }];
   canElevateAllUsers = true;
   platformOptions: Platform[] = ['Windows', 'Linux', 'Mac'];
 

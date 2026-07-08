@@ -62,6 +62,7 @@ svg { width: 18px; height: 18px; fill: currentColor; flex: none; }
 .scope-note { font-size: 12px; color: var(--oi-content-tertiary); margin-top: 3px; }
 .section-head { display: flex; align-items: center; justify-content: space-between; margin: 0 0 var(--oi-space-m); }
 .section-head h3 { margin: 0; font-size: 13px; text-transform: uppercase; letter-spacing: .6px; color: var(--oi-content-tertiary); font-weight: 650; }
+.section-note { color: var(--oi-content-tertiary); margin: calc(-1 * var(--oi-space-xs)) 0 var(--oi-space-m); font-size: 12.5px; line-height: 1.5; max-width: 720px; }
 .proto-list { display: flex; flex-direction: column; gap: var(--oi-space-m); }
 .proto-row { background: var(--oi-bg-primary); border: 1px solid var(--oi-border-muted); border-radius: var(--oi-radius-l); padding: var(--oi-space-l) var(--oi-space-xl); position: relative; display: grid; grid-template-columns: 48px minmax(0, 1fr) 26% 23%; grid-template-areas: 'icon sentence select handler'; align-items: center; column-gap: var(--oi-space-l); row-gap: var(--oi-space-m); box-shadow: var(--oi-shadow-low); transition: border-color .12s, box-shadow .12s; }
 .proto-row:hover { border-color: var(--oi-border); box-shadow: var(--oi-shadow-mid); }
@@ -122,6 +123,7 @@ svg { width: 18px; height: 18px; fill: currentColor; flex: none; }
 .io-note { margin-top: var(--oi-space-m); font-size: 12.5px; line-height: 1.5; color: var(--oi-content-tertiary); background: var(--oi-bg-secondary); border-radius: var(--oi-radius); padding: var(--oi-space-s) var(--oi-space-m); }
 .io-note strong { color: var(--oi-content-secondary); }
 .setting-row { display: flex; gap: var(--oi-space-l); align-items: flex-start; }
+.setting-row + .setting-row { margin-top: var(--oi-space-xl); padding-top: var(--oi-space-xl); border-top: 1px solid var(--oi-border); }
 .setting-icon { width: 44px; height: 44px; border-radius: var(--oi-radius-l); display: grid; place-items: center; flex: none; background: var(--oi-bg-brand); color: var(--oi-content-brand); }
 .setting-icon svg { width: 22px; height: 22px; fill: currentColor; }
 .setting-body { flex: 1; min-width: 0; }
