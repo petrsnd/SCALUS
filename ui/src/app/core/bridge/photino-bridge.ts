@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { LaunchRecord, Platform, RegistrationScope, RegistrationStatus, ScalusBridge, ScalusConfig, TerminalOption } from './scalus-bridge';
+import { LaunchRecord, Platform, RegistrationScope, RegistrationStatus, ScalusBridge, ScalusConfig, StartupAction, TerminalOption } from './scalus-bridge';
 
 type PhotinoExternal = {
   sendMessage(message: string): void;
@@ -51,6 +51,7 @@ export class PhotinoBridge implements ScalusBridge {
   getParsers(): Promise<string[]> { return this.call('getParsers'); }
   getTerminals(): Promise<TerminalOption[]> { return this.call('getTerminals'); }
   getInfo(): Promise<string> { return this.call('getInfo'); }
+  getStartupAction(): Promise<StartupAction> { return this.call('getStartupAction'); }
   getLaunchRecords(max?: number): Promise<LaunchRecord[]> { return this.call('getLaunchRecords', max); }
   getLaunchFile(fileName: string): Promise<string | null> { return this.call('getLaunchFile', fileName); }
   openLogsFolder(): Promise<boolean> { return this.call('openLogsFolder'); }

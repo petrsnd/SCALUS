@@ -42,11 +42,13 @@ namespace OneIdentity.Scalus.Ui
 
         private readonly IServiceProvider services;
         private readonly IRegistration registration;
+        private readonly string startupShowLogs;
         private PhotinoWindow window;
 
-        public BridgeDispatcher(IServiceProvider services)
+        public BridgeDispatcher(IServiceProvider services, string startupShowLogs = null)
         {
             this.services = services;
+            this.startupShowLogs = startupShowLogs;
             this.registration = services.GetRequiredService<IRegistration>();
             SeedDefaultConfiguration();
         }
@@ -77,6 +79,7 @@ namespace OneIdentity.Scalus.Ui
                     "getParsers" => ProtocolHandlerFactory.GetSupportedParsers(),
                     "getTerminals" => GetTerminals(),
                     "getInfo" => GetInfo(),
+                    "getStartupAction" => GetStartupAction(),
                     "getLaunchRecords" => GetLaunchRecords(args.Count > 0 && args[0] != null ? args[0].GetValue<int>() : LaunchRecordStore.RetainedRecordLimit),
                     "getLaunchFile" => GetLaunchFile(args.Count > 0 ? args[0]?.GetValue<string>() : null),
                     "openLogsFolder" => OpenLogsFolder(),
@@ -176,6 +179,10 @@ namespace OneIdentity.Scalus.Ui
             };
             return string.Join(Environment.NewLine, lines);
         }
+
+        // A one-time startup instruction for the front-end. Currently only carries the deep-link
+        // launch id from a "--show-logs=<id>" invocation (spawned by the failure dialog).
+        private object GetStartupAction() => new { ShowLogs = this.startupShowLogs };
 
         // Recent launch attempts (success and failure), newest first, for the Logs view.
         private List<LaunchRecord> GetLaunchRecords(int max) =>

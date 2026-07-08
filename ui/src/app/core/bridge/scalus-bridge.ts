@@ -86,6 +86,7 @@ export interface ScalusBridge {
   getParsers(): Promise<string[]>;
   getTerminals(): Promise<TerminalOption[]>;
   getInfo(): Promise<string>;
+  getStartupAction(): Promise<StartupAction>;
   getLaunchRecords(max?: number): Promise<LaunchRecord[]>;
   getLaunchFile(fileName: string): Promise<string | null>;
   openLogsFolder(): Promise<boolean>;
@@ -95,6 +96,11 @@ export interface ScalusBridge {
 }
 
 export const SCALUS_BRIDGE = new InjectionToken<ScalusBridge>('SCALUS_BRIDGE');
+
+/** A one-time startup instruction from the host. ShowLogs carries a launch id to deep-link to. */
+export interface StartupAction {
+  ShowLogs?: string | null;
+}
 
 /** A single launch attempt (success or failure) recorded by the launcher. Mirrors Dto/LaunchRecord.cs. */
 export interface LaunchRecord {

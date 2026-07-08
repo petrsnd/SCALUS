@@ -24,8 +24,10 @@ namespace OneIdentity.Scalus.Ui
             // When the OS invokes this executable as a protocol handler it passes a verb such as
             // "launch -u rdp://...". In that case we must run headless through the shared CLI
             // pipeline (spawning the native session client) instead of opening the config window.
-            // Only a bare invocation with no arguments opens the desktop UI.
-            if (args.Length > 0)
+            // A bare invocation, or one carrying only the UI-only "--show-logs" deep link, opens
+            // the desktop UI.
+            var showLogs = TryGetShowLogs(args);
+            if (showLogs == null && args.Length > 0)
             {
                 return CommandLineRunner.Run(args);
             }
@@ -43,7 +45,7 @@ namespace OneIdentity.Scalus.Ui
 
             try
             {
-                Run();
+                Run(showLogs);
             }
             catch (Exception ex)
             {
@@ -58,13 +60,35 @@ namespace OneIdentity.Scalus.Ui
             return 0;
         }
 
-        private static void Run()
+        // Recognizes the UI-only "--show-logs=<launchId>" (or "--show-logs <launchId>") deep link so
+        // it is not mistaken for a CLI verb. Returns the launch id ("" when the flag has no value),
+        // or null when the flag is absent.
+        private static string TryGetShowLogs(string[] args)
+        {
+            for (var i = 0; i < args.Length; i++)
+            {
+                var arg = args[i];
+                if (arg.StartsWith("--show-logs=", StringComparison.Ordinal))
+                {
+                    return arg.Substring("--show-logs=".Length);
+                }
+
+                if (string.Equals(arg, "--show-logs", StringComparison.Ordinal))
+                {
+                    return i + 1 < args.Length ? args[i + 1] : string.Empty;
+                }
+            }
+
+            return null;
+        }
+
+        private static void Run(string showLogs)
         {
             var baseDir = AppContext.BaseDirectory;
             var indexPath = Path.Combine(baseDir, "wwwroot", "index.html");
             var iconPath = Path.Combine(baseDir, "scalus.ico");
             var container = Ioc.RegisterApplication(Log.Logger);
-            var dispatcher = new BridgeDispatcher(container);
+            var dispatcher = new BridgeDispatcher(container, showLogs);
 
             Log.Information("Starting SCALUS configuration app ({IndexPath})", indexPath);
 

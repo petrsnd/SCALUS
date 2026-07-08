@@ -114,7 +114,6 @@ namespace OneIdentity.Scalus
                 {
                     var msg = $"Selected application does not exist:{cmd}";
                     Serilog.Log.Error(msg);
-                    OsServices.OpenText(msg);
 
                     result.Outcome = LaunchOutcome.ConfigError;
                     result.Error = msg;
@@ -165,7 +164,6 @@ namespace OneIdentity.Scalus
             catch (Exception e)
             {
                 Serilog.Log.Error(e, $"Launch failed: {e.Message}");
-                OsServices.OpenText($"Launch failed: {e.Message}");
                 result.Outcome = spawned ? LaunchOutcome.PostExecuteError : LaunchOutcome.SpawnFailed;
                 result.Error = e.Message;
                 return result;

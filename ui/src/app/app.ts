@@ -98,6 +98,18 @@ export class App implements OnInit {
     this.tokens = await this.bridge.getTokens();
     this.platform = await this.bridge.getPlatform();
     this.info = await this.bridge.getInfo();
+
+    // A "--show-logs=<id>" invocation (from the launch-failure dialog) deep-links straight to
+    // the failed record.
+    const startup = await this.bridge.getStartupAction();
+    if (startup?.ShowLogs) { await this.showLaunch(startup.ShowLogs); }
+  }
+
+  async showLaunch(launchId: string): Promise<void> {
+    this.tab = 'logs';
+    await this.loadLaunchRecords();
+    const record = this.launchRecords.find(r => r.LaunchId === launchId);
+    if (record) { await this.selectLaunch(record); }
   }
 
   async reload(): Promise<void> {

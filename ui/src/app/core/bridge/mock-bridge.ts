@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { cloneConfig, FIELD_DESCRIPTIONS, normalizeConfig, SEED_CONFIG, TOKENS } from './seed-data';
-import { LaunchRecord, Platform, RegistrationScope, RegistrationStatus, ScalusBridge, ScalusConfig, TerminalOption } from './scalus-bridge';
+import { LaunchRecord, Platform, RegistrationScope, RegistrationStatus, ScalusBridge, ScalusConfig, StartupAction, TerminalOption } from './scalus-bridge';
 
 // A demo timeline so the Logs view is populated in mock/browser mode.
 const NOW = Date.now();
@@ -108,6 +108,7 @@ export class MockBridge implements ScalusBridge {
     ];
   }
   async getInfo(): Promise<string> { return 'SCALUS 3.0.0\nRuntime: .NET 10 / Photino host\nUI bridge: MockBridge\nConfig: in-memory browser seed'; }
+  async getStartupAction(): Promise<StartupAction> { return { ShowLogs: null }; }
   async getLaunchRecords(max = 200): Promise<LaunchRecord[]> { return MOCK_LAUNCH_RECORDS.slice(0, max).map(r => ({ ...r })); }
   async getLaunchFile(fileName: string): Promise<string | null> { return MOCK_LAUNCH_FILES[fileName] ?? null; }
   async openLogsFolder(): Promise<boolean> { return true; }

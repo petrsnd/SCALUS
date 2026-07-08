@@ -43,10 +43,14 @@ namespace OneIdentity.Scalus.Platform
         Process Execute(string binary, IEnumerable<string> args);
 
         /// <summary>
-        /// Open a text editor to display a message
+        /// Shows a native "launch failed" dialog that offers to open the SCALUS logs deep-linked
+        /// to the given launch. Clicking the button spawns the desktop UI with
+        /// <c>--show-logs=&lt;launchId&gt;</c>. On a headless/unattended host (no display, or a
+        /// dialog helper is unavailable) it logs the failure and returns without blocking.
         /// </summary>
-        /// <param name="message">The message to display</param>
-        void OpenText(string message);
+        /// <param name="message">A short human-readable description of the failure</param>
+        /// <param name="launchId">The launch record id to deep-link the Logs view to</param>
+        void ShowLaunchFailure(string message, string launchId);
 
         /// <summary>
         /// On Windows: displays text in a MessageBox dialog

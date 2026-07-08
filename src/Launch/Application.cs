@@ -78,7 +78,6 @@ namespace OneIdentity.Scalus.Launch
                         // We are the registered application, but we can't parse the config
                         // or nothing is configured, show an error somehow
                         var msg = $"SCALUS configuration does not provide a method to handle the URL: {Options.Url}";
-                        OsServices.OpenText(msg);
                         record.Outcome = "config-error";
                         record.Error = msg;
                         return Finish(record, stopwatch, 1, baseName);
@@ -146,13 +145,29 @@ namespace OneIdentity.Scalus.Launch
             return config.Applications.FirstOrDefault(x => x.Id == application.AppId);
         }
 
-        private static int Finish(LaunchRecord record, Stopwatch stopwatch, int exitCode, string baseName)
+        private int Finish(LaunchRecord record, Stopwatch stopwatch, int exitCode, string baseName)
         {
             stopwatch.Stop();
             record.DurationMs = stopwatch.ElapsedMilliseconds;
             record.Success = exitCode == 0;
             LaunchRecordStore.Write(record, baseName);
+
+            // Every failed real launch (never a preview) surfaces a native dialog that deep-links
+            // the Logs view to this record. The record is already persisted above so the UI can
+            // find it. This replaces the old temp-.txt-in-Notepad failure path.
+            if (exitCode != 0 && !Options.Preview)
+            {
+                OsServices.ShowLaunchFailure(BuildFailureMessage(record), record.LaunchId);
+            }
+
             return exitCode;
+        }
+
+        private static string BuildFailureMessage(LaunchRecord record)
+        {
+            var reason = string.IsNullOrWhiteSpace(record.Error) ? record.Outcome : record.Error;
+            var what = string.IsNullOrEmpty(record.Protocol) ? "the requested" : record.Protocol;
+            return $"SCALUS could not launch {what} session.\n\n{reason}";
         }
 
         private void HandleLaunchError(Exception ex, string url)
@@ -181,7 +196,6 @@ $@"[SCALUS]: Failed to launch registered URL handler.
   Config File:   {scalusJsonPath}  
 
 Check the configuration for this URL protocol.";
-            OsServices.OpenText(msg);
             Serilog.Log.Error(ex, msg);
         }
     }
