@@ -111,15 +111,22 @@ namespace OneIdentity.Scalus.Launch
             }
         }
 
-        private static string GetProtocol(string url)
+        internal static string GetProtocol(string url)
         {
-            var protocolSeparatorIndex = url.IndexOf("://");
-            if (protocolSeparatorIndex == -1)
+            if (string.IsNullOrEmpty(url))
             {
                 return string.Empty;
             }
 
-            return url.Substring(0, protocolSeparatorIndex);
+            // Scheme is everything before the first ':'. Handles both hierarchical URLs
+            // (ssh://host) and the opaque form Safeguard issues for RDP (rdp:full+address=...).
+            var colonIndex = url.IndexOf(':');
+            if (colonIndex <= 0)
+            {
+                return string.Empty;
+            }
+
+            return url.Substring(0, colonIndex);
         }
 
         private static string CurrentBinaryName()

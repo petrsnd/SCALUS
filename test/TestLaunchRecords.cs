@@ -97,6 +97,20 @@ namespace OneIdentity.Scalus.Test
             }
         }
 
+        [Theory]
+        [InlineData("rdp:full+address=s:192.168.99.16:3389&username=s:me", "rdp")]
+        [InlineData("ssh://vaultaddress=1.2.3.4@token=abc@user@host", "ssh")]
+        [InlineData("rdp://host", "rdp")]
+        [InlineData("telnet:host", "telnet")]
+        [InlineData("", "")]
+        [InlineData("noscheme", "")]
+        public void GetProtocol_ExtractsSchemeFromOpaqueAndHierarchicalUrls(string url, string expected)
+        {
+            // Safeguard issues RDP as an opaque URL (rdp:key=val...) with no "//", while SSH is
+            // hierarchical (ssh://...). Both must yield a protocol for the launch record.
+            Assert.Equal(expected, OneIdentity.Scalus.Launch.Application.GetProtocol(url));
+        }
+
         [Fact]
         public void OutcomeKeyword_IsStable()
         {
