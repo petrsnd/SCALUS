@@ -2,7 +2,7 @@
   "Protocols": [
     {
       "Protocol": "rdp",
-      "AppId": "WindowsRDPDesktopOrApp"
+      "AppId": "windows-rdp"
     },
     {
       "Protocol": "ssh",
@@ -14,32 +14,9 @@
   ],
   "Applications": [
     {
-      "Id": "WindowsRDPDesktopOrApp",
-      "Name": "WindowsRDPDesktopOrApp",
-      "Description": "Run an RDP desktop session or an RDP remote app, using a template file",
-      "Platforms": [
-        "Windows"
-      ],
-      "Protocol": "rdp",
-      "Parser": {
-        "ParserId": "rdp",
-        "Options": [
-          "waitforexit"
-        ],
-        "PostProcessingExec": null,
-        "PostProcessingArgs": null,
-        "TemplateContent": "alternate shell:s:%AlternateShell%\naudiocapturemode:i:%AlternateShell?1:0%\nauthentication level:i:%AlternateShell?3:2%\nbitmapcachepersistenable:i:0\ncompression:i:1\nconnection type:i:7\ndevicestoredirect:s:%AlternateShell?*:%\ndrivestoredirect:s:%AlternateShell?*:%\ndesktopheight:i:768\ndesktopscalefactor:i:100\ndesktopwidth:i:1024\ndynamic resolution:i:%AlternateShell?1:0%\nfull address:s:%Host%\ngatewaycredentialssource:i:%AlternateShell?0:4%\ngatewayprofileusagemethod:i:0\ngatewayusagemethod:i:0\npromptcredentialonce:i:0\nprompt for credentials on client:i:0\nredirectclipboard:i:1\nredirectcomports:i:0\nredirectdrives:i:1\nredirectprinters:i:1\nredirectsmartcards:i:1\ndisableconnectionsharing:i:1\nremoteapplicationmode:i:%AlternateShell?1:0%\nremoteapplicationname:s:%Remoteapplicationname%\nremoteapplicationprogram:s:%Remoteapplicationprogram%\nremoteapplicationcmdline:s:%Remoteapplicationcmdline%\nscreen mode id:i:1\nserver port:i:3389\nsmart sizing:i:%AlternateShell?0:1%\nspan monitors:i:1\nuse redirection server name:i:1\nuse multimon:i:1\nusername:s:%User%\nvideoplaybackmode:i:1",
-        "TemplateExtension": ".rdp"
-      },
-      "Exec": "C:\\windows\\system32\\mstsc.exe",
-      "Args": [
-        "%GeneratedFile%"
-      ]
-    },
-    {
       "Id": "windows-rdp",
-      "Description": "Run MS Windows RDP Client with a default connection file, which can be customized by the examplePlugin.pl perl script ",
-      "Name": "Windows RDP Client",
+      "Description": "Microsoft Remote Desktop (mstsc.exe): full desktop or RemoteApp. Resolution tracks the client display.",
+      "Name": "Windows RDP (mstsc, dynamic resolution)",
       "Platforms": [
         "Windows"
       ],
@@ -60,9 +37,9 @@
       ]
     },
     {
-      "Id": "windows-rdp-withtemplate",
-      "Description": "Run MS Windows RDP Client with a user-supplied connection file: exampleRdpTemplate.rdp",
-      "Name": "Windows RDP Client with template",
+      "Id": "windows-rdp-static",
+      "Description": "Microsoft Remote Desktop (mstsc.exe): full desktop or RemoteApp. Fixed 1920x1080 resolution.",
+      "Name": "Windows RDP (mstsc, static resolution)",
       "Platforms": [
         "Windows"
       ],
@@ -72,30 +49,9 @@
         "Options": [
           "waitForInputIdle"
         ],
-        "TemplateContent": "allow desktop composition:i:0\nallow font smoothing:i:0\nalternate full address:s:\nalternate shell:s:%AlternateShell%\naudiocapturemode:i:0\naudiomode:i:0\nauthentication level:i:2\nautoreconnection enabled:i:1\nbandwidthautodetect:i:1\nbitmapcachepersistenable:i:0\ncamerastoredirect:s:\ncompression:i:0\nconnection type:i:7\ndesktop size id:i:1\ndesktopheight:i:768\ndesktopscalefactor:i:100\ndesktopwidth:i:1024\ndevicestoredirect:s:\ndisable cursor setting:i:0\ndisable full window drag:i:1\ndisable menu anims:i:1\ndisable themes:i:0\ndisable wallpaper:i:0\ndisableconnectionsharing:i:0\ndisplayconnectionbar:i:1\ndomain:s:\ndrivestoredirect:s:\ndynamic resolution:i:0\nenablecredsspsupport:i:1\nenableworkspacereconnect:i:0\nencode redirected video capture:i:1\nfull address:s:%Host%\ngatewaybrokeringtype:i:0\ngatewaycredentialssource:i:4\ngatewayhostname:s:\ngatewayprofileusagemethod:i:0\ngatewayusagemethod:i:4\nkdcproxyname:s:\nkeyboardhook:i:2\nmaximizetocurrentdisplays:i:0\nnegotiate security layer:i:1\nnetworkautodetect:i:1\npromptcredentialonce:i:0\nprompt for credentials on client:i:0\nrdgiskdcproxy:i:0\nredirectclipboard:i:1\nredirectcomports:i:0\nredirectdrives:i:1\nredirected video capture encoding quality:i:0\nredirectposdevices:i:0\nredirectprinters:i:1\nredirectsmartcards:i:1\nremoteapplicationcmdline:s:\nremoteapplicationexpandcmdline:i:1\nremoteapplicationexpandworkingdir:s:\nremoteapplicationfile:s:\nremoteapplicationicon:s:\nremoteapplicationmode:i:0\nremoteapplicationname:s:%Remoteapplicationname%\nremoteapplicationprogram:s:%Remoteapplicationprogram%\nscreen mode id:i:1\nselectedmonitors:s:\nserver port:i:3389\nsession bpp:i:32\nshell working directory:s:\nsinglemoninwindowedmode:i:0\nsmart sizing:i:1\nspan monitors:i:1\nuse multimon:i:0\nusbdevicestoredirect:s:\nuse redirection server name:i:1\nusername:s:%user%\nvideoplaybackmode:i:1\nwinposstr:s:0,1,31,47,1688,737",
-        "TemplateExtension": ".rdp"
-      },
-      "Exec": "C:\\windows\\system32\\mstsc.exe",
-      "Args": [
-        "%GeneratedFile%"
-      ]
-    },
-    {
-      "Id": "windows-rdp-runapplication",
-      "Name": "Windows RDP Client with program template",
-      "Description": "Run MS Windows RDP Client with a user-supplied connection file:RdpRemoteAppTemplate.rdp. This template is tailored to run a dedicated application program on the target host",
-      "Platforms": [
-        "Windows"
-      ],
-      "Protocol": "rdp",
-      "Parser": {
-        "ParserId": "rdp",
-        "Options": [
-          "waitforexit"
-        ],
         "PostProcessingExec": null,
         "PostProcessingArgs": null,
-        "TemplateContent": "allow font smoothing:i:1\nalternate shell:s:%AlternateShell%\naudiocapturemode:i:1\ndevicestoredirect:s:*\ndrivestoredirect:s:*\nfull address:s:%Host%\ngatewayusagemethod:i:0\ngatewayprofileusagemethod:i:1\ngatewaycredentialssource:i:0\npromptcredentialonce:i:0\nprompt for credentials on client:i:0\ndisableconnectionsharing:i:1\n\nredirectclipboard:i:1\nredirectprinters:i:1\nredirectcomports:i:0\nredirectsmartcards:i:1\nredirectdrives:i:1\nremoteapplicationmode:i:1\nremoteapplicationprogram:s:%Remoteapplicationprogram%\nremoteapplicationname:s:%Remoteapplicationname%\nserver port:i:3389\nsession bpp:i:32\nspan monitors:i:1\nuse redirection server name:i:1\nuse multimon:i:1\nvideoplaybackmode:i:1\nusername:s:%user%",
+        "TemplateContent": "screen mode id:i:2\nuse multimon:i:0\ndesktopwidth:i:1920\ndesktopheight:i:1080\nsession bpp:i:16\nwinposstr:s:0,3,0,0,1024,768\ncompression:i:1\nkeyboardhook:i:2\naudiocapturemode:i:0\nvideoplaybackmode:i:1\nconnection type:i:6\nnetworkautodetect:i:0\nbandwidthautodetect:i:1\ndisplayconnectionbar:i:1\nenableworkspacereconnect:i:0\ndisable wallpaper:i:1\nallow font smoothing:i:1\nallow desktop composition:i:1\ndisable full window drag:i:1\ndisable menu anims:i:0\ndisable themes:i:0\ndisable cursor setting:i:0\nbitmapcachepersistenable:i:1\naudiomode:i:0\nredirectprinters:i:1\nredirectcomports:i:0\nredirectsmartcards:i:1\nredirectclipboard:i:1\nredirectposdevices:i:0\nautoreconnection enabled:i:1\nauthentication level:i:2\nprompt for credentials:i:0\nprompt for credentials on client:i:0\nnegotiate security layer:i:1\nremoteapplicationmode:i:%AlternateShell?1:0%\nremoteapplicationname:s:%Remoteapplicationname%\nremoteapplicationprogram:s:%Remoteapplicationprogram%\nalternate shell:s:%AlternateShell%\nshell working directory:s:\ngatewayhostname:s:\ngatewayusagemethod:i:4\ngatewaycredentialssource:i:4\ngatewayprofileusagemethod:i:0\npromptcredentialonce:i:0\ngatewaybrokeringtype:i:0\nuse redirection server name:i:0\nrdgiskdcproxy:i:0\nkdcproxyname:s:\nenablesuperpan:i:0\npinconnectionbar:i:0\ndisable ctrl+alt+del:i:0\nfull address:s:%Host%\nserver port:i:3389\nusername:s:%user%",
         "TemplateExtension": ".rdp"
       },
       "Exec": "C:\\windows\\system32\\mstsc.exe",

@@ -1,5 +1,5 @@
 import { ApplicationConfig, ScalusConfig } from './scalus-bridge';
-import { DEFAULT_RDP_TEMPLATE } from './default-template';
+import { DEFAULT_RDP_TEMPLATE, DEFAULT_RDP_TEMPLATE_STATIC } from './default-template';
 
 const REMMINA_RDP_TEMPLATE = [
   '[remmina]',
@@ -20,25 +20,15 @@ const REMMINA_SSH_TEMPLATE = [
 
 export const SEED_CONFIG: ScalusConfig = {
   Protocols: [
-    { Protocol: 'rdp', AppId: 'WindowsRDPDesktopOrApp' },
+    { Protocol: 'rdp', AppId: 'windows-rdp' },
     { Protocol: 'ssh', AppId: 'windows-openssh' },
     { Protocol: 'telnet', AppId: null }
   ],
   Applications: [
     {
-      Id: 'WindowsRDPDesktopOrApp',
-      Name: 'WindowsRDPDesktopOrApp',
-      Description: 'Run an RDP desktop session or an RDP remote app, using a template file',
-      Platforms: ['Windows'],
-      Protocol: 'rdp',
-      Parser: { ParserId: 'rdp', Options: ['waitforexit'], TemplateContent: DEFAULT_RDP_TEMPLATE, TemplateExtension: '.rdp' },
-      Exec: 'C:\\windows\\system32\\mstsc.exe',
-      Args: ['%GeneratedFile%']
-    },
-    {
       Id: 'windows-rdp',
-      Name: 'Windows RDP Client',
-      Description: 'Run MS Windows RDP Client with a default connection file.',
+      Name: 'Windows RDP (mstsc, dynamic resolution)',
+      Description: 'Microsoft Remote Desktop (mstsc.exe): full desktop or RemoteApp. Resolution tracks the client display.',
       Platforms: ['Windows'],
       Protocol: 'rdp',
       Parser: { ParserId: 'rdp', Options: ['waitForInputIdle'], TemplateContent: DEFAULT_RDP_TEMPLATE, TemplateExtension: '.rdp' },
@@ -46,22 +36,12 @@ export const SEED_CONFIG: ScalusConfig = {
       Args: ['%GeneratedFile%']
     },
     {
-      Id: 'windows-rdp-withtemplate',
-      Name: 'Windows RDP Client with template',
-      Description: 'Run MS Windows RDP Client with a user-supplied connection file.',
+      Id: 'windows-rdp-static',
+      Name: 'Windows RDP (mstsc, static resolution)',
+      Description: 'Microsoft Remote Desktop (mstsc.exe): full desktop or RemoteApp. Fixed 1920x1080 resolution.',
       Platforms: ['Windows'],
       Protocol: 'rdp',
-      Parser: { ParserId: 'rdp', Options: ['waitForInputIdle'], TemplateContent: DEFAULT_RDP_TEMPLATE, TemplateExtension: '.rdp' },
-      Exec: 'C:\\windows\\system32\\mstsc.exe',
-      Args: ['%GeneratedFile%']
-    },
-    {
-      Id: 'windows-rdp-runapplication',
-      Name: 'Windows RDP Client with program template',
-      Description: 'Run MS Windows RDP Client with a RemoteApp template.',
-      Platforms: ['Windows'],
-      Protocol: 'rdp',
-      Parser: { ParserId: 'rdp', Options: ['waitforexit'], TemplateContent: DEFAULT_RDP_TEMPLATE, TemplateExtension: '.rdp' },
+      Parser: { ParserId: 'rdp', Options: ['waitForInputIdle'], TemplateContent: DEFAULT_RDP_TEMPLATE_STATIC, TemplateExtension: '.rdp' },
       Exec: 'C:\\windows\\system32\\mstsc.exe',
       Args: ['%GeneratedFile%']
     },

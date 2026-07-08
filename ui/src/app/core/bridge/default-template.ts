@@ -67,3 +67,12 @@ export const DEFAULT_RDP_TEMPLATE = [
   'server port:i:3389',
   'username:s:%user%',
 ].join('\n');
+
+// Static-resolution variant: identical to DEFAULT_RDP_TEMPLATE but with the
+// "dynamic resolution" line removed, so the session stays at the fixed
+// desktopwidth/desktopheight (1920x1080) instead of tracking the client window.
+// Trades filling an ultrawide/high-DPI client for avoiding the transient Windows 11
+// remote-taskbar re-centering seen when toggling fullscreen with dynamic resolution.
+export const DEFAULT_RDP_TEMPLATE_STATIC = DEFAULT_RDP_TEMPLATE.split('\n')
+  .filter((line) => !line.startsWith('dynamic resolution:'))
+  .join('\n');
