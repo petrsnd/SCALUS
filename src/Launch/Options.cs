@@ -30,16 +30,20 @@ namespace OneIdentity.Scalus.Launch
 
         public bool Preview { get; set; }
 
+        public bool Debug { get; set; }
+
         public Command CreateCommand(Action<object> onParsed)
         {
             var url = new Option<string>("--url", "-u") { Description = "The URL to launch.", Required = true };
             var preview = new Option<bool>("--preview", "-p") { Description = "Show me what will launch, but dont run it. This will also report the token values and show the contents of the generated file, if applicable." };
+            var debug = new Option<bool>("--debug") { Description = "Keep the console window visible for troubleshooting (by default the launch verb runs windowless)." };
             var command = new Command("launch", "Launch an app configured for the specified URL");
             command.Add(url);
             command.Add(preview);
+            command.Add(debug);
             command.SetAction(result =>
             {
-                onParsed(new Options { Url = result.GetValue(url), Preview = result.GetValue(preview) });
+                onParsed(new Options { Url = result.GetValue(url), Preview = result.GetValue(preview), Debug = result.GetValue(debug) });
                 return 0;
             });
             return command;
