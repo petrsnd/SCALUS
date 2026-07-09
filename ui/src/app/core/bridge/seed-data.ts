@@ -27,7 +27,7 @@ export const SEED_CONFIG: ScalusConfig = {
   Applications: [
     {
       Id: 'windows-rdp',
-      Name: 'Windows RDP (dynamic)',
+      Name: 'Windows RDP [dynamic]',
       Description: 'Microsoft Remote Desktop (mstsc.exe): full desktop or RemoteApp. Resolution tracks the client display.',
       Platforms: ['Windows'],
       Protocol: 'rdp',
@@ -37,7 +37,7 @@ export const SEED_CONFIG: ScalusConfig = {
     },
     {
       Id: 'windows-rdp-static',
-      Name: 'Windows RDP (static)',
+      Name: 'Windows RDP [static]',
       Description: 'Microsoft Remote Desktop (mstsc.exe): full desktop or RemoteApp. Fixed 1920x1080 resolution.',
       Platforms: ['Windows'],
       Protocol: 'rdp',

@@ -16,7 +16,7 @@
     {
       "Id": "windows-rdp",
       "Description": "Microsoft Remote Desktop (mstsc.exe): full desktop or RemoteApp. Resolution tracks the client display.",
-      "Name": "Windows RDP (dynamic)",
+      "Name": "Windows RDP [dynamic]",
       "Platforms": [
         "Windows"
       ],
@@ -39,7 +39,7 @@
     {
       "Id": "windows-rdp-static",
       "Description": "Microsoft Remote Desktop (mstsc.exe): full desktop or RemoteApp. Fixed 1920x1080 resolution.",
-      "Name": "Windows RDP (static)",
+      "Name": "Windows RDP [static]",
       "Platforms": [
         "Windows"
       ],
