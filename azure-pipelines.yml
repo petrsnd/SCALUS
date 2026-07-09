@@ -6,54 +6,47 @@ name: $(Date:yyyyMMdd).$(Rev:r)
 
 variables:
   version: '1.1.0.$(Revision)'
-  solution: '**/*.sln'
-  buildPlatform: 'Any CPU'
   buildConfiguration: 'Release'
+  dotnetSdkVersion: '10.0.x'
+  wixVersion: '5.0.2'
   signToolPath: 'C:\Program Files (x86)\Microsoft SDKs\ClickOnce\SignTool\signtool.exe'
   isRelease: $[ startswith(variables['Build.SourceBranch'], 'refs/heads/release-')]
 
 jobs:
+# ---------------------------------------------------------------------------
+# Build & unit tests (plain `dotnet test`, no more VSBuild / web-publish).
+# ---------------------------------------------------------------------------
 - job: BuildAndTest
   displayName: 'Build & Test'
   pool:
-    vmImage: 'windows-latest'
+    vmImage: 'ubuntu-latest'
   steps:
   - script: echo 'SCALUS Version - $(version)'
-  - task: NuGetToolInstaller@1
+    displayName: 'Show version'
 
-  - task: NuGetCommand@2
-    inputs:
-      restoreSolution: '$(solution)'
-
-  - task: VSBuild@1
-    inputs:
-      solution: '$(solution)'
-      msbuildArgs: '/p:DeployOnBuild=true /p:WebPublishMethod=Package /p:PackageAsSingleFile=true /p:SkipInvalidConfigurations=true /p:DesktopBuildPackageLocation="$(build.artifactStagingDirectory)\WebApp.zip" /p:DeployIisAppPath="Default Web Site"'
-      platform: '$(buildPlatform)'
-      configuration: '$(buildConfiguration)'
-      
-  # Need to set which version of .NET Core we are working against
   - task: UseDotNet@2
-    displayName: 'Install .NET Core SDK'
+    displayName: 'Install .NET SDK'
     inputs:
       packageType: 'sdk'
-      version: '6.0.x'
+      version: '$(dotnetSdkVersion)'
       includePreviewVersions: false
 
-  - task: VSTest@2
-    inputs:
-      testSelector: 'testAssemblies'
-      testAssemblyVer2: |
-        **\*.Test.dll
-        !**\*TestAdapter.dll
-        !**\obj\**
-      platform: '$(buildPlatform)'
-      configuration: '$(buildConfiguration)'
+  - script: dotnet test test/OneIdentity.Scalus.Test.csproj --configuration $(buildConfiguration)
+    displayName: 'dotnet test'
 
+# ---------------------------------------------------------------------------
+# Windows: NativeAOT scalus.exe + Photino scalus-ui + WiX 5 MSI (x64 & arm64).
+# ---------------------------------------------------------------------------
 - job: Windows
   dependsOn: BuildAndTest
   pool:
     vmImage: 'windows-latest'
+  strategy:
+    matrix:
+      x64:
+        rid: 'win-x64'
+      arm64:
+        rid: 'win-arm64'
   steps:
   - task: AzureKeyVault@2
     displayName: 'Get code signing certificate from Azure Key Vault'
@@ -65,9 +58,9 @@ jobs:
       ConnectedServiceName: "OneIdentity.Infrastructure.SPPCodeSigning"
       KeyVaultName: "SPPCodeSigning"
       SecretsFilter: "SPPCodeSigning-Password, SPPCodeSigning-TotpPrivateKey"
-    # # PRs from repository forks are not allowed to access secrets in the pipeline. For more information see https://learn.microsoft.com/en-us/azure/devops/pipelines/repos/github?view=azure-devops&tabs=yaml#access-restrictions
+    # PRs from repository forks are not allowed to access secrets in the pipeline. For more information see https://learn.microsoft.com/en-us/azure/devops/pipelines/repos/github?view=azure-devops&tabs=yaml#access-restrictions
     condition: and(succeeded(), eq(variables.isRelease, true))
-  
+
   # SSL.com example:
   # https://www.ssl.com/how-to/how-to-integrate-esigner-cka-with-ci-cd-tools-for-automated-code-signing/#ftoc-heading-1
   # and click on the Azure Pipeline tab.
@@ -80,85 +73,137 @@ jobs:
       Move-Item -Path "eSigner_CKA_*\*.exe" -Destination "eSigner_CKA_Installer.exe"
     displayName: "Download and Unzip eSignerCKA Setup"
     condition: and(succeeded(), eq(variables.isRelease, true))
-  
+
   - powershell: |
       .\eSigner_CKA_Installer.exe /CURRENTUSER /VERYSILENT /SUPPRESSMSGBOXES /DIR="$(Build.SourcesDirectory)\eSignerCKA" | Out-Null
       dir $(Build.SourcesDirectory)\eSignerCKA
     displayName: "Setup eSignerCKA in silent mode and output installation directory"
     condition: and(succeeded(), eq(variables.isRelease, true))
-  
+
   - powershell: |
       $(Build.SourcesDirectory)\eSignerCKA\eSignerCKATool.exe config -mode "product" -user "ssl.oid.safeguardpp@groups.quest.com" -pass "$(SPPCodeSigning-Password)" -totp "$(SPPCodeSigning-TotpPrivateKey)" -key "$(Build.SourcesDirectory)\eSignerCKA\master.key" -r
     displayName: "Configure account information on eSignerCKA using Azure Key Vault values"
     condition: and(succeeded(), eq(variables.isRelease, true))
-  
+
   - powershell: |
       $(Build.SourcesDirectory)\eSignerCKA\eSignerCKATool.exe unload
       $(Build.SourcesDirectory)\eSignerCKA\eSignerCKATool.exe load
     displayName: "Unload and load certificate into Windows Certificate Store"
     condition: and(succeeded(), eq(variables.isRelease, true))
-  
+
   # We should now be able to access the certificate using the standard Windows signtool.exe from the Windows SDK,
-  # which should be installed on the build agent images being used.
-  #
-  # Typically, you often see examples of signtool.exe and other things accessing the certificate by the thumbprint.
-  # And in fact, the sample SSL.com code includes a bunch of extra PowerShell script to get the thumbprint. However,
-  # signtool.exe can also access the certificate by a partial subject name match. We'll do that here in hopes that
-  # when the certificate is renewed, the subject name will remain the same, and we won't have to change this.
-  # "signtool.exe" sign /fd sha256 /tr http://ts.ssl.com /td sha256 /n "One Identity LLC" "C:\path\to\program.exe"
+  # which should be installed on the build agent images being used. signtool.exe accesses the certificate by a
+  # partial subject name match ("One Identity LLC") inside scripts\Win\package.ps1.
 
   - task: UseDotNet@2
+    displayName: 'Install .NET SDK'
     inputs:
-        version: '6.0.x'
+      packageType: 'sdk'
+      version: '$(dotnetSdkVersion)'
 
-  - task: Cake@2
+  # WiX 5 runs as a .NET tool; ship the older runtime it targets so the tool can start.
+  - task: UseDotNet@2
+    displayName: 'Install .NET 8 runtime (for the wix tool)'
     inputs:
-      script: 'build.cake'
-      target: 'Default'
-      verbosity: 'Verbose'
-      version: '2.2.0'
-      arguments: '--runtime=win10-x64 --Version=$(version) --SignFiles=$(isRelease) --SignToolPath="$(signToolPath)"'
+      packageType: 'runtime'
+      version: '8.0.x'
+
+  - powershell: |
+      dotnet tool install --global wix --version $(wixVersion)
+      wix extension add -g WixToolset.UI.wixext/$(wixVersion)
+    displayName: 'Install WiX $(wixVersion) + UI extension'
+
+  - powershell: |
+      & $(Build.SourcesDirectory)\scripts\publish.ps1 -Runtime $(rid) -Configuration $(buildConfiguration) -Version $(version)
+    displayName: 'Publish scalus + scalus-ui ($(rid))'
+
+  - powershell: |
+      $pkgArgs = @{
+        Runtime       = '$(rid)'
+        Configuration = '$(buildConfiguration)'
+        Version       = '$(version)'
+        SignToolPath  = '$(signToolPath)'
+      }
+      if ('$(isRelease)' -eq 'True') { $pkgArgs.SignFiles = $true }
+      & $(Build.SourcesDirectory)\scripts\Win\package.ps1 @pkgArgs
+    displayName: 'Build MSI ($(rid))'
 
   - task: PublishPipelineArtifact@1
     inputs:
-      targetPath: '$(Pipeline.Workspace)/s/Output/Release/win10-x64'
-      artifact: 'Scalus-Win10'
+      targetPath: '$(Build.SourcesDirectory)/Output/$(buildConfiguration)/$(rid)'
+      artifact: 'Scalus-$(rid)'
       publishLocation: 'pipeline'
 
+# ---------------------------------------------------------------------------
+# Linux: NativeAOT scalus + Photino scalus-ui + tar.gz (x64 & arm64).
+# ---------------------------------------------------------------------------
 - job: Linux
   dependsOn: BuildAndTest
   pool:
     vmImage: 'ubuntu-latest'
+  strategy:
+    matrix:
+      x64:
+        rid: 'linux-x64'
+      arm64:
+        rid: 'linux-arm64'
   steps:
   - task: UseDotNet@2
+    displayName: 'Install .NET SDK'
     inputs:
-        version: '6.0.x'
+      packageType: 'sdk'
+      version: '$(dotnetSdkVersion)'
 
-  - task: Cake@2
-    inputs:
-      script: 'build.cake'
-      target: 'Default'
-      verbosity: 'Verbose'
-      version: '2.2.0'
-      arguments: '--runtime=linux-x64 --Version=$(version)'
+  # NativeAOT needs clang + zlib headers; the arm64 leg cross-compiles so it also
+  # needs the aarch64 binutils/gcc. (arm64 legs are CI-gated per the migration plan.)
+  - script: |
+      sudo apt-get update
+      sudo apt-get install -y clang zlib1g-dev
+    displayName: 'Install AOT toolchain (base)'
+
+  - script: |
+      sudo apt-get install -y binutils-aarch64-linux-gnu gcc-aarch64-linux-gnu
+    displayName: 'Install aarch64 cross toolchain'
+    condition: eq(variables['rid'], 'linux-arm64')
+
+  - script: |
+      bash $(Build.SourcesDirectory)/scripts/publish.sh --runtime $(rid) --configuration $(buildConfiguration) --version $(version)
+    displayName: 'Publish scalus + scalus-ui ($(rid))'
+
+  - script: |
+      bash $(Build.SourcesDirectory)/scripts/Linux/package.sh --runtime $(rid) --configuration $(buildConfiguration) --version $(version)
+    displayName: 'Package tar.gz ($(rid))'
 
   - task: PublishPipelineArtifact@1
     inputs:
-      targetPath: '$(Pipeline.Workspace)/s/Output/Release/linux-x64'
-      artifact: 'Scalus-Linux'
+      targetPath: '$(Build.SourcesDirectory)/Output/$(buildConfiguration)/$(rid)'
+      artifact: 'Scalus-$(rid)'
       publishLocation: 'pipeline'
 
+# ---------------------------------------------------------------------------
+# macOS: NativeAOT scalus + Photino scalus-ui, .app/.pkg, sign + notarize
+# (x64 & arm64). macOS runners are arm64; the x64 leg cross-targets via the
+# universal Apple toolchain.
+# ---------------------------------------------------------------------------
 - job: Mac
   dependsOn: BuildAndTest
   pool:
     vmImage: 'macOS-latest'
+  strategy:
+    matrix:
+      x64:
+        rid: 'osx-x64'
+      arm64:
+        rid: 'osx-arm64'
   steps:
   - task: UseDotNet@2
+    displayName: 'Install .NET SDK'
     inputs:
-        version: '6.0.x'
+      packageType: 'sdk'
+      version: '$(dotnetSdkVersion)'
 
   - task: AzureKeyVault@2
-    inputs:  
+    inputs:
       ConnectedServiceName: "OneIdentity.Infrastructure.SPPCodeSigning"
       KeyVaultName: "SPPCodeSigning"
       SecretsFilter: 'AppleCertificate-Installer-Cert,AppleCertificate-Installer-Password,AppleCertificate-Application-Cert,Apple-App-Specific-Password'
@@ -202,24 +247,21 @@ jobs:
       Contents: '$(CodeSigningCertFileName)'
     condition: and(succeededOrFailed(), eq(variables.isRelease, true))
 
-  - task: Cake@2
-    inputs:
-      script: 'build.cake'
-      target: 'Default'
-      verbosity: 'Verbose'
-      version: '2.2.0'
-      arguments: '--runtime=osx-x64 --Version=$(version)'
+  - script: |
+      bash $(Build.SourcesDirectory)/scripts/publish.sh --runtime $(rid) --configuration $(buildConfiguration) --version $(version)
+    displayName: 'Publish scalus + scalus-ui ($(rid))'
 
   - task: Bash@3
+    displayName: 'Package .pkg + .tar.gz ($(rid))'
     inputs:
-      filePath: '$(Pipeline.Workspace)/s/scripts/Osx/package.sh'
-      arguments: '--version $(version) --runtime osx-x64 --infile $(Pipeline.Workspace)/s/scripts/Osx/applet --outpath $(Pipeline.Workspace)/s/Output/Release/osx-x64 --publishdir $(Pipeline.Workspace)/s/Publish/Release/osx-x64 --isrelease $(isRelease)'
-      
-  - powershell: |  
-      sudo productsign --sign 'LDBTVAT43D' $(Pipeline.Workspace)/s/Output/Release/osx-x64/scalus-$(version)-osx-x64.pkg $(Pipeline.Workspace)/s/Output/Release/osx-x64/scalus-$(version)-osx-x64_Signed.pkg
-    displayName: 'x64-ProductSigning for pkg'
+      filePath: '$(Build.SourcesDirectory)/scripts/Osx/package.sh'
+      arguments: '--version $(version) --runtime $(rid) --infile $(Build.SourcesDirectory)/scripts/Osx/applet --outpath $(Build.SourcesDirectory)/Output/$(buildConfiguration)/$(rid) --publishdir $(Build.SourcesDirectory)/Publish/$(buildConfiguration)/$(rid) --isrelease $(isRelease)'
+
+  - powershell: |
+      sudo productsign --sign 'LDBTVAT43D' $(Build.SourcesDirectory)/Output/$(buildConfiguration)/$(rid)/scalus-$(version)-$(rid).pkg $(Build.SourcesDirectory)/Output/$(buildConfiguration)/$(rid)/scalus-$(version)-$(rid)_Signed.pkg
+    displayName: 'ProductSigning for pkg'
     condition: and(succeeded(), eq(variables.isRelease, true))
-    
+
   - script: |
         # Upload the pkg to the Apple Notary Service
         xcrun notarytool submit \
@@ -227,22 +269,22 @@ jobs:
             --password "$(Apple-App-Specific-Password)" \
             --team-id "LDBTVAT43D" \
             --wait \
-            $(Pipeline.Workspace)/s/Output/Release/osx-x64/scalus-$(version)-osx-x64_Signed.pkg \
+            $(Build.SourcesDirectory)/Output/$(buildConfiguration)/$(rid)/scalus-$(version)-$(rid)_Signed.pkg
     displayName: 'Upload and notarize for pkg'
     condition: and(succeeded(), eq(variables.isRelease, true))
 
   - powershell: |
-      sudo xcrun stapler staple $(Pipeline.Workspace)/s/Output/Release/osx-x64/scalus-$(version)-osx-x64_Signed.pkg
+      sudo xcrun stapler staple $(Build.SourcesDirectory)/Output/$(buildConfiguration)/$(rid)/scalus-$(version)-$(rid)_Signed.pkg
     displayName: 'Staple for pkg'
     condition: and(succeeded(), eq(variables.isRelease, true))
 
   - powershell: |
-      Move-Item -Path "$(Pipeline.Workspace)/s/Output/Release/osx-x64/scalus-$(version)-osx-x64_Signed.pkg" -Destination "$(Pipeline.Workspace)/s/Output/Release/osx-x64/scalus-$(version)-osx-x64.pkg" -Force
+      Move-Item -Path "$(Build.SourcesDirectory)/Output/$(buildConfiguration)/$(rid)/scalus-$(version)-$(rid)_Signed.pkg" -Destination "$(Build.SourcesDirectory)/Output/$(buildConfiguration)/$(rid)/scalus-$(version)-$(rid).pkg" -Force
     displayName: 'Replace signed pkg'
     condition: and(succeeded(), eq(variables.isRelease, true))
 
   - task: PublishPipelineArtifact@1
     inputs:
-      targetPath: '$(Pipeline.Workspace)/s/Output/Release/osx-x64'
-      artifact: 'Scalus-Osx'
+      targetPath: '$(Build.SourcesDirectory)/Output/$(buildConfiguration)/$(rid)'
+      artifact: 'Scalus-$(rid)'
       publishLocation: 'pipeline'
