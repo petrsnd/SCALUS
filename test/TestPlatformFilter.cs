@@ -63,5 +63,84 @@ namespace OneIdentity.Scalus.Test
         {
             Assert.Empty(PlatformFilter.ForPlatform(null, Platform.Windows));
         }
+
+        private static ApplicationConfig App(string id, string protocol, params Platform[] platforms) => new ApplicationConfig
+        {
+            Id = id,
+            Name = id,
+            Protocol = protocol,
+            Platforms = platforms.ToList(),
+        };
+
+        [Fact]
+        public void ApplyToConfigRemapsDanglingProtocolDefaultToSurvivingApp()
+        {
+            // Mirrors the shipped master seed: every protocol default points at the Windows client.
+            var config = new ScalusConfig
+            {
+                Applications = new List<ApplicationConfig>
+                {
+                    App("windows-rdp", "rdp", Platform.Windows),
+                    App("mac-rdp", "rdp", Platform.Mac),
+                    App("windows-openssh", "ssh", Platform.Windows),
+                    App("mac-ssh", "ssh", Platform.Mac),
+                },
+                Protocols = new List<ProtocolMapping>
+                {
+                    new ProtocolMapping { Protocol = "rdp", AppId = "windows-rdp" },
+                    new ProtocolMapping { Protocol = "ssh", AppId = "windows-openssh" },
+                },
+            };
+
+            PlatformFilter.ApplyToConfig(config, Platform.Mac);
+
+            Assert.Equal(new List<string> { "mac-rdp", "mac-ssh" }, config.Applications.Select(a => a.Id).ToList());
+            Assert.Equal("mac-rdp", config.Protocols.Single(p => p.Protocol == "rdp").AppId);
+            Assert.Equal("mac-ssh", config.Protocols.Single(p => p.Protocol == "ssh").AppId);
+        }
+
+        [Fact]
+        public void ApplyToConfigClearsProtocolDefaultWhenNoAppHandlesItHere()
+        {
+            var config = new ScalusConfig
+            {
+                Applications = new List<ApplicationConfig>
+                {
+                    App("putty-telnet", "telnet", Platform.Windows),
+                    App("mac-ssh", "ssh", Platform.Mac),
+                },
+                Protocols = new List<ProtocolMapping>
+                {
+                    new ProtocolMapping { Protocol = "telnet", AppId = "putty-telnet" },
+                },
+            };
+
+            PlatformFilter.ApplyToConfig(config, Platform.Mac);
+
+            Assert.Null(config.Protocols.Single(p => p.Protocol == "telnet").AppId);
+        }
+
+        [Fact]
+        public void ApplyToConfigLeavesValidDefaultsUnchanged()
+        {
+            var config = new ScalusConfig
+            {
+                Applications = new List<ApplicationConfig>
+                {
+                    App("windows-rdp", "rdp", Platform.Windows),
+                    App("windows-openssh", "ssh", Platform.Windows),
+                },
+                Protocols = new List<ProtocolMapping>
+                {
+                    new ProtocolMapping { Protocol = "rdp", AppId = "windows-rdp" },
+                    new ProtocolMapping { Protocol = "ssh", AppId = "windows-openssh" },
+                },
+            };
+
+            PlatformFilter.ApplyToConfig(config, Platform.Windows);
+
+            Assert.Equal("windows-rdp", config.Protocols.Single(p => p.Protocol == "rdp").AppId);
+            Assert.Equal("windows-openssh", config.Protocols.Single(p => p.Protocol == "ssh").AppId);
+        }
     }
 }

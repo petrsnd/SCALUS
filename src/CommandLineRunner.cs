@@ -151,7 +151,7 @@ namespace OneIdentity.Scalus
                     var cfg = ScalusJson.Deserialize(defJson);
                     if (cfg?.Applications != null)
                     {
-                        cfg.Applications = PlatformFilter.ForCurrentPlatform(cfg.Applications);
+                        PlatformFilter.ApplyToCurrentPlatform(cfg);
                         defJson = ScalusJson.Serialize(cfg);
                     }
                 }

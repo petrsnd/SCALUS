@@ -21,6 +21,7 @@
 
 namespace OneIdentity.Scalus.Util
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Runtime.InteropServices;
@@ -71,5 +72,50 @@ namespace OneIdentity.Scalus.Util
         // Convenience overload that filters to the OS this process is running on.
         public static List<ApplicationConfig> ForCurrentPlatform(IEnumerable<ApplicationConfig> applications)
             => ForPlatform(applications, Current);
+
+        // Filter a whole configuration down to the given platform: keep only the applications
+        // valid here AND fix up the protocol defaults so none point at an application that was
+        // just filtered away. The shipped master seed maps every protocol to its Windows client
+        // (e.g. rdp -> windows-rdp); on macOS/Linux those apps are removed by the filter, which
+        // would otherwise leave a dangling default that silently fails to launch. When a
+        // protocol's configured app disappears, fall back to the first surviving application that
+        // handles the same protocol on this platform (rdp -> mac-rdp, ssh -> mac-ssh, ...), or
+        // clear the mapping when nothing here handles it (e.g. telnet has no macOS client).
+        public static void ApplyToConfig(ScalusConfig config, Platform platform)
+        {
+            if (config == null)
+            {
+                return;
+            }
+
+            config.Applications = ForPlatform(config.Applications, platform);
+
+            if (config.Protocols == null)
+            {
+                return;
+            }
+
+            var available = new HashSet<string>(
+                config.Applications
+                    .Select(a => a.Id)
+                    .Where(id => !string.IsNullOrEmpty(id)),
+                StringComparer.OrdinalIgnoreCase);
+
+            foreach (var mapping in config.Protocols)
+            {
+                if (string.IsNullOrEmpty(mapping.AppId) || available.Contains(mapping.AppId))
+                {
+                    continue;
+                }
+
+                var replacement = config.Applications
+                    .FirstOrDefault(a => string.Equals(a.Protocol, mapping.Protocol, StringComparison.OrdinalIgnoreCase));
+                mapping.AppId = replacement?.Id;
+            }
+        }
+
+        // Convenience overload that filters the configuration to the OS this process is running on.
+        public static void ApplyToCurrentPlatform(ScalusConfig config)
+            => ApplyToConfig(config, Current);
     }
 }
