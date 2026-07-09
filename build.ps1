@@ -1,110 +1,45 @@
-##########################################################################
-# This is the Cake bootstrapper script for PowerShell.
-# This file was downloaded from https://github.com/cake-build/resources
-# Feel free to change this file to fit your needs.
-##########################################################################
-
-<#
-.SYNOPSIS
-This is a Powershell script to bootstrap a Cake build.
-
-.DESCRIPTION
-This Powershell script will download NuGet if missing, restore NuGet tools (including Cake)
-and execute your Cake build script with the parameters you provide.
-
-.PARAMETER Script
-The build script to execute.
-.PARAMETER Target
-The build script target to run.
-.PARAMETER Configuration
-The build configuration to use.
-.PARAMETER Verbosity
-Specifies the amount of information to be displayed.
-.PARAMETER ShowDescription
-Shows description about tasks.
-.PARAMETER DryRun
-Performs a dry run.
-.PARAMETER SkipToolPackageRestore
-Skips restoring of packages.
-.PARAMETER ScriptArgs
-Remaining arguments are added here.
-
-.LINK
-https://cakebuild.net
-#>
+#!/usr/bin/env pwsh
+#
+# Local build entry point for Windows. Thin wrapper that replaces the old Cake
+# build: it tests, publishes, then builds the MSI for the given (or win-x64) RID.
+#
+# Usage:
+#   .\build.ps1 [-Runtime win-x64|win-arm64] [-Configuration Release]
+#               [-Version 1.0.0] [-SignToolPath <path>] [-SignFiles] [-SkipTests]
 [CmdletBinding()]
-Param(
-    [string]$Script = "build.cake",
-    [string]$Target,
-    [ValidateSet("Debug", "Release")]
+param(
+    [string]$Runtime = "win-x64",
     [string]$Configuration = "Release",
-    [string]$Version,
-    [ValidateSet("Quiet", "Minimal", "Normal", "Verbose", "Diagnostic")]
-    [string]$Verbosity,
-    [switch]$ShowDescription,
-    [Alias("WhatIf", "Noop")]
-    [switch]$DryRun,
-    [switch]$SkipToolPackageRestore,
-    [Parameter(Position=0,Mandatory=$false,ValueFromRemainingArguments=$true)]
-    [string[]]$ScriptArgs,
-    [switch]$Pre
+    [string]$Version = "1.0.0",
+    [string]$SignToolPath = "",
+    [switch]$SignFiles,
+    [switch]$SkipTests
 )
 
-Write-Host "Preparing to run build script..."
-$TOOLS_DIR = Join-Path $PSScriptRoot "tools"
+$ErrorActionPreference = "Stop"
 
-# Try find dotnet.exe nuget.exe in path if not exists
-function Test-Command {
-    Param(
-        [Parameter(Mandatory=$true)]
-        [string] $Command
-    )
-    Get-Command $Command -EA SilentlyContinue
-}
-if (-not (Test-Command dotnet)) {
-    throw "This script requires dotnet.exe -- https://dotnet.microsoft.com/en-us/download"
-}
-if (-not (Test-Command nuget)) {
-    throw "This script requires nuget.exe -- https://www.nuget.org/downloads"
+$rootDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+Set-Location $rootDir
+
+if (-not $SkipTests) {
+    Write-Host "==> Testing"
+    dotnet test "$rootDir\test\OneIdentity.Scalus.Test.csproj" --configuration $Configuration
+    if ($LASTEXITCODE -ne 0) { throw "Tests failed" }
 }
 
-# Save nuget.exe path to environment to be available to child processes
-$ENV:NUGET_EXE = (Test-Command nuget | Select-Object -ExpandProperty Definition)
+Write-Host "==> Publishing"
+& "$rootDir\scripts\publish.ps1" -Runtime $Runtime -Configuration $Configuration -Version $Version
 
-# Make sure tools folder exists
-if ((Test-Path $PSScriptRoot) -and !(Test-Path $TOOLS_DIR)) {
-    Write-Verbose -Message "Creating tools directory..."
-    New-Item -Path $TOOLS_DIR -Type directory | Out-Null
+Write-Host "==> Packaging $Runtime"
+$packageArgs = @{
+    Runtime       = $Runtime
+    Configuration = $Configuration
+    Version       = $Version
+    SignToolPath  = $SignToolPath
 }
+if ($SignFiles) { $packageArgs["SignFiles"] = $true }
+& "$rootDir\scripts\Win\package.ps1" @packageArgs
 
-Write-Host "Installing Cake.Tool..."
-if (dotnet tool list --tool-path tools | Select-String cake.tool) {
-    Write-Host "Cake.Tool already installed"
-}
-else {
-    Invoke-Expression "dotnet tool install Cake.Tool --version 2.2.0 --tool-path $TOOLS_DIR"
-}
-
-if ($LASTEXITCODE -ne 0) {
-    exit $LASTEXITCODE
-}
-
-$scpt="${PSScriptRoot}/${Script}"
-
-# Build Cake arguments
-$cakeArguments = @("$scpt");
-if ($Target) { $cakeArguments += "--target=$Target" }
-if ($Configuration) { $cakeArguments += "--configuration=$Configuration" }
-if ($Version) { $cakeArguments += "--version=$Version" }
-if ($Verbosity) { $cakeArguments += "--verbosity=$Verbosity" }
-if ($ShowDescription) { $cakeArguments += "--showdescription" }
-if ($DryRun) { $cakeArguments += "--dryrun" }
-if ($Experimental) { $cakeArguments += "--experimental" }
-if ($Pre) { $cakeArguments += "--pre=true" }
-$cakeArguments += $ScriptArgs
-
-# Start Cake
-Write-Host "Running build script for SCALUS..."
-Write-Host "cake $cakeArguments"
-& (Join-Path $TOOLS_DIR dotnet-cake.exe) $cakeArguments
-exit $LASTEXITCODE
+$outputDir = Join-Path $rootDir "Output\$Configuration\$Runtime"
+Write-Host "==> Done. Artifacts in $outputDir"
+Get-ChildItem $outputDir | Format-Table Name, Length

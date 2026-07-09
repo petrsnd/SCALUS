@@ -10,7 +10,7 @@ SCALUS consists of 3 major components:
 
 ### Requirements
 
-* [.NET 6 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/6.0)
+* [.NET 10 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)
 
 ### Build
 
@@ -38,16 +38,27 @@ SCALUS consists of 3 major components:
     dotnet build
     ```
 
-The following build parameters can be set to customize the build output:
+### Packaging
 
-* /p:NativeWindowing=&lt;true | false&gt;
+Cross-platform build and packaging is done with plain scripts (no Cake). Each
+entry point tests, publishes the NativeAOT `scalus` launcher plus the Photino
+`scalus-ui` GUI, and produces an installer for the target runtime:
 
-    Determines whether or not to use native Windowing features. This is currently only supported for Windows platforms. With NativeWindowing enabled SCALUS shows a splash screen on startup and does not display a console Window when invoked to handle a URL.
+* macOS / Linux:
 
-Example:
-```
-dotnet build /p:NativeWindowing=true
-```
+    ```
+    ./build.sh --runtime osx-x64      # -> .pkg + .tar.gz
+    ./build.sh --runtime linux-x64    # -> .tar.gz
+    ```
+
+* Windows (requires the `wix` dotnet tool + `WixToolset.UI.wixext`):
+
+    ```
+    ./build.ps1 -Runtime win-x64      # -> .msi
+    ```
+
+The underlying steps can also be run directly: `scripts/publish.{sh,ps1}` to
+publish the payload, then the per-OS packager under `scripts/{Osx,Linux,Win}`.
 
 ### Configuration
 

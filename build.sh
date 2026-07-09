@@ -1,64 +1,71 @@
-#!/bin/bash
+#!/usr/bin/env bash
+#
+# Local build entry point for macOS / Linux. Thin wrapper that replaces the old
+# Cake build: it tests, publishes, then packages for the host (or --runtime) RID.
+#
+# Usage:
+#   ./build.sh [--runtime osx-x64|linux-x64|...] [--configuration Release]
+#              [--version 1.0.0] [--isrelease true|false] [--skip-tests]
+set -euo pipefail
 
-## Parameters
-Target=
-Configuration="Release"
-Version=
-# "Quiet", "Minimal", "Normal", "Verbose", "Diagnostic"
-Verbosity=
-ShowDescription=false
-Pre=false
-ScriptArgs=
+configuration="Release"
+version="1.0.0"
+runtime=""
+isrelease="false"
+skiptests="false"
 
->&2 echo "Preparing to run build script..."
-ScriptDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-ToolsDir="$ScriptDir/tools"
-Script="$ScriptDir/build.cake"
+while (( "$#" )); do
+    case "$1" in
+        --runtime)        runtime="$2";        shift 2 ;;
+        --configuration)  configuration="$2";  shift 2 ;;
+        --version)        version="$2";        shift 2 ;;
+        --isrelease)      isrelease="$2";      shift 2 ;;
+        --skip-tests)     skiptests="true";    shift ;;
+        *) echo "Unknown argument: $1" >&2; exit 1 ;;
+    esac
+done
 
-if [[ $OSTYPE == 'darwin'* ]]; then
-    >&2 echo "Running on macOS!"
-    Runtime="osx-x64"
-else
-    >&2 echo "Running on Linux!"
-    Runtime="linux-x64"
+rootdir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$rootdir"
+
+# Default the runtime to the host OS (x64) when not specified.
+if [ -z "$runtime" ]; then
+    if [[ "$OSTYPE" == darwin* ]]; then runtime="osx-x64"; else runtime="linux-x64"; fi
 fi
 
-if [ -z "$(which dotnet)" ]; then
-    >&2 echo "You must install dotnet to use this build script -- https://dotnet.microsoft.com/en-us/download"
-    exit 1
-fi
-if [ -z "$(which nuget)" ]; then
-    >&2 echo "You must install nuget to use this build script -- https://www.nuget.org/downloads"
-    exit 1
+if [ "$skiptests" != "true" ]; then
+    echo "==> Testing"
+    dotnet test "$rootdir/test/OneIdentity.Scalus.Test.csproj" --configuration "$configuration"
 fi
 
-## Make sure tools folder exists
-if [ ! -d "$ToolsDir" ]; then
-    mkdir -p $ToolsDir
-fi
+echo "==> Publishing"
+"$rootdir/scripts/publish.sh" --runtime "$runtime" --configuration "$configuration" --version "$version"
 
->&2 echo "Installing Cake.Tool..."
-if [ -z "$(dotnet tool list --tool-path $ToolsDir | grep cake.tool)" ]; then
-    dotnet tool install Cake.Tool --version 2.2.0 --tool-path "$ToolsDir"
-else
-    >&2 echo "Cake.Tool already installed"
-fi
-if [ $? -ne 0 ]; then
-    exit $?
-fi
+publishdir="$rootdir/Publish/$configuration/$runtime"
+outputdir="$rootdir/Output/$configuration/$runtime"
+mkdir -p "$outputdir"
 
-## Build Cake arguments
-CakeArguments="$Script --runtime=$Runtime"
-if [ ! -z "$Target" ]; then CakeArguments="$CakeArguments --target=$Target"; fi
-if [ ! -z "$Configuration" ]; then CakeArguments="$CakeArguments --configuration=$Configuration"; fi
-if [ ! -z "$Version" ]; then CakeArguments="$CakeArguments --version=$Version"; fi
-if [ ! -z "$Verbosity" ]; then CakeArguments="$CakeArguments --verbosity=$Verbosity"; fi
-if $ShowDescription; then CakeArguments="$CakeArguments --showdescription"; fi
-if $Pre; then CakeArguments="$CakeArguments --pre=true"; fi
-if [ ! -z "$ScriptArgs" ]; then CakeArguments="$CakeArguments $ScriptArgs"; fi
+echo "==> Packaging $runtime"
+case "$runtime" in
+    osx-*)
+        # package.sh requires absolute paths (its resetEntitlements step cd's away).
+        bash "$rootdir/scripts/Osx/package.sh" \
+            --version "$version" \
+            --runtime "$runtime" \
+            --infile "$rootdir/scripts/Osx/applet" \
+            --outpath "$outputdir" \
+            --publishdir "$publishdir" \
+            --isrelease "$isrelease"
+        ;;
+    linux-*)
+        bash "$rootdir/scripts/Linux/package.sh" \
+            --runtime "$runtime" --configuration "$configuration" --version "$version"
+        ;;
+    *)
+        echo "Error: build.sh packages osx-*/linux-* only. For Windows use build.ps1." >&2
+        exit 1
+        ;;
+esac
 
-# Start Cake
->&2 echo "Running build script for SCALUS..."
->&2 echo "cake $CakeArguments"
-CakeCommand="$ToolsDir/dotnet-cake $CakeArguments"
-eval "$CakeCommand"
+echo "==> Done. Artifacts in $outputdir"
+ls -la "$outputdir"
