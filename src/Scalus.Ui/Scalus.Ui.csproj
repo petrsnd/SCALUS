@@ -30,12 +30,11 @@
     <ProjectReference Include="..\Cli\Scalus.Cli.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
-  <!-- Shipped default configurations used to seed a fresh per-user install. -->
+  <!-- Shipped master seed used to preload a fresh per-user install. It lists every application
+       across all platforms; seeding filters it to the running OS (see PlatformFilter). -->
   <ItemGroup>
     <Content Include="..\scalus.ico" Link="scalus.ico" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="..\..\scripts\Win\SCALUS.json" Link="defaults\windows.json" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="..\..\scripts\Osx\SCALUS.json" Link="defaults\mac.json" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="..\..\scripts\Linux\SCALUS.json" Link="defaults\linux.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\SCALUS.json" Link="defaults\SCALUS.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <!-- Track the Angular sources so edits to templates/styles/ts trigger a rebuild

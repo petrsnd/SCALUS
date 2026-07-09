@@ -278,6 +278,13 @@ namespace OneIdentity.Scalus.Util
                 scalusJsonDefault = Path.Combine(Constants.GetBinaryDirectory(), JsonFile);
                 if (!File.Exists(scalusJsonDefault))
                 {
+                    // The UI ships the master seed under a "defaults" subfolder; the CLI shares it
+                    // so both front-ends bootstrap a fresh config from the same source.
+                    scalusJsonDefault = Path.Combine(Constants.GetBinaryDirectory(), "defaults", JsonFile);
+                }
+
+                if (!File.Exists(scalusJsonDefault))
+                {
                     scalusJsonDefault = Path.Combine(Path.Combine(ExamplePath, JsonFile));
                 }
 

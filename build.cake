@@ -105,7 +105,7 @@ Task("MsiInstaller")
         CopyDirectory("scripts/examples", examples);
 
         MoveFile(publishdir + "/scalus.exe", publishdir + "/scalus.exe");
-        CopyFile("scripts/Win/SCALUS.json", examples + "/SCALUS.json");
+        CopyFile("src/SCALUS.json", examples + "/SCALUS.json");
         CopyFile("scripts/Win/Product.wxs", tmpdir + "/Product.wxs");
 
         var readme = tmpdir + "/readme.txt";
@@ -262,7 +262,7 @@ Task("OsxInstall")
         }
         CopyDirectory("scripts/Osx/scalus.app", scalusappdir);
 
-        CopyFile("scripts/Osx/SCALUS.json", exdir + "/SCALUS.json");
+        CopyFile("src/SCALUS.json", exdir + "/SCALUS.json");
         CopyFile(publishdir + "/scalus", targetdir + "/scalus");
 
         CopyDirectory(builddir + "/Ui", targetdir + "/Ui");
@@ -290,7 +290,7 @@ Task("LinuxInstall")
         }
         var examples = publishdir + "/examples";
         CopyDirectory("scripts/examples", examples);
-
+        CopyFile("src/SCALUS.json", examples + "/SCALUS.json");
         var readme = publishdir + "/readme.txt";
         CopyFile("./scripts/readme.txt", readme);
         ReplaceTextInFiles(readme, "SCALUSVERSION", Version);

@@ -140,7 +140,27 @@ namespace OneIdentity.Scalus
                 }
 
                 Log.Logger.Information($"Initializing config file:{ConfigurationManager.ScalusJson} from the installed file:{defpath}");
-                File.WriteAllText(ConfigurationManager.ScalusJson, File.ReadAllText(defpath));
+
+                // The shipped default lists applications for every platform; seed only the ones
+                // valid on this OS so a fresh config never offers, e.g., a macOS client on Windows.
+                // If the default can't be parsed for any reason, fall back to copying it verbatim
+                // so a malformed-but-usable default still bootstraps a working config.
+                var defJson = File.ReadAllText(defpath);
+                try
+                {
+                    var cfg = ScalusJson.Deserialize(defJson);
+                    if (cfg?.Applications != null)
+                    {
+                        cfg.Applications = PlatformFilter.ForCurrentPlatform(cfg.Applications);
+                        defJson = ScalusJson.Serialize(cfg);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Logger.Warning($"Could not platform-filter the default config, seeding it verbatim: {ex.Message}");
+                }
+
+                File.WriteAllText(ConfigurationManager.ScalusJson, defJson);
 
                 var egs = ConfigurationManager.ExamplePath;
                 if (Directory.Exists(egs))

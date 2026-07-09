@@ -395,14 +395,11 @@ namespace OneIdentity.Scalus.Test
         [Fact]
         public void TestInstalledJson()
         {
-            var root = Path.Combine(Directory.GetParent(AppDomain.CurrentDomain.BaseDirectory).Parent.Parent.Parent.Parent.FullName, "scripts");
-            foreach (var dir in new string[] { "Win", "Linux", "Osx" })
-            {
-                var path = Path.Combine(root, Path.Combine(dir, "SCALUS.json"));
-                Assert.True(File.Exists(path));
-                var json = File.ReadAllText(path);
-                CheckJson(json, 0);
-            }
+            var root = Directory.GetParent(AppDomain.CurrentDomain.BaseDirectory).Parent.Parent.Parent.Parent.FullName;
+            var path = Path.Combine(root, "src", "SCALUS.json");
+            Assert.True(File.Exists(path));
+            var json = File.ReadAllText(path);
+            CheckJson(json, 0);
         }
     }
 }

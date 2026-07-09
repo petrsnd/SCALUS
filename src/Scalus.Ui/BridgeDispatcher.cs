@@ -396,13 +396,10 @@ namespace OneIdentity.Scalus.Ui
 
         private static List<ApplicationConfig> LoadSeedApplications()
         {
-            var seedName = GetPlatform() switch
-            {
-                "Windows" => "windows.json",
-                "Mac" => "mac.json",
-                _ => "linux.json",
-            };
-            var seed = Path.Combine(AppContext.BaseDirectory, "defaults", seedName);
+            // One shipped master seed (defaults/SCALUS.json) lists every application across all
+            // platforms; filter it down to the OS we're running on so a fresh config only offers
+            // applications that are valid here.
+            var seed = Path.Combine(AppContext.BaseDirectory, "defaults", "SCALUS.json");
             if (!File.Exists(seed))
             {
                 return new List<ApplicationConfig>();
@@ -411,7 +408,7 @@ namespace OneIdentity.Scalus.Ui
             try
             {
                 var parsed = ScalusJson.Deserialize(File.ReadAllText(seed));
-                return parsed?.Applications ?? new List<ApplicationConfig>();
+                return PlatformFilter.ForCurrentPlatform(parsed?.Applications);
             }
             catch (Exception ex)
             {
