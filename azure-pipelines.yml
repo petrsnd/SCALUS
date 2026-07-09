@@ -113,6 +113,11 @@ jobs:
       wix extension add -g WixToolset.UI.wixext/$(wixVersion)
     displayName: 'Install WiX $(wixVersion) + UI extension'
 
+  - task: NodeTool@0
+    displayName: 'Install Node.js (Angular UI build)'
+    inputs:
+      versionSpec: '22.x'
+
   - powershell: |
       & $(Build.SourcesDirectory)\scripts\publish.ps1 -Runtime $(rid) -Configuration $(buildConfiguration) -Version $(version)
     displayName: 'Publish scalus + scalus-ui ($(rid))'
@@ -160,6 +165,11 @@ jobs:
       sudo apt-get update
       sudo apt-get install -y clang zlib1g-dev
     displayName: 'Install AOT toolchain (base)'
+
+  - task: NodeTool@0
+    displayName: 'Install Node.js (Angular UI build)'
+    inputs:
+      versionSpec: '22.x'
 
   - script: |
       sudo apt-get install -y binutils-aarch64-linux-gnu gcc-aarch64-linux-gnu
@@ -246,6 +256,11 @@ jobs:
       SourceFolder: '$(Build.SourcesDirectory)'
       Contents: '$(CodeSigningCertFileName)'
     condition: and(succeededOrFailed(), eq(variables.isRelease, true))
+
+  - task: NodeTool@0
+    displayName: 'Install Node.js (Angular UI build)'
+    inputs:
+      versionSpec: '22.x'
 
   - script: |
       bash $(Build.SourcesDirectory)/scripts/publish.sh --runtime $(rid) --configuration $(buildConfiguration) --version $(version)
