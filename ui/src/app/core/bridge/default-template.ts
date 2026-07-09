@@ -17,7 +17,7 @@ export const DEFAULT_RDP_TEMPLATE = [
   'desktopwidth:i:1920',
   'desktopheight:i:1080',
   'session bpp:i:16',
-  'winposstr:s:0,3,0,0,1024,768',
+  'winposstr:s:0,1,0,0,1920,1080',
   'compression:i:1',
   'keyboardhook:i:2',
   'audiocapturemode:i:0',
@@ -68,13 +68,16 @@ export const DEFAULT_RDP_TEMPLATE = [
   'username:s:%user%',
 ].join('\n');
 
-// Static-resolution variant: opens in a fixed-size window (screen mode id:i:1)
-// at 1920x1080 instead of fullscreen, and drops the "dynamic resolution" line so
-// the remote desktop stays at that fixed size instead of tracking the client
-// window. This is the visible difference from DEFAULT_RDP_TEMPLATE (fullscreen +
-// dynamic resolution): a movable, fixed-geometry window rather than a fullscreen
-// session that fills — and re-centers on — whatever monitor it lands on.
+// Static-resolution variant: opens in a normal, movable window (screen mode
+// id:i:1) instead of fullscreen, and drops the "dynamic resolution" line so the
+// remote desktop renders at the fixed 1920x1080 size. The window's normal-state
+// winposstr (show-state 1, sized to 1920x1080) means it opens un-maximized at the
+// session size, and "smart sizing:i:1" scales that fixed session to whatever the
+// window is — so resizing the window never produces scroll bars. This is the
+// visible difference from DEFAULT_RDP_TEMPLATE (fullscreen + dynamic resolution):
+// a movable, fixed-geometry window whose contents scale to fit rather than a
+// fullscreen session that fills — and re-centers on — whatever monitor it lands on.
 export const DEFAULT_RDP_TEMPLATE_STATIC = DEFAULT_RDP_TEMPLATE.split('\n')
   .filter((line) => !line.startsWith('dynamic resolution:'))
-  .map((line) => (line === 'screen mode id:i:2' ? 'screen mode id:i:1' : line))
+  .map((line) => (line === 'screen mode id:i:2' ? 'screen mode id:i:1\nsmart sizing:i:1' : line))
   .join('\n');
