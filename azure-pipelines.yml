@@ -140,7 +140,7 @@ jobs:
       publishLocation: 'pipeline'
 
 # ---------------------------------------------------------------------------
-# Linux: NativeAOT scalus + Photino scalus-ui + tar.gz (x64 & arm64).
+# Linux: NativeAOT scalus + Photino scalus-ui + tar.gz/.deb/.rpm (x64 & arm64).
 # ---------------------------------------------------------------------------
 - job: Linux
   dependsOn: BuildAndTest
@@ -176,13 +176,21 @@ jobs:
     displayName: 'Install aarch64 cross toolchain'
     condition: eq(variables['rid'], 'linux-arm64')
 
+  # fpm (Ruby gem) builds the .deb/.rpm; the rpm package provides rpmbuild for
+  # the .rpm target. Without these, package.sh still emits the tarball but warns
+  # and skips the native packages.
+  - script: |
+      sudo apt-get install -y ruby ruby-dev build-essential rpm
+      sudo gem install --no-document fpm
+    displayName: 'Install fpm + rpm (deb/rpm packaging)'
+
   - script: |
       bash $(Build.SourcesDirectory)/scripts/publish.sh --runtime $(rid) --configuration $(buildConfiguration) --version $(version)
     displayName: 'Publish scalus + scalus-ui ($(rid))'
 
   - script: |
       bash $(Build.SourcesDirectory)/scripts/Linux/package.sh --runtime $(rid) --configuration $(buildConfiguration) --version $(version)
-    displayName: 'Package tar.gz ($(rid))'
+    displayName: 'Package tar.gz + .deb + .rpm ($(rid))'
 
   - task: PublishPipelineArtifact@1
     inputs:
