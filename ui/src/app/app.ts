@@ -335,7 +335,6 @@ export class App implements OnInit {
   }
   appMatchesFamily(app: ApplicationConfig, family: string): boolean {
     if (family === 'any') return true;
-    if (family === 'telnet') return ['telnet', 'ssh'].includes(app.Parser.ParserId);
     return app.Parser.ParserId === family || app.Protocol === family;
   }
   isBuiltIn(protocol: string): boolean { return BUILT_IN_PROTOCOLS.has(protocol); }
