@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=SCALUS
+GenericName=Session URL Launcher
+Comment=Configure session client launch URI handlers (rdp, ssh, telnet)
+Exec=scalus-ui
+Icon=scalus
+Terminal=false
+Categories=Network;RemoteAccess;
+Keywords=rdp;ssh;telnet;remote;session;safeguard;launcher;
+StartupNotify=true
+StartupWMClass=SCALUS
