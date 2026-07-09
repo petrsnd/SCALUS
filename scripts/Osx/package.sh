@@ -107,6 +107,18 @@ if [ ! -x "${publishdir}/ui/scalus-ui" ]; then
     exit 1
 fi
 
+# Normalize to absolute paths. resetEntitlements() cd's into the source app
+# template and never returns, so any later use of a *relative* outpath /
+# publishdir / infile would resolve against the wrong directory and fail
+# (e.g. "missing entitlements.plist"). CI already passes absolute paths; this
+# makes local invocation with relative paths work too.
+mkdir -p "${outpath}"
+outpath="$(cd "${outpath}" && pwd)"
+publishdir="$(cd "${publishdir}" && pwd)"
+infile="$(cd "$(dirname "${infile}")" && pwd)/$(basename "${infile}")"
+pkgfile="${outpath}/${pkgname}"
+pkgtarfile="${outpath}/${pkgtar}"
+
 
 echo "Building from ${infile}"
 echo "Building ${pkgfile}"
@@ -220,6 +232,17 @@ fi
     cp $publishdir/examples/*  ${tmpdir}/${appname}.app/Contents/Resources/examples
     chmod a+r ${tmpdir}/${appname}.app/Contents/Resources/examples/*
 
+    # Replace the stock osacompile applet icon (a generic scroll) with the SCALUS
+    # logomark. osacompile sets CFBundleIconFile=applet, so overwriting
+    # Resources/applet.icns is all that's needed — no Info.plist change.
+    iconsrc="${scriptdir}/assets/scalus.icns"
+    if [ -f "${iconsrc}" ]; then
+        cp "${iconsrc}" ${tmpdir}/${appname}.app/Contents/Resources/applet.icns
+        chmod a+r ${tmpdir}/${appname}.app/Contents/Resources/applet.icns
+    else
+        echo "[WARN] ${iconsrc} not found; app will use the default applet icon"
+    fi
+
     if [ "$isrelease" = "False" ]; then
         echo "[INFO] Not signing the app bundle files as this is not a release build"
     else
@@ -256,7 +279,7 @@ function build_package()
     sub(/customLocation=\"[^\"]+\"/, str);
     if ($0 ~ /<\/installer-gui-script>/)
     {
-        print "  <domains enable_anywhere=\"false\" enable_currentUserHome=\"true\" enable-localSystem=\"false\">"
+        print "  <domains enable_anywhere=\"false\" enable_currentUserHome=\"true\" enable-localSystem=\"true\">"
         print "  </domains>"
     }
 
