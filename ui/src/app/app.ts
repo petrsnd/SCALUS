@@ -107,7 +107,6 @@ export class App implements OnInit {
       this.tokenTips[name.toLowerCase()] = desc;
     }
     this.platform = await this.bridge.getPlatform();
-    this.info = await this.bridge.getInfo();
 
     // All-users registration needs elevation, which macOS can't provide for URL schemes — hide the
     // scope switch there and pin to per-user.
@@ -139,6 +138,9 @@ export class App implements OnInit {
   async reloadStatuses(): Promise<void> {
     const list = await this.bridge.getRegistrationStatus(this.scope);
     this.registrations = new Map(list.map(s => [s.Protocol, s]));
+    // Keep the About > Diagnostics text in sync with the live registration
+    // state; getInfo() recomputes "Registered handlers" server-side each call.
+    this.info = await this.bridge.getInfo();
   }
 
   setTab(tab: Tab): void {
