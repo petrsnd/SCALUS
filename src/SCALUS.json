@@ -60,6 +60,29 @@
       ]
     },
     {
+      "Id": "windows-royalts-rdp",
+      "Description": "Royal TS (RDP): launches an ad-hoc RDP session directly from the command line. No .rdp file is generated; the host, port, and username are passed as a Royal TS URI and the session connects in one shot.",
+      "Name": "Royal TS [RDP]",
+      "Platforms": [
+        "Windows"
+      ],
+      "Protocol": "rdp",
+      "Parser": {
+        "ParserId": "rdp",
+        "Options": [
+          "waitForInputIdle"
+        ],
+        "PostProcessingExec": null,
+        "PostProcessingArgs": null,
+        "TemplateContent": null,
+        "TemplateExtension": null
+      },
+      "Exec": "C:\\Program Files\\Royal TS V7\\RoyalTS.exe",
+      "Args": [
+        "rtsx://rdp%3a%2f%2f%Host%%3a%Port%?using=adhoc&action=connect&username=%user%"
+      ]
+    },
+    {
       "Id": "freerdp",
       "Description": "Run FreeRdp client with the supplied connection settings",
       "Name": "FreeRDP",
