@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { UiBadgeComponent } from './shared/ui/badge.component';
 import { UiButtonComponent } from './shared/ui/button.component';
 import { UiCardComponent } from './shared/ui/card.component';
+import { UiComboComponent } from './shared/ui/combo.component';
 import { UiDrawerComponent } from './shared/ui/drawer.component';
 import { UiModalComponent } from './shared/ui/modal.component';
 import { UiSegmentedControlComponent } from './shared/ui/segmented-control.component';
@@ -37,7 +38,7 @@ const SAFEGUARD_TOKENS = ['%Token%', '%Vault%', '%TargetUser%', '%TargetHost%', 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, FormsModule, UiBadgeComponent, UiButtonComponent, UiCardComponent, UiDrawerComponent, UiModalComponent, UiSegmentedControlComponent, UiSelectComponent, UiToggleComponent],
+  imports: [CommonModule, FormsModule, UiBadgeComponent, UiButtonComponent, UiCardComponent, UiComboComponent, UiDrawerComponent, UiModalComponent, UiSegmentedControlComponent, UiSelectComponent, UiToggleComponent],
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })
