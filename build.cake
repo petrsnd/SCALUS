@@ -231,8 +231,39 @@ Task("Publish")
             });
     });
 
-Task("OsxInstall")
+Task("PublishUi")
     .IsDependentOn("Publish")
+    .WithCriteria(isOsx)
+    .Does(() =>
+    {
+        // Publish the Photino configuration GUI (scalus-ui) as a self-contained
+        // payload beside the CLI. This replaces the legacy local-web-server "Ui"
+        // folder: the modern UI is a native desktop app, not a browser page.
+        // Not single-file and not AOT — the Photino apphost needs its native
+        // webview .dylib, wwwroot and runtime files loose in one folder.
+        var uidir = publishdir + "/ui";
+        if (DirectoryExists(uidir))
+        {
+            DeleteDirectory(uidir, new DeleteDirectorySettings {
+                Recursive = true,
+                Force = true
+            });
+        }
+        DotNetPublish(
+            "./src/Scalus.Ui/Scalus.Ui.csproj",
+            new DotNetPublishSettings()
+            {
+                Configuration = configuration,
+                DiagnosticOutput = true,
+                OutputDirectory = uidir,
+                SelfContained = true,
+                Runtime = runtime,
+                PublishSingleFile = false
+            });
+    });
+
+Task("OsxInstall")
+    .IsDependentOn("PublishUi")
     .WithCriteria(isOsx)
     .Does(() =>
     {
@@ -265,7 +296,10 @@ Task("OsxInstall")
         CopyFile("src/SCALUS.json", exdir + "/SCALUS.json");
         CopyFile(publishdir + "/scalus", targetdir + "/scalus");
 
-        CopyDirectory(builddir + "/Ui", targetdir + "/Ui");
+        // Bundle the Photino GUI payload (scalus-ui + native webview dylib +
+        // wwwroot + runtime) under Contents/MacOS/ui; the applet launches
+        // ui/scalus-ui on normal open.
+        CopyDirectory(publishdir + "/ui", targetdir + "/ui");
 
         var resourceDir = scalusappdir + "/Contents/Resources/examples";
         CopyDirectory(exdir, resourceDir);

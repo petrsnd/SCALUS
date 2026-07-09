@@ -102,6 +102,10 @@ if [ ! -f "${publishdir}/scalus" ]; then
     echo "publishdir must be full path containing published scalus"
     exit 1
 fi
+if [ ! -x "${publishdir}/ui/scalus-ui" ]; then
+    echo "publishdir must contain the published Photino GUI at ui/scalus-ui"
+    exit 1
+fi
 
 
 echo "Building from ${infile}"
@@ -202,11 +206,13 @@ fi
     cp $publishdir/scalus ${tmpdir}/${appname}.app/Contents/MacOS
     chmod u=rwx,go=rx  ${tmpdir}/${appname}.app/Contents/MacOS/scalus
 
-    mkdir -p ${tmpdir}/${appname}.app/Contents/MacOS/Ui
-    chmod a+rx ${tmpdir}/${appname}.app/Contents/MacOS/Ui
-
-    cp -R $publishdir/Ui/ ${tmpdir}/${appname}.app/Contents/MacOS/Ui
-    chmod a+r ${tmpdir}/${appname}.app/Contents/MacOS/Ui/*
+    # Bundle the Photino config GUI payload (scalus-ui + native webview dylib +
+    # wwwroot + runtime files) under Contents/MacOS/ui. The applet launches
+    # ui/scalus-ui on normal open; URL launches route to the scalus CLI above.
+    mkdir -p ${tmpdir}/${appname}.app/Contents/MacOS/ui
+    cp -R $publishdir/ui/ ${tmpdir}/${appname}.app/Contents/MacOS/ui
+    chmod -R a+rX ${tmpdir}/${appname}.app/Contents/MacOS/ui
+    chmod u=rwx,go=rx ${tmpdir}/${appname}.app/Contents/MacOS/ui/scalus-ui
 
     mkdir -p ${tmpdir}/${appname}.app/Contents/Resources/examples
     chmod a+rx ${tmpdir}/${appname}.app/Contents/Resources/Examples

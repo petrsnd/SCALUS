@@ -12,7 +12,7 @@
     <AssemblyName>Scalus.Core</AssemblyName>
     <SignAssembly>false</SignAssembly>
     <AssemblyOriginatorKeyFile>signer.pfx</AssemblyOriginatorKeyFile>
-    <RuntimeIdentifiers>linux-x64;osx-x64;win-x64</RuntimeIdentifiers>
+    <RuntimeIdentifiers>linux-x64;linux-arm64;osx-x64;osx-arm64;win-x64;win-arm64</RuntimeIdentifiers>
     <IsAotCompatible>true</IsAotCompatible>
     <Company>One Identity LLC</Company>
     <Copyright>Copyright 2021 One Identity LLC</Copyright>

@@ -1,24 +1,43 @@
 #!/usr/bin/osascript
-on checkit()
-	
-	set findcmd to do shell script "/usr/bin/mdfind kMDItemCFBundleIdentifier=com.oneidentity.scalus.macos | head -1"
-	set cmdpath to findcmd & "/Contents/MacOS/scalus"
-	set res to do shell script "test -f " & cmdpath & "; echo $?"
-	set exitCode to res as number
-	if (exitCode is not equal to 0) then
-		display dialog "scalus was not found in path:" & cmdpath
+-- SCALUS macOS handler applet.
+--
+-- macOS launches this .app bundle two ways:
+--   * with a rdp/ssh/telnet URL  -> "on open location": hand the URL to the
+--     NativeAOT `scalus` CLI, which parses it and launches the native client.
+--   * by double-click / `open`   -> "run": open the Photino config GUI
+--     (`scalus-ui`). The legacy build opened `scalus` (a local web server +
+--     system browser); the modern UI is a self-contained desktop app.
+--
+-- Both executables live side by side in this bundle's Contents/MacOS.
+
+on toolPath(relPath)
+	-- Resolve this bundle by its identifier so the handlers work no matter
+	-- where the .app was installed (/Applications, ~/Applications, a DMG, ...).
+	set base to do shell script "/usr/bin/mdfind kMDItemCFBundleIdentifier=com.oneidentity.scalus.macos | head -1"
+	if base is "" then
+		-- mdfind can miss a freshly-copied bundle before Spotlight indexes it;
+		-- fall back to the bundle actually running this script.
+		set base to POSIX path of (path to me)
+	end if
+	set cmdpath to base & "/Contents/MacOS/" & relPath
+	set res to do shell script "test -x " & quoted form of cmdpath & "; echo $?"
+	if ((res as number) is not equal to 0) then
+		display dialog relPath & " was not found in the SCALUS bundle at:" & return & cmdpath buttons {"OK"} default button "OK" with icon caution
+		error relPath & " not found" number 1
 	end if
 	return cmdpath
-end checkit
+end toolPath
 
 on open location theURL
-	set cmdpath to checkit()
-	do shell script cmdpath & " launch -u '" & theURL & "'"
+	set launcher to toolPath("scalus")
+	do shell script quoted form of launcher & " launch -u " & quoted form of theURL
 end open location
 
-on runScalus()
-	set cmdpath to checkit()
-	do shell script "open -n " & cmdpath
-end runScalus
+on runScalusUi()
+	set ui to toolPath("ui/scalus-ui")
+	-- Background it so this osascript host returns immediately and the GUI owns
+	-- its own lifetime.
+	do shell script quoted form of ui & " > /dev/null 2>&1 &"
+end runScalusUi
 
-run runScalus()
+run runScalusUi()
