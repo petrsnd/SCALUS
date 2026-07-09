@@ -66,6 +66,7 @@ export class App implements OnInit {
     Ansi: 'ANSI (Latin-1)'
   };
   tokens: Record<string, string> = {};
+  private tokenTips: Record<string, string> = {};
   info = '';
   message = '';
   editorOpen = false;
@@ -98,6 +99,13 @@ export class App implements OnInit {
     this.parsers = await this.bridge.getParsers();
     this.terminals = await this.bridge.getTerminals();
     this.tokens = await this.bridge.getTokens();
+    // The bridge keys descriptions by the Token enum name (e.g. "TargetUser"),
+    // but the chips are the wire form ("%TargetUser%"). Index case-insensitively
+    // on the bare name so every chip's tooltip resolves.
+    this.tokenTips = {};
+    for (const [name, desc] of Object.entries(this.tokens)) {
+      this.tokenTips[name.toLowerCase()] = desc;
+    }
     this.platform = await this.bridge.getPlatform();
     this.info = await this.bridge.getInfo();
 
@@ -574,6 +582,9 @@ export class App implements OnInit {
     ];
     if (spec.safeguard) groups.push({ label: 'Safeguard in-band tokens', tokens: SAFEGUARD_TOKENS, tone: 'warn' });
     return groups;
+  }
+  tokenTip(token: string): string {
+    return this.tokenTips[token.replace(/%/g, '').toLowerCase()] ?? token;
   }
   insertToken(token: string, target: HTMLTextAreaElement): void {
     const start = target.selectionStart ?? target.value.length;
