@@ -300,10 +300,17 @@ export class App implements OnInit {
   appById(id?: string | null): ApplicationConfig | undefined { return this.config.Applications.find(app => app.Id === id); }
   appOptionsFor(protocol: ProtocolMapping): { label: string; value: string }[] {
     const family = this.protocolFamily(protocol.Protocol);
+    // The protocol suffix only disambiguates when a custom protocol (family 'any')
+    // can list apps of mixed parser types. On the built-in rdp/ssh/telnet rows the
+    // row itself already names the protocol, so the suffix is just noise.
+    const showParser = family === 'any';
     return this.config.Applications
       .filter(app => this.appMatchesFamily(app, family))
       .filter(app => app.Platforms?.includes(this.platform))
-      .map(app => ({ label: `${app.Name} · ${app.Parser.ParserId.toUpperCase()}`, value: app.Id }));
+      .map(app => ({
+        label: showParser ? `${app.Name} · ${app.Parser.ParserId.toUpperCase()}` : app.Name,
+        value: app.Id,
+      }));
   }
   protocolFamily(protocol: string): string { return BUILT_IN_PROTOCOLS.has(protocol) ? protocol : 'any'; }
   appMatchesFamily(app: ApplicationConfig, family: string): boolean {
