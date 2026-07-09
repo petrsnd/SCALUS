@@ -64,7 +64,7 @@ export const DEFAULT_RDP_TEMPLATE = [
   'pinconnectionbar:i:0',
   'disable ctrl+alt+del:i:0',
   'full address:s:%Host%',
-  'server port:i:3389',
+  'server port:i:%Port%',
   'username:s:%user%',
 ].join('\n');
 

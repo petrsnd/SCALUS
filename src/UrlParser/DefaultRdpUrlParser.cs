@@ -391,7 +391,11 @@ namespace OneIdentity.Scalus.UrlParser
                     continue;
                 }
 
-                dict[line[0]] = line[1] + ":" + line[2];
+                // Preserve values that themselves contain colons (e.g. host:port in
+                // "full address", or an IPv6 literal). Splitting on ':' and rejoining
+                // only line[1]+line[2] silently truncated everything after the second
+                // colon. (OneIdentity/SCALUS PR #204)
+                dict[line[0]] = string.Join(":", line, 1, line.Length - 1);
             }
 
             return dict;
