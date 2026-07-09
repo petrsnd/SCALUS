@@ -207,7 +207,7 @@
     {
       "Id": "putty-telnet",
       "Description": "Run the Putty client to connect using telnet",
-      "Name": "Putty Telnet",
+      "Name": "Putty [Telnet]",
       "Platforms": [
         "Windows"
       ],
