@@ -313,6 +313,17 @@ export class App implements OnInit {
       }));
   }
   protocolFamily(protocol: string): string { return BUILT_IN_PROTOCOLS.has(protocol) ? protocol : 'any'; }
+  // Suggestions for the Protocol combobox: the built-in schemes plus any custom
+  // schemes already declared in this config. The field stays free-text so a brand
+  // new scheme can still be typed.
+  get protocolSuggestions(): string[] {
+    const seen = new Set<string>(BUILT_IN_PROTOCOLS);
+    for (const p of this.config.Protocols) {
+      const s = p.Protocol?.trim().toLowerCase();
+      if (s) seen.add(s);
+    }
+    return [...seen].sort();
+  }
   appMatchesFamily(app: ApplicationConfig, family: string): boolean {
     if (family === 'any') return true;
     if (family === 'telnet') return ['telnet', 'ssh'].includes(app.Parser.ParserId);
