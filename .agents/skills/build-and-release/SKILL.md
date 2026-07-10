@@ -107,5 +107,3 @@ the SCALUS repo, or the tag-build release step 403s.
 
 - `.github/workflows/dotnet-core.yml` is a lightweight GitHub Actions build+test on
   PRs (coexists with the Azure pipeline).
-- `polaris.yml` (Coverity/Polaris security scan) is **known-stale** — do not treat
-  it as current; CI integration is a separate follow-up.
