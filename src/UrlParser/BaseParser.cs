@@ -180,8 +180,27 @@ namespace OneIdentity.Scalus.UrlParser
 
         public abstract IDictionary<Token, string> Parse(string url);
 
+        // URI-derived token values are attacker-controlled (the URL arrives from a clicked link).
+        // Strip control characters - especially CR/LF - so a value containing %0d%0a cannot inject
+        // additional lines/directives when substituted into a generated launch file (.rdp, .remmina, ...).
+        public static string SanitizeTokenValue(string tokenValue)
+        {
+            if (string.IsNullOrEmpty(tokenValue))
+            {
+                return tokenValue;
+            }
+
+            if (!tokenValue.Any(char.IsControl))
+            {
+                return tokenValue;
+            }
+
+            return new string(tokenValue.Where(c => !char.IsControl(c)).ToArray());
+        }
+
         public static string ReplaceToken(string tokenKey, string tokenValue, string line)
         {
+            tokenValue = SanitizeTokenValue(tokenValue);
             var patt = "%" + tokenKey + "%";
             var newline = line;
             newline = Regex.Replace(newline, patt, tokenValue ?? string.Empty, RegexOptions.IgnoreCase);
@@ -420,6 +439,26 @@ namespace OneIdentity.Scalus.UrlParser
             return templateContents;
         }
 
+        // Token values used to build a generated-file NAME are attacker-controlled (from the URI).
+        // Replace path separators, invalid filename characters, and control characters so a value
+        // cannot traverse directories (../ or ..\) or otherwise break out of the intended folder.
+        private static string SanitizeFileNameComponent(string value)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return value;
+            }
+
+            var invalid = Path.GetInvalidFileNameChars();
+            var sb = new StringBuilder(value.Length);
+            foreach (var c in value)
+            {
+                sb.Append(Array.IndexOf(invalid, c) >= 0 || char.IsControl(c) ? '~' : c);
+            }
+
+            return sb.ToString();
+        }
+
         private void WriteTempFile(IEnumerable<string> lines, string ext)
         {
             try
@@ -445,7 +484,7 @@ namespace OneIdentity.Scalus.UrlParser
                         var user = Dictionary[Token.TargetUser];
                         user = user.Replace('\\', '~');
                         tempFile = Path.Combine(Path.GetTempPath(),
-                            $"SG-{host}_{user}_{guid}{ext}");
+                            $"SG-{SanitizeFileNameComponent(host)}_{SanitizeFileNameComponent(user)}_{guid}{ext}");
                     }
                     else
                     {
@@ -463,7 +502,7 @@ namespace OneIdentity.Scalus.UrlParser
 
                             tempFile = Path.Combine(
                                 Path.GetTempPath(),
-                                $"Scalus-{host}_{user}_{guid}{ext}");
+                                $"Scalus-{SanitizeFileNameComponent(host)}_{SanitizeFileNameComponent(user)}_{guid}{ext}");
                         }
                         else
                         {

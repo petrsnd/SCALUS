@@ -359,5 +359,59 @@ namespace OneIdentity.Scalus.Test
 
             }
         }
+
+        [Fact]
+        public void TestReplaceTokenStripsControlChars()
+        {
+            // A clicked URI is attacker-controlled. If a token value carries CR/LF (from %0d%0a),
+            // it must not be able to inject an extra directive as a new line when substituted into
+            // a generated launch file. ReplaceToken is the single substitution choke point.
+            var injected = "victim\r\ndrivestoredirect:s:*";
+            var result = BaseParser.ReplaceToken("User", injected, "username:s:%User%");
+            Assert.DoesNotContain("\r", result);
+            Assert.DoesNotContain("\n", result);
+            Assert.Equal("username:s:victimdrivestoredirect:s:*", result);
+
+            // A benign value with no control characters is unchanged.
+            Assert.Equal("victim", BaseParser.SanitizeTokenValue("victim"));
+            Assert.Equal("my test user\\ishere", BaseParser.SanitizeTokenValue("my test user\\ishere"));
+        }
+
+        [Fact]
+        public void TestRdpCrlfInjectionIsSanitized()
+        {
+            // End-to-end: an rdp:// URL that URL-encodes CR/LF into the username must not inject
+            // a standalone 'drivestoredirect' directive into the generated .rdp file.
+            var template = Path.GetTempFileName();
+            var lines = new List<string>
+            {
+                $"full address:s:%{Token.Host}%:%{Token.Port}%",
+                $"username:s:%{Token.User}%",
+            };
+            File.WriteAllLines(template, lines);
+
+            try
+            {
+                using (var sut = new DefaultRdpUrlParser(new Dto.ParserConfig { UseTemplateFile = template }))
+                {
+                    var url = "rdp://full+address=s:myhost:3389&username=s:victim%0d%0adrivestoredirect%3as%3a*/";
+                    var dictionary = sut.Parse(url);
+
+                    var tempfile = dictionary[Token.GeneratedFile];
+                    var fileLines = File.ReadAllLines(tempfile);
+
+                    // No extra lines beyond the template, and no injected directive on its own line.
+                    Assert.Equal(lines.Count, fileLines.Length);
+                    Assert.DoesNotContain(fileLines, l => Regex.IsMatch(l, "^drivestoredirect", RegexOptions.IgnoreCase));
+                }
+            }
+            finally
+            {
+                if (File.Exists(template))
+                {
+                    File.Delete(template);
+                }
+            }
+        }
     }
 }

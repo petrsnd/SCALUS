@@ -66,21 +66,20 @@ namespace OneIdentity.Scalus.UrlParser
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && !string.IsNullOrEmpty(tempFile))
             {
-                // Make the temp file executable so it can be passed to the Terminal
+                // Make the temp file executable so it can be passed to the Terminal.
+                // Use a direct file-mode change (owner rwx only) rather than shelling out to
+                // `chmod 777`, which would make the generated script world-writable (local TOCTOU)
+                // and interpolate the path into a /bin/sh command line.
                 Log.Information($"Changing permissions on temp file: {tempFile}");
-                var path = Constants.GetBinaryDirectory();
-                var home = Environment.GetEnvironmentVariable("HOME");
-
-                string output;
-                string err;
-                var res = services.Execute("/bin/sh",
-                    new List<string> { "-c", $"HOME=\"{home}\"; export HOME; chmod 777 {tempFile}" },
-                    out output,
-                    out err);
-
-                if (res != 0)
+                try
                 {
-                    Serilog.Log.Warning($"Failed to change permissions on temp file: {res}, output:{output}, err:{err}");
+                    System.IO.File.SetUnixFileMode(
+                        tempFile,
+                        System.IO.UnixFileMode.UserRead | System.IO.UnixFileMode.UserWrite | System.IO.UnixFileMode.UserExecute);
+                }
+                catch (Exception ex)
+                {
+                    Serilog.Log.Warning($"Failed to change permissions on temp file: {ex.Message}");
                 }
             }
         }
