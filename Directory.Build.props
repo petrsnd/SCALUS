@@ -1,0 +1,47 @@
+<Project>
+
+  <!--
+    SCALUS version - SINGLE SOURCE OF TRUTH.
+
+    Every version number in the product (assemblies, the CLI version output,
+    the About screen, the MSI/pkg/deb/rpm installers and the readme) derives
+    from the two properties below. Nothing is hardcoded anywhere else.
+
+      VersionPrefix - the checked-in base version (x.y.z). Bump this in the
+                      same commit you tag a release. A release tag `vX.Y.Z`
+                      MUST match this value (the CI version step asserts it)
+                      so the tag and the tree never drift.
+      BuildNumber   - the 4th, incrementing component. Defaults to 0 for local
+                      and non-release builds (the non-release build number that
+                      is checked in). CI overrides it with the incrementing
+                      pipeline build id for trunk builds, and omits it for
+                      tagged release builds.
+
+    Effective versions:
+      local dev build   ->  2.0.0.0            (BuildNumber = 0)
+      CI trunk build    ->  2.0.0.&lt;buildid&gt;    (incrementing, installer-safe)
+      CI release (tag)  ->  2.0.0              (clean semver from vX.Y.Z)
+
+    A caller may also pass a fully-formed version with -p:Version=x.y.z (the CI
+    version step does exactly this); that always wins.
+  -->
+  <PropertyGroup>
+    <VersionPrefix>2.0.0</VersionPrefix>
+    <BuildNumber Condition="'$(BuildNumber)' == ''">0</BuildNumber>
+  </PropertyGroup>
+
+  <!-- Compose the full version only when a caller hasn't supplied one. -->
+  <PropertyGroup Condition="'$(Version)' == ''">
+    <Version>$(VersionPrefix).$(BuildNumber)</Version>
+  </PropertyGroup>
+
+  <!-- Fan the resolved version out to every assembly-identity attribute so the
+       CLI, the UI and the core library all report the same number. -->
+  <PropertyGroup>
+    <AssemblyVersion>$(Version)</AssemblyVersion>
+    <FileVersion>$(Version)</FileVersion>
+    <InformationalVersion>$(Version)</InformationalVersion>
+    <Product>SCALUS</Product>
+  </PropertyGroup>
+
+</Project>
