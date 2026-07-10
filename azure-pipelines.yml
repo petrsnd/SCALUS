@@ -1,28 +1,56 @@
+# =============================================================================
+# SCALUS CI/CD - trunk-based development with tag-driven releases.
+#
+#   * Every push to master and every PR to master runs Build & Test.
+#   * Pushes to master additionally build (unsigned) prerelease installers for
+#     all six OS/arch legs, so packaging breaks surface immediately on trunk.
+#   * A release is cut by tagging a commit `vX.Y.Z` (the tag MUST match
+#     <VersionPrefix> in Directory.Build.props - scripts/version.* enforces it).
+#     A tag build signs/notarizes the installers and drafts a GitHub release.
+#
+# The version is NEVER hardcoded here - scripts/version.ps1 / version.sh derive
+# it from the git ref + Directory.Build.props and publish it as $(Version):
+#   trunk/PR build  -> 2.0.0.<BuildId>  (incrementing, prerelease, installer-safe)
+#   tag build vX.Y.Z -> X.Y.Z            (clean release semver)
+# =============================================================================
+
 trigger:
-- master
-- release*
+  branches:
+    include:
+    - master
+  tags:
+    include:
+    - v*
+
+pr:
+  branches:
+    include:
+    - master
 
 name: $(Date:yyyyMMdd).$(Rev:r)
 
 variables:
-  version: '1.1.0.$(Revision)'
   buildConfiguration: 'Release'
   dotnetSdkVersion: '10.0.x'
   wixVersion: '5.0.2'
   signToolPath: 'C:\Program Files (x86)\Microsoft SDKs\ClickOnce\SignTool\signtool.exe'
-  isRelease: $[ startswith(variables['Build.SourceBranch'], 'refs/heads/release-')]
+  # Compile-time gates. Releases (sign/notarize/GitHub release) happen only on a
+  # `v*` tag; heavy packaging is skipped on PRs (Build & Test still runs).
+  isTagBuild: $[ startsWith(variables['Build.SourceBranch'], 'refs/tags/') ]
+  isPr: $[ eq(variables['Build.Reason'], 'PullRequest') ]
 
 jobs:
 # ---------------------------------------------------------------------------
-# Build & unit tests (plain `dotnet test`, no more VSBuild / web-publish).
+# Build & unit tests. Runs for PRs, trunk and tags. The version step here also
+# fails the whole pipeline early if a release tag drifts from Directory.Build.props.
 # ---------------------------------------------------------------------------
 - job: BuildAndTest
   displayName: 'Build & Test'
   pool:
     vmImage: 'ubuntu-latest'
   steps:
-  - script: echo 'SCALUS Version - $(version)'
-    displayName: 'Show version'
+  - script: bash $(Build.SourcesDirectory)/scripts/version.sh
+    displayName: 'Derive version (drift guard)'
 
   - task: UseDotNet@2
     displayName: 'Install .NET SDK'
@@ -36,9 +64,11 @@ jobs:
 
 # ---------------------------------------------------------------------------
 # Windows: NativeAOT scalus.exe + Photino scalus-ui + WiX 5 MSI (x64 & arm64).
+# Skipped on PRs; signed only on tag builds.
 # ---------------------------------------------------------------------------
 - job: Windows
   dependsOn: BuildAndTest
+  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
   pool:
     vmImage: 'windows-latest'
   strategy:
@@ -48,6 +78,10 @@ jobs:
       arm64:
         rid: 'win-arm64'
   steps:
+  - powershell: |
+      & $(Build.SourcesDirectory)\scripts\version.ps1
+    displayName: 'Derive version'
+
   - task: AzureKeyVault@2
     displayName: 'Get code signing certificate from Azure Key Vault'
     inputs:
@@ -59,7 +93,7 @@ jobs:
       KeyVaultName: "SPPCodeSigning"
       SecretsFilter: "SPPCodeSigning-Password, SPPCodeSigning-TotpPrivateKey"
     # PRs from repository forks are not allowed to access secrets in the pipeline. For more information see https://learn.microsoft.com/en-us/azure/devops/pipelines/repos/github?view=azure-devops&tabs=yaml#access-restrictions
-    condition: and(succeeded(), eq(variables.isRelease, true))
+    condition: and(succeeded(), eq(variables.isTagBuild, true))
 
   # SSL.com example:
   # https://www.ssl.com/how-to/how-to-integrate-esigner-cka-with-ci-cd-tools-for-automated-code-signing/#ftoc-heading-1
@@ -72,24 +106,24 @@ jobs:
       Remove-Item eSigner_CKA_Setup.zip
       Move-Item -Path "eSigner_CKA_*\*.exe" -Destination "eSigner_CKA_Installer.exe"
     displayName: "Download and Unzip eSignerCKA Setup"
-    condition: and(succeeded(), eq(variables.isRelease, true))
+    condition: and(succeeded(), eq(variables.isTagBuild, true))
 
   - powershell: |
       .\eSigner_CKA_Installer.exe /CURRENTUSER /VERYSILENT /SUPPRESSMSGBOXES /DIR="$(Build.SourcesDirectory)\eSignerCKA" | Out-Null
       dir $(Build.SourcesDirectory)\eSignerCKA
     displayName: "Setup eSignerCKA in silent mode and output installation directory"
-    condition: and(succeeded(), eq(variables.isRelease, true))
+    condition: and(succeeded(), eq(variables.isTagBuild, true))
 
   - powershell: |
       $(Build.SourcesDirectory)\eSignerCKA\eSignerCKATool.exe config -mode "product" -user "ssl.oid.safeguardpp@groups.quest.com" -pass "$(SPPCodeSigning-Password)" -totp "$(SPPCodeSigning-TotpPrivateKey)" -key "$(Build.SourcesDirectory)\eSignerCKA\master.key" -r
     displayName: "Configure account information on eSignerCKA using Azure Key Vault values"
-    condition: and(succeeded(), eq(variables.isRelease, true))
+    condition: and(succeeded(), eq(variables.isTagBuild, true))
 
   - powershell: |
       $(Build.SourcesDirectory)\eSignerCKA\eSignerCKATool.exe unload
       $(Build.SourcesDirectory)\eSignerCKA\eSignerCKATool.exe load
     displayName: "Unload and load certificate into Windows Certificate Store"
-    condition: and(succeeded(), eq(variables.isRelease, true))
+    condition: and(succeeded(), eq(variables.isTagBuild, true))
 
   # We should now be able to access the certificate using the standard Windows signtool.exe from the Windows SDK,
   # which should be installed on the build agent images being used. signtool.exe accesses the certificate by a
@@ -119,17 +153,17 @@ jobs:
       versionSpec: '22.x'
 
   - powershell: |
-      & $(Build.SourcesDirectory)\scripts\publish.ps1 -Runtime $(rid) -Configuration $(buildConfiguration) -Version $(version)
+      & $(Build.SourcesDirectory)\scripts\publish.ps1 -Runtime $(rid) -Configuration $(buildConfiguration) -Version $(Version)
     displayName: 'Publish scalus + scalus-ui ($(rid))'
 
   - powershell: |
       $pkgArgs = @{
         Runtime       = '$(rid)'
         Configuration = '$(buildConfiguration)'
-        Version       = '$(version)'
+        Version       = '$(Version)'
         SignToolPath  = '$(signToolPath)'
       }
-      if ('$(isRelease)' -eq 'True') { $pkgArgs.SignFiles = $true }
+      if ('$(isTagBuild)' -eq 'True') { $pkgArgs.SignFiles = $true }
       & $(Build.SourcesDirectory)\scripts\Win\package.ps1 @pkgArgs
     displayName: 'Build MSI ($(rid))'
 
@@ -141,9 +175,11 @@ jobs:
 
 # ---------------------------------------------------------------------------
 # Linux: NativeAOT scalus + Photino scalus-ui + tar.gz/.deb/.rpm (x64 & arm64).
+# Skipped on PRs.
 # ---------------------------------------------------------------------------
 - job: Linux
   dependsOn: BuildAndTest
+  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
   pool:
     vmImage: 'ubuntu-latest'
   strategy:
@@ -153,6 +189,9 @@ jobs:
       arm64:
         rid: 'linux-arm64'
   steps:
+  - script: bash $(Build.SourcesDirectory)/scripts/version.sh
+    displayName: 'Derive version'
+
   - task: UseDotNet@2
     displayName: 'Install .NET SDK'
     inputs:
@@ -185,11 +224,11 @@ jobs:
     displayName: 'Install fpm + rpm (deb/rpm packaging)'
 
   - script: |
-      bash $(Build.SourcesDirectory)/scripts/publish.sh --runtime $(rid) --configuration $(buildConfiguration) --version $(version)
+      bash $(Build.SourcesDirectory)/scripts/publish.sh --runtime $(rid) --configuration $(buildConfiguration) --version $(Version)
     displayName: 'Publish scalus + scalus-ui ($(rid))'
 
   - script: |
-      bash $(Build.SourcesDirectory)/scripts/Linux/package.sh --runtime $(rid) --configuration $(buildConfiguration) --version $(version)
+      bash $(Build.SourcesDirectory)/scripts/Linux/package.sh --runtime $(rid) --configuration $(buildConfiguration) --version $(Version)
     displayName: 'Package tar.gz + .deb + .rpm ($(rid))'
 
   - task: PublishPipelineArtifact@1
@@ -201,10 +240,11 @@ jobs:
 # ---------------------------------------------------------------------------
 # macOS: NativeAOT scalus + Photino scalus-ui, .app/.pkg, sign + notarize
 # (x64 & arm64). macOS runners are arm64; the x64 leg cross-targets via the
-# universal Apple toolchain.
+# universal Apple toolchain. Skipped on PRs; signed/notarized only on tags.
 # ---------------------------------------------------------------------------
 - job: Mac
   dependsOn: BuildAndTest
+  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
   pool:
     vmImage: 'macOS-latest'
   strategy:
@@ -214,6 +254,9 @@ jobs:
       arm64:
         rid: 'osx-arm64'
   steps:
+  - script: bash $(Build.SourcesDirectory)/scripts/version.sh
+    displayName: 'Derive version'
+
   - task: UseDotNet@2
     displayName: 'Install .NET SDK'
     inputs:
@@ -225,7 +268,7 @@ jobs:
       ConnectedServiceName: "OneIdentity.Infrastructure.SPPCodeSigning"
       KeyVaultName: "SPPCodeSigning"
       SecretsFilter: 'AppleCertificate-Installer-Cert,AppleCertificate-Installer-Password,AppleCertificate-Application-Cert,Apple-App-Specific-Password'
-    condition: and(succeeded(), eq(variables.isRelease, true))
+    condition: and(succeeded(), eq(variables.isTagBuild, true))
 
   - powershell: |
          $kvSecretBytes = [System.Convert]::FromBase64String("$(AppleCertificate-Installer-Cert)")
@@ -237,7 +280,7 @@ jobs:
          [System.IO.File]::WriteAllBytes($certpath, $protectedCertificateBytes)
          sudo security import $certpath -k /Library/Keychains/System.keychain -P $(AppleCertificate-Installer-Password) -A -t cert -f pkcs12
     displayName: 'Save Apple product signing certificate to PFX file'
-    condition: and(succeeded(), eq(variables.isRelease, true))
+    condition: and(succeeded(), eq(variables.isTagBuild, true))
 
   - powershell: |
         $kvSecretBytes = [System.Convert]::FromBase64String("$(AppleCertificate-Application-Cert)")
@@ -249,21 +292,21 @@ jobs:
         [System.IO.File]::WriteAllBytes($certpath, $protectedCertificateBytes)
         sudo security import $certpath -k /Library/Keychains/System.keychain -P $(AppleCertificate-Installer-Password) -A -t cert -f pkcs12
     displayName: 'Save Apple code signing certificate to PFX file'
-    condition: and(succeeded(), eq(variables.isRelease, true))
+    condition: and(succeeded(), eq(variables.isTagBuild, true))
 
   - task: DeleteFiles@1
     displayName: 'Delete product signing certificate files'
     inputs:
       SourceFolder: '$(Build.SourcesDirectory)'
       Contents: '$(ProductSigningCertFileName)'
-    condition: and(succeededOrFailed(), eq(variables.isRelease, true))
+    condition: and(succeededOrFailed(), eq(variables.isTagBuild, true))
 
   - task: DeleteFiles@1
     displayName: 'Delete code signing certificate files'
     inputs:
       SourceFolder: '$(Build.SourcesDirectory)'
       Contents: '$(CodeSigningCertFileName)'
-    condition: and(succeededOrFailed(), eq(variables.isRelease, true))
+    condition: and(succeededOrFailed(), eq(variables.isTagBuild, true))
 
   - task: NodeTool@0
     displayName: 'Install Node.js (Angular UI build)'
@@ -271,19 +314,19 @@ jobs:
       versionSpec: '22.x'
 
   - script: |
-      bash $(Build.SourcesDirectory)/scripts/publish.sh --runtime $(rid) --configuration $(buildConfiguration) --version $(version)
+      bash $(Build.SourcesDirectory)/scripts/publish.sh --runtime $(rid) --configuration $(buildConfiguration) --version $(Version)
     displayName: 'Publish scalus + scalus-ui ($(rid))'
 
   - task: Bash@3
     displayName: 'Package .pkg + .tar.gz ($(rid))'
     inputs:
       filePath: '$(Build.SourcesDirectory)/scripts/Osx/package.sh'
-      arguments: '--version $(version) --runtime $(rid) --infile $(Build.SourcesDirectory)/scripts/Osx/applet --outpath $(Build.SourcesDirectory)/Output/$(buildConfiguration)/$(rid) --publishdir $(Build.SourcesDirectory)/Publish/$(buildConfiguration)/$(rid) --isrelease $(isRelease)'
+      arguments: '--version $(Version) --runtime $(rid) --infile $(Build.SourcesDirectory)/scripts/Osx/applet --outpath $(Build.SourcesDirectory)/Output/$(buildConfiguration)/$(rid) --publishdir $(Build.SourcesDirectory)/Publish/$(buildConfiguration)/$(rid) --isrelease $(isTagBuild)'
 
   - powershell: |
-      sudo productsign --sign 'LDBTVAT43D' $(Build.SourcesDirectory)/Output/$(buildConfiguration)/$(rid)/scalus-$(version)-$(rid).pkg $(Build.SourcesDirectory)/Output/$(buildConfiguration)/$(rid)/scalus-$(version)-$(rid)_Signed.pkg
+      sudo productsign --sign 'LDBTVAT43D' $(Build.SourcesDirectory)/Output/$(buildConfiguration)/$(rid)/scalus-$(Version)-$(rid).pkg $(Build.SourcesDirectory)/Output/$(buildConfiguration)/$(rid)/scalus-$(Version)-$(rid)_Signed.pkg
     displayName: 'ProductSigning for pkg'
-    condition: and(succeeded(), eq(variables.isRelease, true))
+    condition: and(succeeded(), eq(variables.isTagBuild, true))
 
   - script: |
         # Upload the pkg to the Apple Notary Service
@@ -292,22 +335,63 @@ jobs:
             --password "$(Apple-App-Specific-Password)" \
             --team-id "LDBTVAT43D" \
             --wait \
-            $(Build.SourcesDirectory)/Output/$(buildConfiguration)/$(rid)/scalus-$(version)-$(rid)_Signed.pkg
+            $(Build.SourcesDirectory)/Output/$(buildConfiguration)/$(rid)/scalus-$(Version)-$(rid)_Signed.pkg
     displayName: 'Upload and notarize for pkg'
-    condition: and(succeeded(), eq(variables.isRelease, true))
+    condition: and(succeeded(), eq(variables.isTagBuild, true))
 
   - powershell: |
-      sudo xcrun stapler staple $(Build.SourcesDirectory)/Output/$(buildConfiguration)/$(rid)/scalus-$(version)-$(rid)_Signed.pkg
+      sudo xcrun stapler staple $(Build.SourcesDirectory)/Output/$(buildConfiguration)/$(rid)/scalus-$(Version)-$(rid)_Signed.pkg
     displayName: 'Staple for pkg'
-    condition: and(succeeded(), eq(variables.isRelease, true))
+    condition: and(succeeded(), eq(variables.isTagBuild, true))
 
   - powershell: |
-      Move-Item -Path "$(Build.SourcesDirectory)/Output/$(buildConfiguration)/$(rid)/scalus-$(version)-$(rid)_Signed.pkg" -Destination "$(Build.SourcesDirectory)/Output/$(buildConfiguration)/$(rid)/scalus-$(version)-$(rid).pkg" -Force
+      Move-Item -Path "$(Build.SourcesDirectory)/Output/$(buildConfiguration)/$(rid)/scalus-$(Version)-$(rid)_Signed.pkg" -Destination "$(Build.SourcesDirectory)/Output/$(buildConfiguration)/$(rid)/scalus-$(Version)-$(rid).pkg" -Force
     displayName: 'Replace signed pkg'
-    condition: and(succeeded(), eq(variables.isRelease, true))
+    condition: and(succeeded(), eq(variables.isTagBuild, true))
 
   - task: PublishPipelineArtifact@1
     inputs:
       targetPath: '$(Build.SourcesDirectory)/Output/$(buildConfiguration)/$(rid)'
       artifact: 'Scalus-$(rid)'
       publishLocation: 'pipeline'
+
+# ---------------------------------------------------------------------------
+# Release: on a `v*` tag, gather every OS/arch artifact and draft a GitHub
+# release. Created as a DRAFT so a human can review the notes/assets and click
+# publish. Runs only for tag builds.
+# ---------------------------------------------------------------------------
+- job: Release
+  dependsOn:
+  - Windows
+  - Linux
+  - Mac
+  condition: and(succeeded(), eq(variables.isTagBuild, true))
+  pool:
+    vmImage: 'ubuntu-latest'
+  steps:
+  - download: current
+    displayName: 'Download all build artifacts'
+
+  - task: GitHubRelease@1
+    displayName: 'Draft GitHub release from tag'
+    inputs:
+      # TODO: set this to the Azure DevOps GitHub service connection that has
+      # write access to the SCALUS repo (create under Project Settings >
+      # Service connections if it does not exist yet).
+      gitHubConnection: 'OneIdentity-SCALUS-GitHub'
+      repositoryName: 'OneIdentity/SCALUS'
+      action: 'create'
+      target: '$(Build.SourceVersion)'
+      tagSource: 'gitTag'
+      title: 'SCALUS $(Build.SourceBranchName)'
+      isDraft: true
+      isPreRelease: false
+      addChangeLog: true
+      changeLogCompareToRelease: 'lastFullRelease'
+      # Attach only the shippable installers/archives, not the whole publish tree.
+      assets: |
+        $(Pipeline.Workspace)/**/*.msi
+        $(Pipeline.Workspace)/**/*.pkg
+        $(Pipeline.Workspace)/**/*.deb
+        $(Pipeline.Workspace)/**/*.rpm
+        $(Pipeline.Workspace)/**/*.tar.gz
