@@ -17,11 +17,12 @@
 # writes its own scalus.desktop + xdg-mime associations — the package does not
 # pre-register handlers.
 #
-# Usage: scripts/Linux/package.sh --runtime linux-x64 [--configuration Release] [--version 1.0.0]
+# Usage: scripts/Linux/package.sh --runtime linux-x64 [--configuration Release] [--version 2.0.0]
+# When --version is omitted it defaults to <VersionPrefix> from Directory.Build.props.
 set -euo pipefail
 
 configuration="Release"
-version="1.0.0"
+version=""
 runtime=""
 
 while (( "$#" )); do
@@ -41,6 +42,14 @@ fi
 scriptdir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 rootdir="$(cd "$scriptdir/../.." && pwd)"
 cd "$rootdir"
+
+if [ -z "$version" ]; then
+    version="$(sed -n 's/.*<VersionPrefix>\([^<]*\)<\/VersionPrefix>.*/\1/p' "$rootdir/Directory.Build.props" | head -n1 | tr -d '[:space:]')"
+    if [ -z "$version" ]; then
+        echo "Error: could not read <VersionPrefix> from Directory.Build.props" >&2
+        exit 1
+    fi
+fi
 
 publishdir="$rootdir/Publish/$configuration/$runtime"
 outputdir="$rootdir/Output/$configuration/$runtime"

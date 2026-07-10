@@ -1,6 +1,6 @@
 #!/bin/bash
 
-version="1.0"
+version=""
 runtime="osx-x64"
 
 infile=""
@@ -74,6 +74,15 @@ while(( "$#" )); do
     esac
 done
   
+if [ -z "${version}" ]; then
+    rootdir="$(cd "$scriptdir/../.." && pwd)"
+    version="$(sed -n 's/.*<VersionPrefix>\([^<]*\)<\/VersionPrefix>.*/\1/p' "$rootdir/Directory.Build.props" | head -n1 | tr -d '[:space:]')"
+    if [ -z "${version}" ]; then
+        echo "Error: could not read <VersionPrefix> from Directory.Build.props"
+        exit 1
+    fi
+fi
+
 appid="com.oneidentity.${appname}.macos"
 pkgname="${appname}-${version}-${runtime}.pkg"
 pkgfile="${outpath}/${pkgname}"

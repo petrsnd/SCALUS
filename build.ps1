@@ -5,12 +5,15 @@
 #
 # Usage:
 #   .\build.ps1 [-Runtime win-x64|win-arm64] [-Configuration Release]
-#               [-Version 1.0.0] [-SignToolPath <path>] [-SignFiles] [-SkipTests]
+#               [-Version 2.0.0] [-SignToolPath <path>] [-SignFiles] [-SkipTests]
+#
+# When -Version is omitted it defaults to <VersionPrefix> from Directory.Build.props
+# (the single checked-in version source), so a local build matches CI.
 [CmdletBinding()]
 param(
     [string]$Runtime = "win-x64",
     [string]$Configuration = "Release",
-    [string]$Version = "1.0.0",
+    [string]$Version = "",
     [string]$SignToolPath = "",
     [switch]$SignFiles,
     [switch]$SkipTests
@@ -20,6 +23,14 @@ $ErrorActionPreference = "Stop"
 
 $rootDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $rootDir
+
+if ([string]::IsNullOrWhiteSpace($Version)) {
+    $propsFile = Join-Path $rootDir "Directory.Build.props"
+    $match = Select-String -Path $propsFile -Pattern '<VersionPrefix>([^<]+)</VersionPrefix>' | Select-Object -First 1
+    if (-not $match) { throw "Could not read <VersionPrefix> from $propsFile" }
+    $Version = $match.Matches[0].Groups[1].Value.Trim()
+    Write-Host "==> No -Version supplied; using VersionPrefix '$Version' from Directory.Build.props"
+}
 
 if (-not $SkipTests) {
     Write-Host "==> Testing"

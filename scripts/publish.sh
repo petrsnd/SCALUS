@@ -10,11 +10,14 @@
 # Downstream packagers (scripts/Osx/package.sh, scripts/Linux/package.sh)
 # consume this directory. This replaces the old Cake "Publish"/"PublishUi" tasks.
 #
-# Usage: scripts/publish.sh --runtime osx-x64 [--configuration Release] [--version 1.0.0]
+# Usage: scripts/publish.sh --runtime osx-x64 [--configuration Release] [--version 2.0.0]
+#
+# When --version is omitted it defaults to <VersionPrefix> from Directory.Build.props
+# (the single checked-in version source), so local publishes match a plain build.
 set -euo pipefail
 
 configuration="Release"
-version="1.0.0"
+version=""
 runtime=""
 
 while (( "$#" )); do
@@ -34,6 +37,15 @@ fi
 scriptdir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 rootdir="$(cd "$scriptdir/.." && pwd)"
 cd "$rootdir"
+
+if [ -z "$version" ]; then
+    version="$(sed -n 's/.*<VersionPrefix>\([^<]*\)<\/VersionPrefix>.*/\1/p' "$rootdir/Directory.Build.props" | head -n1 | tr -d '[:space:]')"
+    if [ -z "$version" ]; then
+        echo "Error: could not read <VersionPrefix> from Directory.Build.props" >&2
+        exit 1
+    fi
+    echo "==> No --version supplied; using VersionPrefix '$version' from Directory.Build.props"
+fi
 
 publishdir="$rootdir/Publish/$configuration/$runtime"
 uidir="$publishdir/ui"

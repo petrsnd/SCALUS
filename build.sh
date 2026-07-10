@@ -5,11 +5,14 @@
 #
 # Usage:
 #   ./build.sh [--runtime osx-x64|linux-x64|...] [--configuration Release]
-#              [--version 1.0.0] [--isrelease true|false] [--skip-tests]
+#              [--version 2.0.0] [--isrelease true|false] [--skip-tests]
+#
+# When --version is omitted it defaults to <VersionPrefix> from Directory.Build.props
+# (the single checked-in version source), so a local build matches CI.
 set -euo pipefail
 
 configuration="Release"
-version="1.0.0"
+version=""
 runtime=""
 isrelease="false"
 skiptests="false"
@@ -27,6 +30,15 @@ done
 
 rootdir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$rootdir"
+
+if [ -z "$version" ]; then
+    version="$(sed -n 's/.*<VersionPrefix>\([^<]*\)<\/VersionPrefix>.*/\1/p' "$rootdir/Directory.Build.props" | head -n1 | tr -d '[:space:]')"
+    if [ -z "$version" ]; then
+        echo "Error: could not read <VersionPrefix> from Directory.Build.props" >&2
+        exit 1
+    fi
+    echo "==> No --version supplied; using VersionPrefix '$version' from Directory.Build.props"
+fi
 
 # Default the runtime to the host OS (x64) when not specified.
 if [ -z "$runtime" ]; then

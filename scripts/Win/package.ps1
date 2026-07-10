@@ -10,14 +10,17 @@
 #   wix extension add -g WixToolset.UI.wixext
 #
 # Usage:
-#   scripts\Win\package.ps1 -Runtime win-x64 [-Configuration Release] [-Version 1.0.0]
+#   scripts\Win\package.ps1 -Runtime win-x64 [-Configuration Release] [-Version 2.0.0]
 #                           [-SignToolPath <path>] [-SignFiles]
+#
+# When -Version is omitted it defaults to <VersionPrefix> from Directory.Build.props
+# (the single checked-in version source).
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
     [string]$Runtime,
     [string]$Configuration = "Release",
-    [string]$Version = "1.0.0",
+    [string]$Version = "",
     [string]$SignToolPath = "",
     [switch]$SignFiles
 )
@@ -27,6 +30,14 @@ $ErrorActionPreference = "Stop"
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $rootDir = (Resolve-Path (Join-Path $scriptDir "..\..")).Path
 Set-Location $rootDir
+
+if ([string]::IsNullOrWhiteSpace($Version)) {
+    $propsFile = Join-Path $rootDir "Directory.Build.props"
+    $match = Select-String -Path $propsFile -Pattern '<VersionPrefix>([^<]+)</VersionPrefix>' | Select-Object -First 1
+    if (-not $match) { throw "Could not read <VersionPrefix> from $propsFile" }
+    $Version = $match.Matches[0].Groups[1].Value.Trim()
+    Write-Host "==> No -Version supplied; using VersionPrefix '$Version' from Directory.Build.props"
+}
 
 $publishDir = Join-Path $rootDir "Publish\$Configuration\$Runtime"
 $outputDir = Join-Path $rootDir "Output\$Configuration\$Runtime"
