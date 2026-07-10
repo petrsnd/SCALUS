@@ -14,6 +14,7 @@ namespace OneIdentity.Scalus.Ui
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
+    using System.Reflection;
     using System.Runtime.InteropServices;
     using System.Text.Encodings.Web;
     using System.Text.Json;
@@ -81,6 +82,7 @@ namespace OneIdentity.Scalus.Ui
                     "getParsers" => ProtocolHandlerFactory.GetSupportedParsers(),
                     "getTerminals" => GetTerminals(),
                     "getInfo" => GetInfo(),
+                    "getVersion" => GetVersion(),
                     "getStartupAction" => GetStartupAction(),
                     "getLaunchRecords" => GetLaunchRecords(args.Count > 0 && args[0] != null ? args[0].GetValue<int>() : LaunchRecordStore.RetainedRecordLimit),
                     "getLaunchFile" => GetLaunchFile(args.Count > 0 ? args[0]?.GetValue<string>() : null),
@@ -227,6 +229,23 @@ namespace OneIdentity.Scalus.Ui
                 $"Registered handlers: {(registered.Count == 0 ? "none" : string.Join(", ", registered))}",
             };
             return string.Join(Environment.NewLine, lines);
+        }
+
+        // The product version, sourced from the assembly's InformationalVersion (which flows
+        // from Directory.Build.props - the single checked-in version source). SourceLink appends
+        // "+<commit sha>" build metadata, which is trimmed so the UI shows a clean version.
+        private static string GetVersion()
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+            var informational = assembly
+                .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+            if (!string.IsNullOrEmpty(informational))
+            {
+                var plus = informational.IndexOf('+');
+                return plus >= 0 ? informational.Substring(0, plus) : informational;
+            }
+
+            return assembly.GetName().Version?.ToString() ?? "0.0.0";
         }
 
         // A one-time startup instruction for the front-end. Currently only carries the deep-link

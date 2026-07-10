@@ -52,6 +52,7 @@ export class PhotinoBridge implements ScalusBridge {
   getParsers(): Promise<string[]> { return this.call('getParsers'); }
   getTerminals(): Promise<TerminalOption[]> { return this.call('getTerminals'); }
   getInfo(): Promise<string> { return this.call('getInfo'); }
+  getVersion(): Promise<string> { return this.call('getVersion'); }
   getStartupAction(): Promise<StartupAction> { return this.call('getStartupAction'); }
   getLaunchRecords(max?: number): Promise<LaunchRecord[]> { return this.call('getLaunchRecords', max); }
   getLaunchFile(fileName: string): Promise<string | null> { return this.call('getLaunchFile', fileName); }

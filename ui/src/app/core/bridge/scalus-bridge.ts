@@ -87,6 +87,7 @@ export interface ScalusBridge {
   getParsers(): Promise<string[]>;
   getTerminals(): Promise<TerminalOption[]>;
   getInfo(): Promise<string>;
+  getVersion(): Promise<string>;
   getStartupAction(): Promise<StartupAction>;
   getLaunchRecords(max?: number): Promise<LaunchRecord[]>;
   getLaunchFile(fileName: string): Promise<string | null>;

@@ -129,7 +129,7 @@
 
     <section class="screen" [class.active]="tab === 'about'">
       <header class="topbar"><div><div class="crumb">Configuration</div><h2>About SCALUS</h2></div></header>
-      <div class="content"><ui-card><h4>Session Client Application Launch Uri System</h4><p>Registers this machine as the handler for session-launch links and opens the right client with the right parameters.</p><dl class="kv"><dt>Version</dt><dd>{{ versionLine }}</dd><dt>Runtime</dt><dd>.NET 10 · NativeAOT dispatcher</dd><dt>UI host</dt><dd>Photino webview</dd><dt>Platform</dt><dd>{{ platform }}</dd><dt>Registered handlers</dt><dd><ui-badge [tone]="handlerTone">{{ registeredCount }} of {{ config.Protocols.length }}</ui-badge></dd></dl></ui-card><ui-card><h4>Diagnostics</h4><pre>{{ info }}</pre></ui-card></div>
+      <div class="content"><ui-card><h4>Session Client Application Launch Uri System</h4><p>Registers this machine as the handler for session-launch links and opens the right client with the right parameters.</p><dl class="kv"><dt>Version</dt><dd>{{ version }}</dd><dt>Runtime</dt><dd>.NET 10 · NativeAOT dispatcher</dd><dt>UI host</dt><dd>Photino webview</dd><dt>Platform</dt><dd>{{ platform }}</dd><dt>Registered handlers</dt><dd><ui-badge [tone]="handlerTone">{{ registeredCount }} of {{ config.Protocols.length }}</ui-badge></dd></dl></ui-card><ui-card><h4>Diagnostics</h4><pre>{{ info }}</pre></ui-card></div>
     </section>
   </main>
 </div>

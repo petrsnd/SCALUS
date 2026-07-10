@@ -68,6 +68,7 @@ export class App implements OnInit {
   tokens: Record<string, string> = {};
   private tokenTips: Record<string, string> = {};
   info = '';
+  version = '';
   message = '';
   editorOpen = false;
   editorMode: EditorMode = 'new';
@@ -107,6 +108,7 @@ export class App implements OnInit {
       this.tokenTips[name.toLowerCase()] = desc;
     }
     this.platform = await this.bridge.getPlatform();
+    this.version = await this.bridge.getVersion();
 
     // All-users registration needs elevation, which macOS can't provide for URL schemes — hide the
     // scope switch there and pin to per-user.
@@ -171,7 +173,7 @@ export class App implements OnInit {
     return this.registeredCount === 0 ? 'muted' : this.registeredCount === this.config.Protocols.length ? 'ok' : 'warn';
   }
   get elevationText(): string { return this.platform === 'Windows' ? 'Requires administrator' : 'Requires sudo'; }
-  get versionLine(): string { return (this.info.split('\n')[0] || 'SCALUS 3.0.0').trim(); }
+  get versionLine(): string { return this.version ? `SCALUS ${this.version}` : 'SCALUS'; }
 
   get preferredTerminal(): string { return this.config.PreferredTerminal || 'auto'; }
   async setPreferredTerminal(value: string | null): Promise<void> {

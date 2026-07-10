@@ -128,7 +128,8 @@ export class MockBridge implements ScalusBridge {
       { Id: 'conhost', Name: 'Windows Console Host (legacy)', Available: true },
     ];
   }
-  async getInfo(): Promise<string> { return 'SCALUS 3.0.0\nRuntime: .NET 10 / Photino host\nUI bridge: MockBridge\nConfig: in-memory browser seed'; }
+  async getInfo(): Promise<string> { return 'Platform: Windows\nConfiguration file: (in-memory browser seed)\nRuntime: .NET 10 / Photino host\nUI bridge: MockBridge'; }
+  async getVersion(): Promise<string> { return '2.0.0-dev'; }
   async getStartupAction(): Promise<StartupAction> { return { ShowLogs: null }; }
   async getLaunchRecords(max = 200): Promise<LaunchRecord[]> { return MOCK_LAUNCH_RECORDS.slice(0, max).map(r => ({ ...r })); }
   async getLaunchFile(fileName: string): Promise<string | null> { return MOCK_LAUNCH_FILES[fileName] ?? null; }
