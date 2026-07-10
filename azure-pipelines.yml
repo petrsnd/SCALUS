@@ -2,8 +2,9 @@
 # SCALUS CI/CD - trunk-based development with tag-driven releases.
 #
 #   * Every push to master and every PR to master runs Build & Test.
-#   * Pushes to master additionally build (unsigned) prerelease installers for
-#     all six OS/arch legs, so packaging breaks surface immediately on trunk.
+#   * Pushes to master AND PRs additionally build (unsigned) installers for all
+#     six OS/arch legs, so packaging breaks surface immediately - on the PR that
+#     introduces them, before merge.
 #   * A release is cut by tagging a commit `vX.Y.Z` (the tag MUST match
 #     <VersionPrefix> in Directory.Build.props - scripts/version.* enforces it).
 #     A tag build signs/notarizes the installers and drafts a GitHub release.
@@ -34,8 +35,9 @@ variables:
   dotnetSdkVersion: '10.0.x'
   wixVersion: '5.0.2'
   signToolPath: 'C:\Program Files (x86)\Microsoft SDKs\ClickOnce\SignTool\signtool.exe'
-  # Compile-time gates. Releases (sign/notarize/GitHub release) happen only on a
-  # `v*` tag; heavy packaging is skipped on PRs (Build & Test still runs).
+  # Compile-time gates. Packaging runs everywhere (PRs included) so build
+  # breaks surface pre-merge; signing/notarizing and the GitHub release happen
+  # only on a `v*` tag.
   isTagBuild: $[ startsWith(variables['Build.SourceBranch'], 'refs/tags/') ]
   isPr: $[ eq(variables['Build.Reason'], 'PullRequest') ]
 
@@ -64,11 +66,11 @@ jobs:
 
 # ---------------------------------------------------------------------------
 # Windows: NativeAOT scalus.exe + Photino scalus-ui + WiX 5 MSI (x64 & arm64).
-# Skipped on PRs; signed only on tag builds.
+# Builds on PRs too (unsigned); signed only on tag builds.
 # ---------------------------------------------------------------------------
 - job: Windows
   dependsOn: BuildAndTest
-  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+  condition: succeeded()
   pool:
     vmImage: 'windows-latest'
   strategy:
@@ -175,11 +177,11 @@ jobs:
 
 # ---------------------------------------------------------------------------
 # Linux: NativeAOT scalus + Photino scalus-ui + tar.gz/.deb/.rpm (x64 & arm64).
-# Skipped on PRs.
+# Builds on PRs too (Linux artifacts are unsigned).
 # ---------------------------------------------------------------------------
 - job: Linux
   dependsOn: BuildAndTest
-  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+  condition: succeeded()
   pool:
     vmImage: 'ubuntu-latest'
   strategy:
@@ -240,11 +242,11 @@ jobs:
 # ---------------------------------------------------------------------------
 # macOS: NativeAOT scalus + Photino scalus-ui, .app/.pkg, sign + notarize
 # (x64 & arm64). macOS runners are arm64; the x64 leg cross-targets via the
-# universal Apple toolchain. Skipped on PRs; signed/notarized only on tags.
+# universal Apple toolchain. Builds on PRs too; signed/notarized only on tags.
 # ---------------------------------------------------------------------------
 - job: Mac
   dependsOn: BuildAndTest
-  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+  condition: succeeded()
   pool:
     vmImage: 'macOS-latest'
   strategy:
@@ -375,10 +377,9 @@ jobs:
   - task: GitHubRelease@1
     displayName: 'Draft GitHub release from tag'
     inputs:
-      # TODO: set this to the Azure DevOps GitHub service connection that has
-      # write access to the SCALUS repo (create under Project Settings >
-      # Service connections if it does not exist yet).
-      gitHubConnection: 'OneIdentity-SCALUS-GitHub'
+      # Shared OneIdentity build service connection used by the Safeguard SDK
+      # pipelines (safeguard-ps, SafeguardDotNet, PySafeguard, ...).
+      gitHubConnection: 'PangaeaBuild-GitHub'
       repositoryName: 'OneIdentity/SCALUS'
       action: 'create'
       target: '$(Build.SourceVersion)'
