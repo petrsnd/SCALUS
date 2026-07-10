@@ -2,9 +2,12 @@
 
 SCALUS consists of 3 major components:
 
-* The CLI: Dispatches URL's to applications. Hosts the GUI.
-* The GUI: Modifies the SCALUS URL -> application configuration.
-* Build & Packaging: Cross platform build and packaging.
+* The CLI (`scalus`): A self-contained native launcher that dispatches URLs to
+  applications and registers/unregisters SCALUS as the OS protocol handler. Its
+  default `ui` verb starts the configuration GUI.
+* The GUI (`scalus-ui`): A Photino-hosted Angular desktop app that edits the
+  SCALUS URL -> application configuration.
+* Build & Packaging: Cross-platform build and packaging scripts.
 
 ## Working with the SCALUS CLI
 
@@ -104,4 +107,4 @@ Copyright (c) 2022 One Identity LLC
 
 ## Working with the SCALUS GUI
 
-See the [UI developer guide](Ui/README.md).
+See the [UI developer guide](../ui/README.md).
