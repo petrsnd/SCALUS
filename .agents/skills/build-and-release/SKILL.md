@@ -98,10 +98,10 @@ the SCALUS repo, or the tag-build release step 403s.
 
 - The `scalus` CLI publishes with NativeAOT. Keep trim/AOT warnings clean; use the
   source-gen JSON context (`Util/ScalusJson.cs`), not reflection serialization.
-- Do **not** run `vcvars*.bat` before a local publish/version probe — it exports
-  `Platform=x64`, which bypasses the csprojs' `CA1416` `NoWarn` (keyed on
-  `Platform==AnyCPU`) and breaks the build. Let the SDK locate the MSVC linker via
-  `vswhere` on PATH.
+- `CA1416` (platform-compatibility) is suppressed **unconditionally** in the
+  csprojs on purpose — AOT/self-contained publish builds with `Platform=x64`, and a
+  `Platform=AnyCPU`-conditioned `NoWarn` would silently stop applying there. Don't
+  re-scope that suppression back to a configuration/platform condition.
 
 ## Related
 

@@ -20,7 +20,7 @@ of a fresh config, platform filtering, or migration/import.
 
 `Util/ConfigurationManager.cs` resolves these (`ProdAppPath`). Logs live in a
 separate per-user dir (`LogDir`): `%LOCALAPPDATA%\SCALUS\logs`, `~/Library/Logs/
-SCALUS`, or `$XDG_STATE_HOME/scalus/logs`.
+SCALUS`, or on Linux `$XDG_STATE_HOME/scalus/logs` (else `~/.local/state/scalus/logs`).
 
 ## Schema (the DTOs in `src/Dto/`)
 
@@ -98,12 +98,15 @@ but old configs are still importable/migratable:
 - **`ConfigurationManager.MigrateLegacyLinuxConfig`** one-time copies an old
   `~/.SCALUS` config forward to the XDG dir (SCALUS.json + template/support files,
   excluding logs), so Linux users aren't orphaned.
-- **Import (UI)** — `importFromFile` (`BridgeDispatcher.cs`) opens a file dialog,
-  reads a config, and runs the same migration. The UI's Import/Export screen offers
-  whole-config **replace** and per-application **merge** (with name-collision
-  handling). `exportToFile` writes a config or a single-application fragment. This
-  path is covered end-to-end by `test/TestMigrationFixtures.cs` +
-  `test/Fixtures/.../legacy-config.json`.
+- **Import (UI)** — `importFromFile` (`BridgeDispatcher.cs`) opens a file dialog and
+  returns the file's text; the Angular app parses and normalizes it (`app.ts`,
+  `seed-data.ts`) before applying. The Import/Export screen offers whole-config
+  **replace** and per-application **merge** (with name-collision handling), and
+  `exportToFile` writes a config or a single-application fragment. Note the UI
+  import path normalizes JSON in TypeScript — it does **not** itself call
+  `MigrateLegacyTemplates`; the on-disk template migration above runs when the core
+  loads a config. `test/TestMigrationFixtures.cs` (+ the `legacy-config.json`
+  fixture) covers that core migration load path, not the UI import wiring.
 
 ## Verifying changes
 

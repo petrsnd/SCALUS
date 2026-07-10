@@ -28,8 +28,8 @@ see [UPGRADING.md](UPGRADING.md) for the migration path.
 - **Registration scope + conflict handling** — register per-user or (Windows/Linux)
   all-users via an elevation broker; the UI surfaces when another application owns a
   scheme and can replace it.
-- **Custom protocol schemes** can be added and removed from the UI; the built-in
-  `rdp`/`ssh`/`telnet` schemes are non-deletable.
+- **Custom protocol schemes** can be added and removed from the UI, alongside the
+  built-in `rdp`/`ssh`/`telnet` defaults.
 - **Import / Export** — whole-config replace and per-application merge (with
   collision handling) from the UI.
 - **Single version source + tag-driven releases** — `Directory.Build.props`

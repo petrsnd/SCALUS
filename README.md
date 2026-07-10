@@ -57,7 +57,8 @@ Each release provides installers per OS and architecture (x64 and arm64).
     installer -pkg scalus-<version>-osx-x64.pkg -target CurrentUserHomeDirectory
     ```
 
-  Then launch `scalus.app` (from Launchpad, or `open ~/Applications/scalus.app`).
+  Then launch **SCALUS** (the installed `scalus.app` bundle, which runs the
+  `scalus-ui` executable) from Launchpad, or `open ~/Applications/scalus.app`.
   A portable `.tar.gz` is also provided.
 
 * **Linux** — install the native package for your distro, or use the portable
@@ -83,7 +84,7 @@ app-menu entry). From there you can:
 - import and export configuration (or share a single application definition), and
 - review recent launches and diagnostics.
 
-Configuration is stored in a per-user `scalus.json`. Run `scalus info` to print
+Configuration is stored in a per-user `SCALUS.json`. Run `scalus info` to print
 the exact configuration and log file paths on your machine. See the
 [SCALUS Wiki](https://github.com/OneIdentity/SCALUS/wiki) for configuration
 details.

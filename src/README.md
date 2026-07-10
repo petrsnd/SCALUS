@@ -3,10 +3,10 @@
 SCALUS consists of 3 major components:
 
 * The CLI (`scalus`): A self-contained native launcher that dispatches URLs to
-  applications and registers/unregisters SCALUS as the OS protocol handler. Its
-  default `ui` verb starts the configuration GUI.
+  applications and registers/unregisters SCALUS as the OS protocol handler.
 * The GUI (`scalus-ui`): A Photino-hosted Angular desktop app that edits the
-  SCALUS URL -> application configuration.
+  SCALUS URL -> application configuration. Run the `scalus-ui` executable to open
+  it (there is no `scalus` sub-command for the UI).
 * Build & Packaging: Cross-platform build and packaging scripts.
 
 ## Working with the SCALUS CLI
@@ -14,6 +14,9 @@ SCALUS consists of 3 major components:
 ### Requirements
 
 * [.NET 10 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)
+* [Node.js 22.x](https://nodejs.org/) + npm — required to build the Angular UI
+  (`scalus-ui`). A CLI-only build (`dotnet build src/Cli/Scalus.Cli.csproj`) does
+  not need it, but building the full solution or the UI project does.
 
 ### Build
 
@@ -51,8 +54,12 @@ entry point tests, publishes the NativeAOT `scalus` launcher plus the Photino
 
     ```
     ./build.sh --runtime osx-x64      # -> .pkg + .tar.gz
-    ./build.sh --runtime linux-x64    # -> .tar.gz
+    ./build.sh --runtime linux-x64    # -> .deb + .rpm + .tar.gz
     ```
+
+    On Linux the `.tar.gz` is always produced; the `.deb`/`.rpm` are built only
+    when [`fpm`](https://fpm.readthedocs.io/) is on `PATH` (otherwise skipped with
+    a warning).
 
 * Windows (requires the `wix` dotnet tool + `WixToolset.UI.wixext`):
 
@@ -83,27 +90,37 @@ configuration UI, which persists them in the `settings` block of `SCALUS.json`:
 }
 ```
 
-During development you can optionally drop an `appsettings.json` next to the binary to override these
-(`Logging:MinLevel`, `Logging:Console`, `Logging:FileName`, `Configuration:FileName`). This file is a
-development-only convenience and is not shipped with released builds.
+During development you can optionally drop an `appsettings.json` to override these
+(`Logging:MinLevel`, `Logging:Console`, `Logging:FileName`, `Configuration:FileName`).
+On Windows and Linux it is read from next to the binary; on macOS it is read from
+the per-user application-support directory. This file is a development-only
+convenience and is not shipped with released builds.
 
 ### Usage
 
 SCALUS command-line usage:
 
 ```
-Session Client Application Launch Uri System (SCALUS)
-Copyright (c) 2022 One Identity LLC
+Description:
+  Session Client Application Launch Uri System (SCALUS)
 
-  info          Show information about the current SCALUS configuration
-  launch        Launch an app configured for the specified URL
-  register      Register SCALUS to handle URLs
-  ui            (Default Verb) Run the configuration UI
-  unregister    Unregister SCALUS for URL handling
-  verify        Run a syntax check on a SCALUS configuration file
-  help          Display more information on a specific command.
-  version       Display version information.
+Usage:
+  scalus [command] [options]
+
+Options:
+  -?, -h, --help  Show help and usage information
+  --version       Show version information
+
+Commands:
+  info        Show information about the current scalus configuration
+  launch      Launch an app configured for the specified URL
+  register    Register SCALUS to handle URLs
+  unregister  Unregister SCALUS for URL handling
+  verify      Run a syntax check on a scalus configuration file
 ```
+
+The configuration GUI is a separate binary (`scalus-ui`), not a `scalus`
+sub-command.
 
 ## Working with the SCALUS GUI
 

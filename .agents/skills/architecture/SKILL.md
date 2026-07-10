@@ -36,8 +36,10 @@ stack that must never sit on the hot path.
 ## CLI verbs
 
 Verb implementations live in sibling folders, each with an `Options.cs`:
-`Launch/`, `Register/`, `Unregister/`, `Info/`, `Verify/`. `ui` is the default
-verb (starts the GUI). `IVerb.cs` / `CommandLineHandler.cs` define dispatch.
+`Launch/`, `Register/`, `Unregister/`, `Info/`, `Verify/`. These five verbs are
+registered in `Ioc.cs` (`RegisterVerbs`); `IVerb.cs` / `CommandLineHandler.cs`
+define dispatch. The configuration GUI is **not** a verb — it is the separate
+`scalus-ui` binary, which opens the UI when run with no launch arguments.
 
 - `launch  -u <uri>` — the hot path (see flow below). Only this verb is ever
   invoked by the OS.

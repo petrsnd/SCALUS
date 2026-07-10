@@ -82,12 +82,9 @@ Fast UI-only iteration (browser dev mode, backed by mock data) lives in
 ```
 
 When `-Version`/`--version` is omitted, every build/publish/package script reads
-`<VersionPrefix>` from `Directory.Build.props`. Never hardcode a version.
-
-> Do **not** run `vcvars*.bat` before `dotnet` version probes: it exports
-> `Platform=x64`, which bypasses the csprojs' `CA1416` `NoWarn` (keyed on
-> `Platform==AnyCPU`). Use `dotnet msbuild <proj> -getProperty:Version` for quick
-> version checks.
+`<VersionPrefix>` from `Directory.Build.props`. Never hardcode a version. For a
+quick version check without a full build, use
+`dotnet msbuild <proj> -getProperty:Version`.
 
 ## Testing
 
@@ -110,7 +107,7 @@ UI unit specs (Karma) run from `ui/` with `npm test`.
 - **Platform code is isolated.** OS-specific behavior lives under
   `src/Platform/{Windows,MacOS,Linux}` behind interfaces resolved in `Ioc.cs`.
   Guard Windows-only P/Invoke with `RuntimeInformation.IsOSPlatform`.
-- **Config is JSON, case-insensitive on read.** `scalus.json` round-trips through
+- **Config is JSON, case-insensitive on read.** `SCALUS.json` round-trips through
   `ScalusJson`; legacy/PascalCase and older template forms still load and are
   migrated (see the configuration skill).
 - **The UI talks over the bridge, never HTTP.** Adding a capability means adding a
@@ -150,10 +147,10 @@ Read the matching `SKILL.md` when your task fits the trigger.
 
 | Skill | When to read | File |
 |-------|-------------|------|
-| Architecture | Understanding component boundaries, URI dispatch flow, registration, the config/template model | `.agents/skills/architecture/SKILL.md` |
-| Build and Release | Working on build/publish/package scripts, versioning, the pipeline, signing/notarization, GitHub releases | `.agents/skills/build-and-release/SKILL.md` |
-| UI Bridge | Working on the Angular UI or adding/altering a host bridge method end-to-end | `.agents/skills/ui-bridge/SKILL.md` |
-| Configuration | Working on `scalus.json`, applications/protocols/templates, seeding, platform filtering, or legacy migration/import | `.agents/skills/configuration/SKILL.md` |
+| Architecture | Understanding component boundaries, URI dispatch flow, registration, the config/template model | [`.agents/skills/architecture/SKILL.md`](.agents/skills/architecture/SKILL.md) |
+| Build and Release | Working on build/publish/package scripts, versioning, the pipeline, signing/notarization, GitHub releases | [`.agents/skills/build-and-release/SKILL.md`](.agents/skills/build-and-release/SKILL.md) |
+| UI Bridge | Working on the Angular UI or adding/altering a host bridge method end-to-end | [`.agents/skills/ui-bridge/SKILL.md`](.agents/skills/ui-bridge/SKILL.md) |
+| Configuration | Working on `SCALUS.json`, applications/protocols/templates, seeding, platform filtering, or legacy migration/import | [`.agents/skills/configuration/SKILL.md`](.agents/skills/configuration/SKILL.md) |
 
 ## Keeping this file current
 

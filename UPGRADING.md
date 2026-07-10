@@ -41,7 +41,7 @@ run the installer for your platform.
   rewrites any stale 1.x handler to the new form.
 - **Configuration does not move automatically.** In 1.x, `scalus.json` lived next
   to the binary (under `Program Files`). In 2.0 it lives per-user at
-  `%LOCALAPPDATA%\SCALUS\scalus.json`. On first launch the new install seeds a
+  `%LOCALAPPDATA%\SCALUS\SCALUS.json`. On first launch the new install seeds a
   fresh, platform-appropriate default config there. To bring your old settings
   forward, use **Import** in the new UI (see "Migrating your old configuration").
 
